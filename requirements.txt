@@ -1,0 +1,25 @@
+# Core Framework
+Django==5.2.11
+
+# Database
+psycopg2-binary==2.9.11
+
+# Environment Variables
+django-environ==0.13.0
+
+# AI / LLM
+anthropic==0.79.0
+
+# Task Scheduling
+django-apscheduler==0.7.0
+
+# PDF Parsing
+pdfplumber==0.11.9
+
+# HTTP Client
+requests==2.32.5
+
+# Google API (Gmail, Calendar)
+google-api-python-client==2.187.0
+google-auth-httplib2==0.3.0
+google-auth-oauthlib==1.2.4
