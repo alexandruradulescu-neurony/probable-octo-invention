@@ -28,7 +28,8 @@ SECRET_KEY = env("SECRET_KEY")
 
 DEBUG = env("DEBUG")
 
-ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+# Strip whitespace from each host to guard against accidental spaces in .env
+ALLOWED_HOSTS = [h.strip() for h in env.list("ALLOWED_HOSTS")]
 
 # ─── Application Definition ────────────────────────────────────────────────────
 
@@ -118,13 +119,13 @@ USE_I18N = True
 
 USE_TZ = True
 
-# ─── Static Files ──────────────────────────────────────────────────────────────
+# ─── Static & Media Files ──────────────────────────────────────────────────────
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
 
 # ─── Primary Key ───────────────────────────────────────────────────────────────
 
@@ -133,26 +134,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ─── Third-Party: APScheduler ──────────────────────────────────────────────────
 
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
-APSCHEDULER_RUN_NOW_TIMEOUT = env.int("APSCHEDULER_RUN_NOW_TIMEOUT", default=25)
+APSCHEDULER_RUN_NOW_TIMEOUT = 25
+APSCHEDULER_TIMEZONE = env("APSCHEDULER_TIMEZONE", default="UTC")
 
 # ─── Third-Party: Anthropic ────────────────────────────────────────────────────
 
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+ANTHROPIC_MODEL = env("ANTHROPIC_MODEL", default="claude-sonnet-4-20250514")
+ANTHROPIC_FAST_MODEL = env("ANTHROPIC_FAST_MODEL", default="claude-3-5-haiku-20241022")
 
 # ─── Third-Party: ElevenLabs ───────────────────────────────────────────────────
 
 ELEVENLABS_API_KEY = env("ELEVENLABS_API_KEY", default="")
-ELEVENLABS_VOICE_ID = env("ELEVENLABS_VOICE_ID", default="")
+ELEVENLABS_AGENT_ID = env("ELEVENLABS_AGENT_ID", default="")
+ELEVENLABS_PHONE_NUMBER_ID = env("ELEVENLABS_PHONE_NUMBER_ID", default="")
+ELEVENLABS_WEBHOOK_SECRET = env("ELEVENLABS_WEBHOOK_SECRET", default="")
 
 # ─── Third-Party: Whapi ────────────────────────────────────────────────────────
 
-WHAPI_API_KEY = env("WHAPI_API_KEY", default="")
-WHAPI_BASE_URL = env("WHAPI_BASE_URL", default="https://gate.whapi.cloud")
+WHAPI_TOKEN = env("WHAPI_TOKEN", default="")
+WHAPI_API_URL = env("WHAPI_API_URL", default="")
+WHAPI_WEBHOOK_SECRET = env("WHAPI_WEBHOOK_SECRET", default="")
 
-# ─── Third-Party: Gmail ────────────────────────────────────────────────────────
+# ─── Third-Party: Google / Gmail ───────────────────────────────────────────────
 
-GMAIL_CLIENT_ID = env("GMAIL_CLIENT_ID", default="")
-GMAIL_CLIENT_SECRET = env("GMAIL_CLIENT_SECRET", default="")
-GMAIL_REDIRECT_URI = env("GMAIL_REDIRECT_URI", default="http://localhost:8000/oauth2callback")
-GMAIL_CREDENTIALS_FILE = env("GMAIL_CREDENTIALS_FILE", default="credentials.json")
-GMAIL_TOKEN_FILE = env("GMAIL_TOKEN_FILE", default="token.json")
+GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
+GOOGLE_REFRESH_TOKEN = env("GOOGLE_REFRESH_TOKEN", default="")
+
+GMAIL_INBOX_LABEL = env("GMAIL_INBOX_LABEL", default="CVs")
+GMAIL_PROCESSED_LABEL = env("GMAIL_PROCESSED_LABEL", default="CVs-Processed")
+GMAIL_POLL_ENABLED = env.bool("GMAIL_POLL_ENABLED", default=True)
+GMAIL_POLL_MINUTES = env.int("GMAIL_POLL_MINUTES", default=15)
