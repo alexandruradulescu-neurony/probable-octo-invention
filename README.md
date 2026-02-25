@@ -130,6 +130,35 @@ Visit `http://127.0.0.1:8010/admin/` to verify.
 
 ---
 
+## Database Models
+
+| App | Model(s) | Key Fields |
+|---|---|---|
+| `positions` | `Position` | `status` (open/paused/closed), prompt fields, call scheduling config |
+| `candidates` | `Candidate` | `phone`/`email` (indexed), `meta_lead_id` (unique), `form_answers` (JSONField) |
+| `applications` | `Application` | `status` (18-state flow), `qualified`, `score`, unique_together (candidate, position) |
+| `calls` | `Call` | `eleven_labs_conversation_id` (unique), `status`, `transcript`, `attempt_number` |
+| `evaluations` | `LLMEvaluation` | `outcome` (4 values), `score`, `raw_response` (JSONField), callback/human flags |
+| `messaging` | `Message` | `channel` (email/whatsapp), `message_type`, `status`, `external_id` |
+| `cvs` | `CVUpload` | `source`, `match_method`, `needs_review` flag, `file_path` |
+| `cvs` | `UnmatchedInbound` | `channel`, `raw_payload` (JSONField), resolution tracking |
+| `prompts` | `PromptTemplate` | `meta_prompt`, `is_active`, `version` (audit trail) |
+
+### Application Status Flow (18 states)
+
+```
+pending_call → call_queued → call_in_progress → call_completed → scoring
+  scoring → qualified → awaiting_cv → cv_followup_1 → cv_followup_2 → cv_overdue → closed
+  scoring → not_qualified → awaiting_cv_rejected → cv_received_rejected → closed
+  [any awaiting stage] → cv_received → closed
+  call_in_progress → call_failed
+  scoring → callback_scheduled → (re-enters call_queued)
+  scoring → needs_human → (recruiter handles manually)
+  any → closed
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
