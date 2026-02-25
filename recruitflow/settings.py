@@ -142,6 +142,12 @@ MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ─── Authentication ───────────────────────────────────────────────────────────
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "dashboard"
+LOGOUT_REDIRECT_URL = "login"
+
 # ─── Third-Party: APScheduler ──────────────────────────────────────────────────
 
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
