@@ -1,0 +1,363 @@
+"""
+evaluations/services.py
+
+Claude (Anthropic) integration service.
+
+Responsibilities:
+  - generate_prompts : auto-generate Position prompts from a PromptTemplate via Claude
+  - evaluate_call    : score a completed call transcript and persist the result
+"""
+
+import json
+import logging
+import re
+
+import anthropic
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from applications.models import Application
+from evaluations.models import LLMEvaluation
+
+logger = logging.getLogger(__name__)
+
+
+# ── Custom exception ───────────────────────────────────────────────────────────
+
+class ClaudeServiceError(Exception):
+    """Raised when the Anthropic API returns an error or an unexpected response."""
+
+
+# ── Service ────────────────────────────────────────────────────────────────────
+
+class ClaudeService:
+    """
+    Wrapper around the Anthropic Messages API.
+    The client is created lazily so the class can be instantiated without a
+    valid API key (useful in tests / management commands that import the class).
+    """
+
+    _client: anthropic.Anthropic | None = None
+
+    @property
+    def client(self) -> anthropic.Anthropic:
+        if self._client is None:
+            api_key = settings.ANTHROPIC_API_KEY
+            if not api_key:
+                raise ClaudeServiceError("ANTHROPIC_API_KEY is not configured.")
+            self._client = anthropic.Anthropic(api_key=api_key)
+        return self._client
+
+    # ── Public API ─────────────────────────────────────────────────────────────
+
+    def generate_prompts(self, position, prompt_template) -> dict:
+        """
+        Use Claude to auto-generate the three prompts for a Position.
+
+        The PromptTemplate.meta_prompt is used as the instruction.  The
+        position-specific data is injected via simple placeholder replacement.
+
+        Expected Claude response (JSON):
+          {
+            "system_prompt"        : "...",
+            "first_message"        : "...",
+            "qualification_prompt" : "..."
+          }
+
+        Args:
+            position        : positions.Position instance
+            prompt_template : prompts.PromptTemplate instance
+
+        Returns:
+            dict with keys: system_prompt, first_message, qualification_prompt
+
+        Raises:
+            ClaudeServiceError on API failure or unparseable response.
+        """
+        meta_prompt = prompt_template.meta_prompt or ""
+
+        # Inject position details into the meta-prompt
+        user_message = (
+            meta_prompt
+            .replace("{title}", position.title or "")
+            .replace("{description}", position.description or "")
+            .replace("{campaign_questions}", position.campaign_questions or "")
+        )
+
+        logger.info(
+            "Generating prompts for position=%s using template=%s",
+            position.pk,
+            prompt_template.pk,
+        )
+
+        raw = self._send_message(
+            model=settings.ANTHROPIC_MODEL,
+            system=(
+                "You are an expert recruiter. "
+                "Respond ONLY with a valid JSON object — no prose, no markdown fences."
+            ),
+            user=user_message,
+        )
+
+        data = _parse_claude_json(raw)
+
+        required = {"system_prompt", "first_message", "qualification_prompt"}
+        missing = required - data.keys()
+        if missing:
+            raise ClaudeServiceError(
+                f"Claude response missing required fields: {missing}. "
+                f"Raw response: {raw[:300]}"
+            )
+
+        logger.info("Prompts generated successfully for position=%s", position.pk)
+        return {
+            "system_prompt": data["system_prompt"],
+            "first_message": data["first_message"],
+            "qualification_prompt": data["qualification_prompt"],
+        }
+
+    def evaluate_call(self, call) -> LLMEvaluation:
+        """
+        Send the completed call transcript to Claude for qualification scoring.
+
+        Architecture:
+          - System message : Position.qualification_prompt (the evaluation criteria)
+          - User message   : Structured block containing transcript + form answers
+                             + explicit JSON schema instructions
+
+        Expected Claude response (JSON):
+          {
+            "outcome"          : "qualified|not_qualified|callback_requested|needs_human",
+            "qualified"        : true|false,
+            "score"            : 0-100,
+            "reasoning"        : "...",
+            "callback_requested": false,
+            "callback_notes"   : null,
+            "needs_human"      : false,
+            "needs_human_notes": null,
+            "callback_at"      : null   (ISO 8601 or null)
+          }
+
+        Post-evaluation Application status transitions:
+          qualified           → QUALIFIED
+          not_qualified       → NOT_QUALIFIED
+          callback_requested  → CALLBACK_SCHEDULED  (+ callback_scheduled_at)
+          needs_human         → NEEDS_HUMAN         (+ needs_human_reason)
+
+        Args:
+            call: calls.Call instance (must have transcript set)
+
+        Returns:
+            The newly created LLMEvaluation instance.
+
+        Raises:
+            ClaudeServiceError on API or JSON parsing failure.
+        """
+        application = call.application
+        position = application.position
+        candidate = application.candidate
+
+        qualification_prompt = position.qualification_prompt or (
+            "Evaluate whether the candidate is qualified based on their responses."
+        )
+
+        form_answers_text = _format_form_answers(candidate.form_answers)
+        transcript_text = call.transcript or "(No transcript available)"
+
+        user_message = (
+            f"## Candidate Pre-screening Answers\n{form_answers_text}\n\n"
+            f"## Call Transcript\n{transcript_text}\n\n"
+            "## Instructions\n"
+            "Based on the qualification criteria in your system prompt, evaluate "
+            "this candidate. Respond ONLY with a valid JSON object matching this "
+            "exact schema — no prose, no markdown fences:\n"
+            "{\n"
+            '  "outcome": "qualified|not_qualified|callback_requested|needs_human",\n'
+            '  "qualified": true|false,\n'
+            '  "score": <integer 0-100>,\n'
+            '  "reasoning": "<concise explanation>",\n'
+            '  "callback_requested": true|false,\n'
+            '  "callback_notes": "<notes or null>",\n'
+            '  "needs_human": true|false,\n'
+            '  "needs_human_notes": "<notes or null>",\n'
+            '  "callback_at": "<ISO 8601 datetime or null>"\n'
+            "}"
+        )
+
+        logger.info(
+            "Evaluating call=%s application=%s with Claude", call.pk, application.pk
+        )
+
+        raw = self._send_message(
+            model=settings.ANTHROPIC_MODEL,
+            system=qualification_prompt,
+            user=user_message,
+        )
+
+        data = _parse_claude_json(raw)
+
+        # Validate required fields
+        required = {"outcome", "qualified", "score", "reasoning"}
+        missing = required - data.keys()
+        if missing:
+            raise ClaudeServiceError(
+                f"Claude evaluation response missing fields: {missing}. "
+                f"Raw: {raw[:300]}"
+            )
+
+        outcome_str = data["outcome"]
+        valid_outcomes = {o.value for o in LLMEvaluation.Outcome}
+        if outcome_str not in valid_outcomes:
+            raise ClaudeServiceError(
+                f"Claude returned unknown outcome '{outcome_str}'. "
+                f"Valid: {valid_outcomes}"
+            )
+
+        callback_at = _parse_optional_datetime(data.get("callback_at"))
+
+        with transaction.atomic():
+            evaluation = LLMEvaluation.objects.create(
+                application=application,
+                call=call,
+                outcome=outcome_str,
+                qualified=bool(data["qualified"]),
+                score=int(data.get("score", 0)),
+                reasoning=data.get("reasoning", ""),
+                callback_requested=bool(data.get("callback_requested", False)),
+                callback_notes=data.get("callback_notes") or None,
+                needs_human=bool(data.get("needs_human", False)),
+                needs_human_notes=data.get("needs_human_notes") or None,
+                raw_response=data,
+            )
+
+            # Update Application fields
+            application.qualified = bool(data["qualified"])
+            application.score = int(data.get("score", 0))
+            application.score_notes = data.get("reasoning", "")
+
+            # Status transition + outcome-specific side-effects
+            if outcome_str == LLMEvaluation.Outcome.QUALIFIED:
+                application.status = Application.Status.QUALIFIED
+
+            elif outcome_str == LLMEvaluation.Outcome.NOT_QUALIFIED:
+                application.status = Application.Status.NOT_QUALIFIED
+
+            elif outcome_str == LLMEvaluation.Outcome.CALLBACK_REQUESTED:
+                application.status = Application.Status.CALLBACK_SCHEDULED
+                if callback_at:
+                    application.callback_scheduled_at = callback_at
+
+            elif outcome_str == LLMEvaluation.Outcome.NEEDS_HUMAN:
+                application.status = Application.Status.NEEDS_HUMAN
+                application.needs_human_reason = (
+                    data.get("needs_human_notes") or "Escalated by Claude evaluation."
+                )
+
+            application.save(
+                update_fields=[
+                    "status",
+                    "qualified",
+                    "score",
+                    "score_notes",
+                    "callback_scheduled_at",
+                    "needs_human_reason",
+                    "updated_at",
+                ]
+            )
+
+        logger.info(
+            "Evaluation saved: evaluation=%s outcome=%s score=%s application=%s",
+            evaluation.pk,
+            outcome_str,
+            data.get("score"),
+            application.pk,
+        )
+        return evaluation
+
+    # ── Internal helpers ───────────────────────────────────────────────────────
+
+    def _send_message(self, model: str, system: str, user: str) -> str:
+        """
+        Send a single-turn message to the Anthropic Messages API and return
+        the raw text content of the first content block.
+
+        Raises:
+            ClaudeServiceError on any Anthropic API error.
+        """
+        try:
+            message = self.client.messages.create(
+                model=model,
+                max_tokens=2048,
+                system=system,
+                messages=[{"role": "user", "content": user}],
+            )
+        except anthropic.APIError as exc:
+            raise ClaudeServiceError(f"Anthropic API error: {exc}") from exc
+
+        if not message.content:
+            raise ClaudeServiceError("Anthropic returned an empty response.")
+
+        return message.content[0].text
+
+
+# ── Parsing helpers ────────────────────────────────────────────────────────────
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
+
+
+def _parse_claude_json(raw: str) -> dict:
+    """
+    Parse a JSON object from Claude's response text.
+    Strips markdown code fences if present before parsing.
+
+    Raises:
+        ClaudeServiceError if the text cannot be parsed as JSON.
+    """
+    text = raw.strip()
+
+    # Strip optional markdown fences
+    fence_match = _JSON_FENCE_RE.search(text)
+    if fence_match:
+        text = fence_match.group(1).strip()
+
+    try:
+        result = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ClaudeServiceError(
+            f"Failed to parse Claude JSON response: {exc}. Raw: {raw[:300]}"
+        ) from exc
+
+    if not isinstance(result, dict):
+        raise ClaudeServiceError(
+            f"Expected JSON object from Claude, got {type(result).__name__}."
+        )
+
+    return result
+
+
+def _parse_optional_datetime(value):
+    """
+    Parse an ISO 8601 datetime string into a timezone-aware datetime, or
+    return None if the value is empty / null / unparseable.
+    """
+    if not value or not isinstance(value, str):
+        return None
+    dt = parse_datetime(value)
+    if dt is None:
+        return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt)
+    return dt
+
+
+def _format_form_answers(form_answers: dict | None) -> str:
+    """Render form_answers as a human-readable Q&A block for the evaluation prompt."""
+    if not form_answers:
+        return "No pre-screening answers on file."
+    lines = []
+    for key, value in form_answers.items():
+        question = key.replace("_", " ").strip().capitalize()
+        lines.append(f"Q: {question}\nA: {value}")
+    return "\n\n".join(lines)
