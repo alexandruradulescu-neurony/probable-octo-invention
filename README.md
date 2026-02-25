@@ -94,10 +94,15 @@ python manage.py createsuperuser
 ### 8. Run the development server
 
 ```bash
-python manage.py runserver
+python manage.py runserver 8010
 ```
 
-Visit `http://127.0.0.1:8000/admin/` to verify.
+Visit `http://127.0.0.1:8010/admin/` to verify.
+
+> **ngrok**: point your ngrok tunnel at port 8010 to expose the app at `https://recrutopiaaibot.ngrok.com`:
+> ```bash
+> ngrok http --domain=recrutopiaaibot.ngrok.com 8010
+> ```
 
 ---
 
@@ -107,7 +112,9 @@ Visit `http://127.0.0.1:8000/admin/` to verify.
 |---|---|
 | `SECRET_KEY` | Django secret key — keep this secret in production |
 | `DEBUG` | `True` for development, `False` for production |
-| `ALLOWED_HOSTS` | Comma-separated list of allowed hostnames |
+| `ALLOWED_HOSTS` | Comma-separated list of allowed hostnames (include your ngrok domain) |
+| `PORT` | Dev server port (default: `8010`) |
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated full origin URLs trusted for CSRF — must include `https://your-ngrok-domain` |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `ANTHROPIC_API_KEY` | Anthropic Claude API key |
 | `ELEVENLABS_API_KEY` | ElevenLabs API key for AI voice calls |

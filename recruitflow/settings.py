@@ -26,10 +26,21 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
 
+PORT = env.int("PORT", default=8010)
+
 DEBUG = env("DEBUG")
 
 # Strip whitespace from each host to guard against accidental spaces in .env
 ALLOWED_HOSTS = [h.strip() for h in env.list("ALLOWED_HOSTS")]
+
+# Full origin URLs required by Django's CSRF check (must include scheme).
+# ngrok terminates TLS, so its origin must use https://.
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in env.list("CSRF_TRUSTED_ORIGINS", default=[])]
+
+# Trust the forwarded protocol header set by ngrok (and any reverse proxy).
+# Without this, Django would treat all proxied requests as plain HTTP.
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ─── Application Definition ────────────────────────────────────────────────────
 
