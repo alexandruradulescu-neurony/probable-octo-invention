@@ -1,0 +1,31 @@
+{% if status == "pending_call" or status == "call_queued" %}
+  <span class="badge bg-secondary badge-status">{{ status|title }}</span>
+{% elif status == "call_in_progress" %}
+  <span class="badge bg-primary badge-status">In Progress</span>
+{% elif status == "call_completed" or status == "scoring" %}
+  <span class="badge bg-info badge-status">{{ status|title }}</span>
+{% elif status == "call_failed" %}
+  <span class="badge bg-danger badge-status">Call Failed</span>
+{% elif status == "qualified" %}
+  <span class="badge bg-success badge-status">Qualified</span>
+{% elif status == "not_qualified" %}
+  <span class="badge bg-danger badge-status">Not Qualified</span>
+{% elif status == "awaiting_cv" or status == "cv_followup_1" or status == "cv_followup_2" %}
+  <span class="badge bg-warning text-dark badge-status">{{ status|title }}</span>
+{% elif status == "cv_overdue" %}
+  <span class="badge bg-danger badge-status">CV Overdue</span>
+{% elif status == "cv_received" %}
+  <span class="badge bg-success badge-status">CV Received</span>
+{% elif status == "awaiting_cv_rejected" %}
+  <span class="badge bg-warning text-dark badge-status">Awaiting CV (Rej)</span>
+{% elif status == "cv_received_rejected" %}
+  <span class="badge bg-dark badge-status">CV Received (Rej)</span>
+{% elif status == "callback_scheduled" %}
+  <span class="badge bg-info badge-status">Callback</span>
+{% elif status == "needs_human" %}
+  <span class="badge bg-danger badge-status">Needs Human</span>
+{% elif status == "closed" %}
+  <span class="badge bg-dark badge-status">Closed</span>
+{% else %}
+  <span class="badge bg-secondary badge-status">{{ status }}</span>
+{% endif %}

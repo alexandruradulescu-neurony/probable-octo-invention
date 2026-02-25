@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}{{ candidate.full_name }} — {{ position.title }} — RecruitFlow{% endblock %}
+{% block page_title %}Application Detail{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'applications:list' %}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i> Back to Applications
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header card -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-md-7">
+        <h4 class="mb-1 fw-bold">{{ candidate.full_name }}</h4>
+        <div class="text-muted mb-2">{{ position.title }}</div>
+        <div class="d-flex gap-2 flex-wrap">
+          {% include "applications/_status_badge.html" with status=application.status %}
+          {% if application.qualified is not None %}
+            {% if application.qualified %}
+              <span class="badge bg-success-subtle text-success badge-status">Qualified</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger badge-status">Not Qualified</span>
+            {% endif %}
+          {% endif %}
+          {% if application.score is not None %}
+            <span class="badge bg-light text-dark border badge-status">Score: {{ application.score }}/100</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-5 mt-3 mt-md-0">
+        <div class="d-flex flex-column gap-1">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-telephone text-muted"></i>
+            <a href="tel:{{ candidate.phone }}" class="text-decoration-none">{{ candidate.phone }}</a>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-envelope text-muted"></i>
+            <a href="mailto:{{ candidate.email }}" class="text-decoration-none">{{ candidate.email }}</a>
+          </div>
+          {% if candidate.whatsapp_number %}
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-whatsapp text-success"></i>
+            <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank"
+               class="text-decoration-none">{{ candidate.whatsapp_number }}</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Left column: timeline content -->
+  <div class="col-lg-8">
+
+    <!-- Call History -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-telephone-outbound"></i> Call History
+      </div>
+      {% if calls %}
+      <div class="list-group list-group-flush">
+        {% for call in calls %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="fw-medium">Attempt #{{ call.attempt_number }}</span>
+              {% if call.status == "completed" %}
+                <span class="badge bg-success ms-1">Completed</span>
+              {% elif call.status == "initiated" or call.status == "in_progress" %}
+                <span class="badge bg-primary ms-1">{{ call.get_status_display }}</span>
+              {% else %}
+                <span class="badge bg-danger ms-1">{{ call.get_status_display }}</span>
+              {% endif %}
+            </div>
+            <div class="text-muted small">
+              {{ call.initiated_at|date:"M j, Y H:i" }}
+              {% if call.duration_seconds %}
+                &middot; {{ call.duration_seconds }}s
+              {% endif %}
+            </div>
+          </div>
+          {% if call.summary_title %}
+          <div class="text-muted small mt-1">{{ call.summary_title }}</div>
+          {% endif %}
+          {% if call.summary %}
+          <div class="small mt-1">{{ call.summary }}</div>
+          {% endif %}
+          {% if call.transcript %}
+          <div class="mt-2">
+            <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse"
+               href="#transcript-{{ call.pk }}" role="button">
+              <i class="bi bi-chat-left-text"></i> View Transcript
+            </a>
+            <div class="collapse mt-2" id="transcript-{{ call.pk }}">
+              <div class="card card-body bg-light small" style="white-space: pre-line; max-height: 400px; overflow-y: auto;">{{ call.transcript }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted text-center py-4">No calls yet.</div>
+      {% endif %}
+    </div>
+
+    <!-- LLM Evaluations -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-robot"></i> LLM Evaluations
+      </div>
+      {% if evaluations %}
+      <div class="list-group list-group-flush">
+        {% for ev in evaluations %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <div>
+              {% if ev.outcome == "qualified" %}
+                <span class="badge bg-success">Qualified</span>
+              {% elif ev.outcome == "not_qualified" %}
+                <span class="badge bg-danger">Not Qualified</span>
+              {% elif ev.outcome == "callback_requested" %}
+                <span class="badge bg-info">Callback Requested</span>
+              {% elif ev.outcome == "needs_human" %}
+                <span class="badge bg-warning text-dark">Needs Human</span>
+              {% endif %}
+              <span class="fw-semibold ms-1">Score: {{ ev.score }}/100</span>
+            </div>
+            <div class="text-muted small">{{ ev.evaluated_at|date:"M j, Y H:i" }}</div>
+          </div>
+          <div class="small">{{ ev.reasoning }}</div>
+          {% if ev.callback_requested and ev.callback_notes %}
+          <div class="small text-info mt-1">
+            <i class="bi bi-arrow-repeat"></i> Callback: {{ ev.callback_notes }}
+          </div>
+          {% endif %}
+          {% if ev.needs_human and ev.needs_human_notes %}
+          <div class="small text-danger mt-1">
+            <i class="bi bi-person-raised-hand"></i> Escalation: {{ ev.needs_human_notes }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted text-center py-4">No evaluations yet.</div>
+      {% endif %}
+    </div>
+
+    <!-- Messages -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-envelope"></i> Messages Sent
+      </div>
+      {% if messages %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Channel</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Sent At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for msg in messages %}
+            <tr>
+              <td>
+                {% if msg.channel == "email" %}
+                  <i class="bi bi-envelope text-muted"></i> Email
+                {% else %}
+                  <i class="bi bi-whatsapp text-success"></i> WhatsApp
+                {% endif %}
+              </td>
+              <td class="small">{{ msg.get_message_type_display }}</td>
+              <td>
+                {% if msg.status == "sent" or msg.status == "delivered" %}
+                  <span class="badge bg-success-subtle text-success">{{ msg.get_status_display }}</span>
+                {% elif msg.status == "failed" %}
+                  <span class="badge bg-danger-subtle text-danger">Failed</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary">{{ msg.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ msg.sent_at|date:"M j, Y H:i"|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-muted text-center py-4">No messages sent.</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Right column: metadata -->
+  <div class="col-lg-4">
+
+    <!-- CV Uploads -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-file-earmark-pdf"></i> CV
+      </div>
+      {% if cv_uploads %}
+      <div class="list-group list-group-flush">
+        {% for cv in cv_uploads %}
+        <div class="list-group-item">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fw-medium small">{{ cv.file_name }}</div>
+              <div class="text-muted" style="font-size:.75rem">
+                {{ cv.get_source_display }}
+                {% if cv.match_method %}
+                  &middot; {{ cv.get_match_method_display }}
+                {% endif %}
+              </div>
+            </div>
+            {% if cv.needs_review %}
+              <span class="badge bg-warning text-dark" style="font-size:.7rem">Needs Review</span>
+            {% endif %}
+          </div>
+          <div class="text-muted" style="font-size:.7rem">{{ cv.received_at|date:"M j, Y H:i" }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-muted text-center small py-3">No CV received yet.</div>
+      {% endif %}
+    </div>
+
+    <!-- Form Answers -->
+    {% if form_answers_list %}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-ui-checks-grid"></i> Pre-screening Answers
+      </div>
+      <div class="list-group list-group-flush">
+        {% for qa in form_answers_list %}
+        <div class="list-group-item">
+          <div class="text-muted" style="font-size:.75rem">{{ qa.question }}</div>
+          <div class="small">{{ qa.answer }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Application meta -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-info-circle"></i> Details
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Application ID</dt>
+          <dd class="col-7">#{{ application.pk }}</dd>
+          <dt class="col-5 text-muted">Created</dt>
+          <dd class="col-7">{{ application.created_at|date:"M j, Y H:i" }}</dd>
+          <dt class="col-5 text-muted">Last Updated</dt>
+          <dd class="col-7">{{ application.updated_at|date:"M j, Y H:i" }}</dd>
+          {% if application.callback_scheduled_at %}
+          <dt class="col-5 text-muted">Callback At</dt>
+          <dd class="col-7">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</dd>
+          {% endif %}
+          {% if application.cv_received_at %}
+          <dt class="col-5 text-muted">CV Received</dt>
+          <dd class="col-7">{{ application.cv_received_at|date:"M j, Y H:i" }}</dd>
+          {% endif %}
+          {% if application.needs_human_reason %}
+          <dt class="col-5 text-muted">Human Reason</dt>
+          <dd class="col-7 text-danger">{{ application.needs_human_reason }}</dd>
+          {% endif %}
+          {% if application.score_notes %}
+          <dt class="col-5 text-muted">Score Notes</dt>
+          <dd class="col-7">{{ application.score_notes|truncatewords:30 }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    <!-- Candidate meta -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-person"></i> Candidate
+      </div>
+      <div class="card-body small">
+        <dl class="row mb-0">
+          <dt class="col-5 text-muted">Source</dt>
+          <dd class="col-7">{{ candidate.get_source_display }}</dd>
+          {% if candidate.campaign_name %}
+          <dt class="col-5 text-muted">Campaign</dt>
+          <dd class="col-7">{{ candidate.campaign_name }}</dd>
+          {% endif %}
+          {% if candidate.platform %}
+          <dt class="col-5 text-muted">Platform</dt>
+          <dd class="col-7">{{ candidate.platform }}</dd>
+          {% endif %}
+          {% if candidate.meta_created_time %}
+          <dt class="col-5 text-muted">Submitted</dt>
+          <dd class="col-7">{{ candidate.meta_created_time|date:"M j, Y H:i" }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

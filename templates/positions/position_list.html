@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Positions — RecruitFlow{% endblock %}
+{% block page_title %}Positions{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'positions:create' %}" class="btn btn-sm btn-dark">
+  <i class="bi bi-plus-lg"></i> New Position
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Title</th>
+          <th>Status</th>
+          <th class="text-center">Open Applications</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pos in positions %}
+        <tr>
+          <td class="fw-medium">{{ pos.title }}</td>
+          <td>
+            {% if pos.status == "open" %}
+              <span class="badge bg-success badge-status">Open</span>
+            {% elif pos.status == "paused" %}
+              <span class="badge bg-warning text-dark badge-status">Paused</span>
+            {% else %}
+              <span class="badge bg-secondary badge-status">Closed</span>
+            {% endif %}
+          </td>
+          <td class="text-center">{{ pos.open_applications_count }}</td>
+          <td class="text-muted small">{{ pos.created_at|date:"M j, Y" }}</td>
+          <td class="text-end">
+            <a href="{% url 'applications:list' %}?position={{ pos.pk }}"
+               class="btn btn-sm btn-outline-secondary">Applications</a>
+            <a href="{% url 'positions:edit' pos.pk %}"
+               class="btn btn-sm btn-outline-dark">Edit</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            No positions yet. <a href="{% url 'positions:create' %}">Create your first position</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

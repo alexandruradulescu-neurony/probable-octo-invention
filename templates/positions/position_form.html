@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}{{ object|default:"New Position" }} — RecruitFlow{% endblock %}
+{% block page_title %}{% if object %}Edit Position{% else %}New Position{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'positions:list' %}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i> Back to Positions
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" novalidate>
+  {% csrf_token %}
+
+  {% if form.errors %}
+  <div class="alert alert-danger">
+    <strong>Please correct the errors below.</strong>
+    {% if form.non_field_errors %}
+    <ul class="mb-0 mt-1">
+      {% for error in form.non_field_errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- Left column: core fields -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">Position Details</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="id_title" class="form-label">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label for="id_description" class="form-label">Description</label>
+            {{ form.description }}
+            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="mb-3">
+            <label for="id_status" class="form-label">Status</label>
+            {{ form.status }}
+          </div>
+          <div class="mb-0">
+            <label for="id_campaign_questions" class="form-label">
+              Campaign Questions
+              <span class="text-muted fw-normal">(one per line)</span>
+            </label>
+            {{ form.campaign_questions }}
+            {% if form.campaign_questions.errors %}<div class="text-danger small mt-1">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Prompts -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+          <span class="fw-semibold">AI Prompts</span>
+          <button type="button" id="btn-generate-prompts"
+                  class="btn btn-sm btn-outline-primary"
+                  title="Auto-generate prompts using Claude">
+            <i class="bi bi-stars"></i> Generate Prompts
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info small py-2 mb-3">
+            <i class="bi bi-info-circle"></i>
+            The ElevenLabs agent and voice are configured in the ElevenLabs dashboard.
+            These fields only control <strong>what the agent says</strong> for this position.
+          </div>
+          <div class="mb-3">
+            <label for="id_system_prompt" class="form-label">System Prompt</label>
+            {{ form.system_prompt }}
+            <div class="form-text">Personality, instructions, how to ask screening questions.</div>
+          </div>
+          <div class="mb-3">
+            <label for="id_first_message" class="form-label">First Message</label>
+            {{ form.first_message }}
+            <div class="form-text">Opening line the agent says when the candidate picks up.</div>
+          </div>
+          <div class="mb-0">
+            <label for="id_qualification_prompt" class="form-label">Qualification Prompt</label>
+            {{ form.qualification_prompt }}
+            <div class="form-text">Sent to Claude along with the transcript for scoring.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: configuration -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">Call Settings</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label for="id_call_retry_max" class="form-label">Max Retries</label>
+              {{ form.call_retry_max }}
+            </div>
+            <div class="col-6">
+              <label for="id_call_retry_interval_minutes" class="form-label">Retry Interval (min)</label>
+              {{ form.call_retry_interval_minutes }}
+            </div>
+            <div class="col-6">
+              <label for="id_calling_hour_start" class="form-label">Call From (hour)</label>
+              {{ form.calling_hour_start }}
+            </div>
+            <div class="col-6">
+              <label for="id_calling_hour_end" class="form-label">Call Until (hour)</label>
+              {{ form.calling_hour_end }}
+              {% if form.calling_hour_end.errors %}<div class="text-danger small mt-1">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">CV Follow-up Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="id_follow_up_interval_hours" class="form-label">Follow-up Interval (hours)</label>
+            {{ form.follow_up_interval_hours }}
+            <div class="form-text">Qualified candidates only.</div>
+          </div>
+          <div class="mb-0">
+            <label for="id_rejected_cv_timeout_days" class="form-label">Rejected CV Timeout (days)</label>
+            {{ form.rejected_cv_timeout_days }}
+            <div class="form-text">Days before auto-closing rejected apps with no CV.</div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-dark w-100">
+        <i class="bi bi-check-lg"></i>
+        {% if object %}Save Changes{% else %}Create Position{% endif %}
+      </button>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('btn-generate-prompts').addEventListener('click', function() {
+  // Placeholder: AJAX call to generate prompts via Claude will be wired here.
+  alert('Generate Prompts via Claude — AJAX endpoint will be wired in a future task.');
+});
+</script>
+{% endblock %}

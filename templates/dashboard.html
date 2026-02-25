@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — RecruitFlow{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'positions:create' %}" class="btn btn-sm btn-dark">
+  <i class="bi bi-plus-lg"></i> New Position
+</a>
+<a href="{% url 'applications:list' %}" class="btn btn-sm btn-outline-secondary ms-1">
+  Applications
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Activity Feed -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold text-primary">{{ activity_feed.calls_today }}</div>
+        <div class="text-muted small">Calls Today</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold text-success">{{ activity_feed.cvs_today }}</div>
+        <div class="text-muted small">CVs Received Today</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold text-info">{{ activity_feed.followups_today }}</div>
+        <div class="text-muted small">Follow-ups Sent Today</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attention Required -->
+{% with a=attention_required %}
+{% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-exclamation-triangle text-warning"></i> Attention Required
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% if a.call_failures %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'applications:list' %}?status=call_failed" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-danger bg-opacity-10">
+            <span class="badge bg-danger rounded-pill">{{ a.call_failures }}</span>
+            <span class="text-dark small">Call Failures</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+      {% if a.cv_overdue %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'applications:list' %}?status=cv_overdue" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-warning bg-opacity-10">
+            <span class="badge bg-warning text-dark rounded-pill">{{ a.cv_overdue }}</span>
+            <span class="text-dark small">CV Overdue</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+      {% if a.needs_human %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'applications:list' %}?status=needs_human" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-danger bg-opacity-10">
+            <span class="badge bg-danger rounded-pill">{{ a.needs_human }}</span>
+            <span class="text-dark small">Needs Human</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+      {% if a.callbacks_today %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'applications:list' %}?status=callback_scheduled" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-info bg-opacity-10">
+            <span class="badge bg-info rounded-pill">{{ a.callbacks_today }}</span>
+            <span class="text-dark small">Callbacks Today</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+      {% if a.unmatched_inbound %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-secondary bg-opacity-10">
+            <span class="badge bg-secondary rounded-pill">{{ a.unmatched_inbound }}</span>
+            <span class="text-dark small">Unmatched Inbound</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+      {% if a.needs_review_cvs %}
+      <div class="col-sm-6 col-lg-4">
+        <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-2 p-2 rounded bg-warning bg-opacity-10">
+            <span class="badge bg-warning text-dark rounded-pill">{{ a.needs_review_cvs }}</span>
+            <span class="text-dark small">CVs Need Review</span>
+          </div>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- Position Summaries -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-briefcase"></i> Open Positions
+  </div>
+  {% if position_summaries %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Position</th>
+          <th class="text-center">Pending Calls</th>
+          <th class="text-center">In Progress</th>
+          <th class="text-center">Awaiting CV</th>
+          <th class="text-center">Completed</th>
+          <th class="text-center">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in position_summaries %}
+        <tr>
+          <td class="fw-medium">{{ s.position.title }}</td>
+          <td class="text-center">
+            {% if s.pending_calls %}<span class="badge bg-secondary rounded-pill">{{ s.pending_calls }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if s.in_progress %}<span class="badge bg-primary rounded-pill">{{ s.in_progress }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if s.awaiting_cv %}<span class="badge bg-warning text-dark rounded-pill">{{ s.awaiting_cv }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td class="text-center">
+            {% if s.completed %}<span class="badge bg-success rounded-pill">{{ s.completed }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
+          </td>
+          <td class="text-center fw-semibold">{{ s.total }}</td>
+          <td>
+            <a href="{% url 'applications:list' %}?position={{ s.position.pk }}"
+               class="btn btn-sm btn-outline-secondary">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    No open positions yet. <a href="{% url 'positions:create' %}">Create one</a>.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
