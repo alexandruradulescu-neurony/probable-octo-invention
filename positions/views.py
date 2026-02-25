@@ -1,17 +1,26 @@
 """
 positions/views.py
 
-CRUD views for Position management.
+CRUD views for Position management + AJAX prompt generation.
 Spec § 12.3.
 """
 
+import json
+import logging
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
+from django.http import JsonResponse
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
+from evaluations.services import ClaudeService, ClaudeServiceError
 from positions.forms import PositionForm
 from positions.models import Position
+from prompts.models import PromptTemplate
+
+logger = logging.getLogger(__name__)
 
 
 class PositionListView(LoginRequiredMixin, ListView):
@@ -55,3 +64,51 @@ class PositionUpdateView(LoginRequiredMixin, UpdateView):
     form_class = PositionForm
     template_name = "positions/position_form.html"
     success_url = reverse_lazy("positions:list")
+
+
+class GeneratePromptsView(LoginRequiredMixin, View):
+    """
+    POST /positions/generate-prompts/
+
+    AJAX endpoint: accepts position field values in request body,
+    calls ClaudeService.generate_prompts() with the active PromptTemplate,
+    and returns the three generated prompt fields as JSON.
+    """
+
+    def post(self, request):
+        try:
+            body = json.loads(request.body)
+        except (json.JSONDecodeError, ValueError):
+            return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+        title = (body.get("title") or "").strip()
+        description = (body.get("description") or "").strip()
+        campaign_questions = (body.get("campaign_questions") or "").strip()
+
+        if not title:
+            return JsonResponse({"error": "Position title is required."}, status=400)
+
+        template = PromptTemplate.objects.filter(is_active=True).first()
+        if not template:
+            return JsonResponse(
+                {"error": "No active Prompt Template configured. Create one first."},
+                status=400,
+            )
+
+        class _PositionProxy:
+            """Lightweight object mirroring Position fields for the service."""
+            pass
+
+        proxy = _PositionProxy()
+        proxy.pk = body.get("pk", "new")
+        proxy.title = title
+        proxy.description = description
+        proxy.campaign_questions = campaign_questions
+
+        try:
+            result = ClaudeService().generate_prompts(proxy, template)
+        except ClaudeServiceError as exc:
+            logger.error("Generate prompts failed: %s", exc)
+            return JsonResponse({"error": str(exc)}, status=502)
+
+        return JsonResponse(result)

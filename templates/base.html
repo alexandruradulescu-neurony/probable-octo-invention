@@ -76,6 +76,12 @@
       </a>
     </li>
     <li class="nav-item">
+      <a class="nav-link {% if request.resolver_match.app_name == 'candidates' %}active{% endif %}"
+         href="{% url 'candidates:list' %}">
+        <i class="bi bi-people"></i> Candidates
+      </a>
+    </li>
+    <li class="nav-item">
       <a class="nav-link {% if request.resolver_match.app_name == 'applications' %}active{% endif %}"
          href="{% url 'applications:list' %}">
         <i class="bi bi-kanban"></i> Applications
@@ -85,6 +91,15 @@
       <a class="nav-link {% if request.resolver_match.app_name == 'cvs' %}active{% endif %}"
          href="{% url 'cvs:inbox' %}">
         <i class="bi bi-inbox"></i> CV Inbox
+      </a>
+    </li>
+    <li class="nav-item mt-3">
+      <span class="nav-link text-white-50 py-1 small text-uppercase" style="font-size:.7rem;letter-spacing:.05em">Admin</span>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if request.resolver_match.app_name == 'prompts' %}active{% endif %}"
+         href="{% url 'prompts:list' %}">
+        <i class="bi bi-file-earmark-code"></i> Prompt Templates
       </a>
     </li>
   </ul>

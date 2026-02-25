@@ -31,6 +31,7 @@ from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from evaluations.services import ClaudeService, ClaudeServiceError
 from messaging.models import Message
+from messaging.services import send_followup
 
 logger = logging.getLogger(__name__)
 
@@ -415,7 +416,7 @@ def check_cv_followups() -> None:
 
         with transaction.atomic():
             if message_type is not None:
-                _create_pending_followup_message(app, message_type)
+                send_followup(app, message_type)
 
             app.status = next_status
             app.save(update_fields=["status", "updated_at"])
@@ -445,52 +446,6 @@ def _get_last_sent_message_time(application):
         .first()
     )
     return last_msg["sent_at"] if last_msg else None
-
-
-def _create_pending_followup_message(application, message_type: str) -> Message:
-    """
-    Create a Message record in PENDING status representing the follow-up to be sent.
-
-    TODO: Wire up actual send logic (email + WhatsApp) when the messaging
-    service is implemented. For now this persists the audit record so the
-    timing calculations in subsequent job runs are correct.
-    """
-    candidate = application.candidate
-    position = application.position
-
-    bodies = {
-        Message.MessageType.CV_FOLLOWUP_1: (
-            f"Hi {candidate.first_name}, just a gentle reminder — "
-            f"we're still waiting for your CV for the {position.title} role. "
-            "Please send it at your earliest convenience."
-        ),
-        Message.MessageType.CV_FOLLOWUP_2: (
-            f"Hi {candidate.first_name}, this is a final reminder regarding "
-            f"your CV for the {position.title} position. "
-            "Please send it as soon as possible so we can continue with your application."
-        ),
-    }
-
-    msg = Message.objects.create(
-        application=application,
-        channel=Message.Channel.WHATSAPP,
-        message_type=message_type,
-        status=Message.Status.PENDING,
-        body=bodies.get(
-            message_type,
-            f"Follow-up for {position.title} application.",
-        ),
-        sent_at=None,
-    )
-
-    logger.info(
-        "Follow-up message created (pending send): message=%s type=%s application=%s",
-        msg.pk,
-        message_type,
-        application.pk,
-    )
-    # TODO: call messaging service to actually send via WhatsApp / Email
-    return msg
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -545,6 +500,70 @@ def close_stale_rejected() -> None:
         "close_stale_rejected: closed %s stale rejected application(s)",
         closed_count,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 5: poll_cv_inbox  (every 15 min)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@close_old_connections
+def poll_cv_inbox() -> None:
+    """
+    Poll the configured Gmail inbox label for unread messages with attachments,
+    download them, run each through the CV smart-matching pipeline, then move
+    processed messages to the GMAIL_PROCESSED_LABEL.
+
+    Spec § 6 — poll_cv_inbox, § 10 step 5.
+    """
+    if not settings.GMAIL_POLL_ENABLED:
+        return
+
+    from cvs.services import process_inbound_cv as cv_process_inbound
+    from messaging.services import GmailService
+
+    gmail = GmailService()
+
+    inbox_label = settings.GMAIL_INBOX_LABEL
+    processed_label = settings.GMAIL_PROCESSED_LABEL
+
+    inbox_label_id = gmail.get_label_id(inbox_label)
+    processed_label_id = gmail.get_label_id(processed_label)
+
+    if not inbox_label_id:
+        logger.warning("poll_cv_inbox: Gmail label '%s' not found — skipping", inbox_label)
+        return
+
+    messages = gmail.list_unread_with_attachments(inbox_label)
+    if not messages:
+        return
+
+    processed = 0
+    for msg in messages:
+        for att in msg.get("attachments", []):
+            try:
+                cv_process_inbound(
+                    channel="email",
+                    sender=msg["sender"],
+                    file_name=att["name"],
+                    file_content=att["data"],
+                    text_body=msg.get("body_snippet", ""),
+                    subject=msg.get("subject", ""),
+                )
+            except Exception as exc:
+                logger.error(
+                    "poll_cv_inbox: CV processing failed for Gmail msg=%s att=%s: %s",
+                    msg["id"], att["name"], exc, exc_info=True,
+                )
+
+        if processed_label_id:
+            gmail.move_to_label(
+                msg["id"],
+                add_label=processed_label_id,
+                remove_label=inbox_label_id,
+            )
+        processed += 1
+
+    logger.info("poll_cv_inbox: processed %s email(s) with attachments", processed)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -34,6 +34,7 @@ from django_apscheduler.jobstores import DjangoJobStore
 from scheduler.jobs import (
     check_cv_followups,
     close_stale_rejected,
+    poll_cv_inbox,
     process_call_queue,
     sync_stuck_calls,
 )
@@ -106,6 +107,20 @@ class Command(BaseCommand):
             max_instances=1,
             coalesce=True,
             misfire_grace_time=3600,
+        )
+
+        scheduler.add_job(
+            poll_cv_inbox,
+            trigger=IntervalTrigger(
+                minutes=settings.GMAIL_POLL_MINUTES, timezone=tz
+            ),
+            id="poll_cv_inbox",
+            name="Poll Gmail CV Inbox",
+            jobstore="default",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=300,
         )
 
         # ── Start ──────────────────────────────────────────────────────────────

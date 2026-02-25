@@ -12,4 +12,5 @@ urlpatterns = [
     path("", views.PositionListView.as_view(), name="list"),
     path("create/", views.PositionCreateView.as_view(), name="create"),
     path("<int:pk>/edit/", views.PositionUpdateView.as_view(), name="edit"),
+    path("generate-prompts/", views.GeneratePromptsView.as_view(), name="generate_prompts"),
 ]

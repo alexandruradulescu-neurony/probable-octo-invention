@@ -99,9 +99,9 @@ python manage.py runserver 8010
 
 Visit `http://127.0.0.1:8010/admin/` to verify.
 
-> **ngrok**: point your ngrok tunnel at port 8010 to expose the app at `https://recrutopiaaibot.ngrok.com`:
+> **ngrok**: point your ngrok tunnel at port 8010 to expose the app at `https://recrutopiaaibot.ngrok.app`:
 > ```bash
-> ngrok http --domain=recrutopiaaibot.ngrok.com 8010
+> ngrok http --url=recrutopiaaibot.ngrok.app 8010
 > ```
 
 ---
@@ -137,6 +137,7 @@ Visit `http://127.0.0.1:8010/admin/` to verify.
 | `positions` | `Position` | `status` (open/paused/closed), prompt fields, call scheduling config |
 | `candidates` | `Candidate` | `phone`/`email` (indexed), `meta_lead_id` (unique), `form_answers` (JSONField) |
 | `applications` | `Application` | `status` (18-state flow), `qualified`, `score`, unique_together (candidate, position) |
+| `applications` | `StatusChange` | `from_status`, `to_status`, `changed_by` (FK User), `note` (audit trail) |
 | `calls` | `Call` | `eleven_labs_conversation_id` (unique), `status`, `transcript`, `attempt_number` |
 | `evaluations` | `LLMEvaluation` | `outcome` (4 values), `score`, `raw_response` (JSONField), callback/human flags |
 | `messaging` | `Message` | `channel` (email/whatsapp), `message_type`, `status`, `external_id` |
@@ -159,6 +160,52 @@ pending_call → call_queued → call_in_progress → call_completed → scoring
 
 ---
 
+## Frontend Screens
+
+| Screen | URL | Description |
+|---|---|---|
+| Dashboard | `/` | Summary metrics, activity feed, attention-required items |
+| Positions | `/positions/` | List, create, edit positions with "Generate Prompts" AJAX button |
+| Candidates | `/candidates/` | Searchable list, detail with editable contact + notes, CSV import |
+| Applications | `/applications/` | Filterable list with "Trigger Calls" bulk action, detail with timeline |
+| Application Detail | `/applications/<pk>/` | Actions: status override, add note, schedule callback, trigger follow-up, manual CV upload. Full timeline of status changes. |
+| CV Inbox | `/cvs/` | Unmatched and needs-review tabs with manual assignment forms |
+| Prompt Templates | `/prompts/` | CRUD with "Test Generate" preview (admin section) |
+
+---
+
+## Services & Integrations
+
+| Service | Module | Description |
+|---|---|---|
+| `ElevenLabsService` | `calls/services.py` | Outbound AI phone calls via ElevenLabs ConvAI |
+| `ClaudeService` | `evaluations/services.py` | Prompt generation + call transcript evaluation |
+| `WhapiService` | `messaging/services.py` | Send WhatsApp messages via Whapi REST API |
+| `GmailService` | `messaging/services.py` | Send emails + poll inbox via Gmail API (OAuth2) |
+| `process_inbound_cv` | `cvs/services.py` | CV smart matching cascade (5 priority levels) |
+| `send_cv_request` | `messaging/services.py` | Post-evaluation CV request orchestrator |
+| `send_followup` | `messaging/services.py` | Timed follow-up orchestrator |
+
+---
+
+## Scheduled Jobs
+
+| Job | Interval | Description |
+|---|---|---|
+| `process_call_queue` | 5 min | Process call_queued and callback_scheduled applications |
+| `sync_stuck_calls` | 10 min | Poll ElevenLabs for stuck calls |
+| `check_cv_followups` | 60 min | Send follow-ups for qualified candidates past their interval |
+| `close_stale_rejected` | 24 hrs | Close rejected applications past CV timeout |
+| `poll_cv_inbox` | 15 min | Poll Gmail inbox for CV attachments |
+
+Start the scheduler alongside the Django server:
+
+```bash
+python manage.py run_scheduler
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -171,4 +218,5 @@ pending_call → call_queued → call_in_progress → call_completed → scoring
 | Email | Gmail API (OAuth2) |
 | PDF Parsing | pdfplumber |
 | Scheduling | django-apscheduler |
+| Frontend | Bootstrap 5.3 + Bootstrap Icons |
 | Config | django-environ |

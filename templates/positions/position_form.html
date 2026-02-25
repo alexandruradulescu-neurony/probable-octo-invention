@@ -148,8 +148,49 @@
 {% block extra_js %}
 <script>
 document.getElementById('btn-generate-prompts').addEventListener('click', function() {
-  // Placeholder: AJAX call to generate prompts via Claude will be wired here.
-  alert('Generate Prompts via Claude — AJAX endpoint will be wired in a future task.');
+  const btn = this;
+  const title = document.getElementById('id_title').value.trim();
+  const description = document.getElementById('id_description').value.trim();
+  const campaignQuestions = document.getElementById('id_campaign_questions').value.trim();
+
+  if (!title) {
+    alert('Please enter a position title before generating prompts.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating…';
+
+  fetch("{% url 'positions:generate_prompts' %}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+    },
+    body: JSON.stringify({
+      title: title,
+      description: description,
+      campaign_questions: campaignQuestions,
+    }),
+  })
+  .then(resp => resp.json().then(data => ({ ok: resp.ok, data })))
+  .then(({ ok, data }) => {
+    if (!ok) {
+      alert(data.error || 'Failed to generate prompts.');
+      return;
+    }
+    document.getElementById('id_system_prompt').value = data.system_prompt || '';
+    document.getElementById('id_first_message').value = data.first_message || '';
+    document.getElementById('id_qualification_prompt').value = data.qualification_prompt || '';
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Network error while generating prompts.');
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-stars"></i> Generate Prompts';
+  });
 });
 </script>
 {% endblock %}

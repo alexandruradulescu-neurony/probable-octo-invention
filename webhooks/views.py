@@ -16,6 +16,7 @@ import json
 import logging
 import time
 
+import requests as http_requests
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -26,6 +27,7 @@ from django.db import transaction
 
 from applications.models import Application
 from calls.models import Call
+from cvs.services import process_inbound_cv as cv_process_inbound
 from evaluations.services import ClaudeService, ClaudeServiceError
 
 logger = logging.getLogger(__name__)
@@ -417,17 +419,17 @@ def _validate_whapi_token(request, secret: str) -> bool:
 def _handle_whapi_message(msg: dict) -> None:
     """
     Process a single Whapi message object.
-    Dispatches media messages to the CV processing stub.
+    Downloads media and delegates to the CV smart-matching service.
     """
     msg_type = (msg.get("type") or "").lower()
     sender_raw = msg.get("from") or ""
 
-    # Normalise Whapi sender: "1234567890@s.whatsapp.net" → "1234567890"
     sender = sender_raw.split("@")[0] if "@" in sender_raw else sender_raw
 
     if msg_type in _WHAPI_MEDIA_TYPES:
         media = msg.get("media") or {}
         media_url = media.get("url") or media.get("link") or ""
+        file_name = media.get("filename") or media.get("file_name") or "attachment"
         text = (msg.get("body") or msg.get("caption") or "").strip()
 
         logger.info(
@@ -437,40 +439,41 @@ def _handle_whapi_message(msg: dict) -> None:
             media_url[:80] if media_url else "(none)",
         )
 
-        process_inbound_cv(sender=sender, media_url=media_url, text=text)
+        if not media_url:
+            logger.warning("Whapi media message has no URL — skipping")
+            return
+
+        file_content = _download_whapi_media(media_url)
+        if file_content is None:
+            return
+
+        try:
+            cv_process_inbound(
+                channel="whatsapp",
+                sender=sender,
+                file_name=file_name,
+                file_content=file_content,
+                text_body=text,
+                raw_payload=msg,
+            )
+        except Exception as exc:
+            logger.error(
+                "CV processing failed for WhatsApp sender=%s: %s",
+                sender, exc, exc_info=True,
+            )
 
     elif msg_type == "text":
-        # Plain text messages are not actionable at this stage — log only.
         logger.debug(
             "Whapi inbound text message from sender=%s (no action)", sender
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CV processing placeholder
-# ─────────────────────────────────────────────────────────────────────────────
-
-def process_inbound_cv(sender: str, media_url: str, text: str) -> None:
-    """
-    Placeholder: smart-match an inbound WhatsApp media message to a Candidate
-    and process as a CV submission.
-
-    TODO: Implement the full smart-matching chain (spec § 11):
-      1. Exact phone match  → Candidate.phone / whatsapp_number  (high confidence)
-      2. Subject/ID in text → parse application reference         (high confidence)
-      3. Fuzzy name match   → Candidate.first_name + last_name    (medium confidence)
-      4. CV content extract → Claude Haiku → fuzzy match          (medium confidence)
-      5. No match           → save to UnmatchedInbound
-
-    Args:
-        sender    : Sender's phone number (digits only, no @domain suffix).
-        media_url : URL to the media file hosted by Whapi.
-        text      : Caption or body text accompanying the media, if any.
-    """
-    logger.info(
-        "process_inbound_cv called (stub): sender=%s media_url=%s text=%r",
-        sender,
-        media_url[:80] if media_url else "(none)",
-        text[:100] if text else "",
-    )
-    # Smart-matching logic will be implemented in a future task.
+def _download_whapi_media(url: str) -> bytes | None:
+    """Download a media file from Whapi. Returns raw bytes or None on failure."""
+    try:
+        resp = http_requests.get(url, timeout=30)
+        resp.raise_for_status()
+        return resp.content
+    except http_requests.RequestException as exc:
+        logger.error("Failed to download Whapi media from %s: %s", url, exc)
+        return None

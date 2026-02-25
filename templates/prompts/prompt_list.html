@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Prompt Templates — RecruitFlow{% endblock %}
+{% block page_title %}Prompt Templates{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'prompts:create' %}" class="btn btn-sm btn-dark">
+  <i class="bi bi-plus-lg"></i> New Template
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th class="text-center">Version</th>
+          <th class="text-center">Active</th>
+          <th>Last Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tpl in templates %}
+        <tr class="{% if tpl.is_active %}table-success{% endif %}">
+          <td class="fw-medium">{{ tpl.name }}</td>
+          <td class="text-center">v{{ tpl.version }}</td>
+          <td class="text-center">
+            {% if tpl.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ tpl.updated_at|date:"M j, Y H:i" }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'prompts:toggle_active' tpl.pk %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if tpl.is_active %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+                {% if tpl.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+            <a href="{% url 'prompts:edit' tpl.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            No prompt templates yet.
+            <a href="{% url 'prompts:create' %}">Create one</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

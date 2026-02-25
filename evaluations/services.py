@@ -274,7 +274,25 @@ class ClaudeService:
             data.get("score"),
             application.pk,
         )
+
+        # Post-evaluation messaging: send CV request for qualified/not_qualified outcomes
+        if outcome_str in (LLMEvaluation.Outcome.QUALIFIED, LLMEvaluation.Outcome.NOT_QUALIFIED):
+            self._trigger_cv_request(application, outcome_str)
+
         return evaluation
+
+    def _trigger_cv_request(self, application, outcome: str) -> None:
+        """Fire-and-forget outbound CV request after scoring completes."""
+        from messaging.services import send_cv_request
+
+        qualified = outcome == LLMEvaluation.Outcome.QUALIFIED
+        try:
+            send_cv_request(application, qualified=qualified)
+        except Exception as exc:
+            logger.error(
+                "Post-evaluation CV request failed for application=%s: %s",
+                application.pk, exc, exc_info=True,
+            )
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 

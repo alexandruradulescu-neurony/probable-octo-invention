@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -81,3 +82,53 @@ class Application(models.Model):
 
     def __str__(self) -> str:
         return f"{self.candidate} → {self.position} [{self.status}]"
+
+    def change_status(self, new_status: str, changed_by=None, note: str = ""):
+        """
+        Transition status and create an audit StatusChange record.
+        Call this instead of setting status + save() directly when you
+        want an audited transition.
+        """
+        old_status = self.status
+        if old_status == new_status:
+            return
+        self.status = new_status
+        self.save(update_fields=["status", "updated_at"])
+        StatusChange.objects.create(
+            application=self,
+            from_status=old_status,
+            to_status=new_status,
+            changed_by=changed_by,
+            note=note,
+        )
+
+
+class StatusChange(models.Model):
+    """
+    Audit trail entry recording every Application status transition.
+    """
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name="status_changes",
+    )
+    from_status = models.CharField(max_length=30, choices=Application.Status.choices)
+    to_status = models.CharField(max_length=30, choices=Application.Status.choices)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="status_changes",
+    )
+    note = models.TextField(blank=True, default="")
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]
+        verbose_name = "Status Change"
+        verbose_name_plural = "Status Changes"
+
+    def __str__(self) -> str:
+        return f"App#{self.application_id}: {self.from_status} → {self.to_status}"

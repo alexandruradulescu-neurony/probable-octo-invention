@@ -27,8 +27,10 @@ urlpatterns = [
 
     # ── App routes ─────────────────────────────────────────────────────────────
     path("positions/", include("positions.urls", namespace="positions")),
+    path("candidates/", include("candidates.urls", namespace="candidates")),
     path("applications/", include("applications.urls", namespace="applications")),
     path("cvs/", include("cvs.urls", namespace="cvs")),
+    path("prompts/", include("prompts.urls", namespace="prompts")),
 
     # ── Webhooks (CSRF-exempt, no login required) ──────────────────────────────
     path("webhooks/", include("webhooks.urls", namespace="webhooks")),

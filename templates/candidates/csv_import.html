@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Import CSV — RecruitFlow{% endblock %}
+{% block page_title %}Import Candidates from CSV{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'candidates:list' %}" class="btn btn-sm btn-outline-secondary">
+  <i class="bi bi-arrow-left"></i> Back to Candidates
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if step == "result" %}
+<!-- ────────────────────────── Step 3: Results ────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-check-circle text-success"></i> Import Complete
+    {% if position %} — {{ position.title }}{% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3 text-center mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded bg-success bg-opacity-10">
+          <div class="fs-3 fw-bold text-success">{{ summary.created }}</div>
+          <div class="small text-muted">New Candidates</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded bg-info bg-opacity-10">
+          <div class="fs-3 fw-bold text-info">{{ summary.updated }}</div>
+          <div class="small text-muted">Updated Existing</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded bg-primary bg-opacity-10">
+          <div class="fs-3 fw-bold text-primary">{{ summary.applications_created }}</div>
+          <div class="small text-muted">Applications Created</div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="p-3 rounded bg-secondary bg-opacity-10">
+          <div class="fs-3 fw-bold text-secondary">{{ summary.applications_skipped }}</div>
+          <div class="small text-muted">Duplicates Skipped</div>
+        </div>
+      </div>
+    </div>
+
+    {% if summary.potential_duplicates %}
+    <div class="alert alert-warning">
+      <strong><i class="bi bi-exclamation-triangle"></i> Potential Duplicates Detected ({{ summary.potential_duplicates|length }})</strong>
+      <p class="mb-2 small">These candidates were newly created but share a phone or email with an existing candidate (different Meta Lead ID). Please review.</p>
+      <table class="table table-sm table-bordered bg-white mb-0">
+        <thead>
+          <tr>
+            <th class="small">New Candidate</th>
+            <th class="small">Matches</th>
+            <th class="small">Match Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dup in summary.potential_duplicates %}
+          <tr>
+            <td class="small">
+              <a href="{% url 'candidates:detail' dup.new_candidate_id %}">
+                #{{ dup.new_candidate_id }}
+              </a>
+              <span class="text-muted font-monospace">{{ dup.new_meta_lead_id|truncatechars:25 }}</span>
+            </td>
+            <td class="small">
+              <a href="{% url 'candidates:detail' dup.matching_candidate_id %}">
+                #{{ dup.matching_candidate_id }}
+              </a>
+              <span class="text-muted font-monospace">{{ dup.matching_meta_lead_id|truncatechars:25 }}</span>
+            </td>
+            <td class="small">{{ dup.match_reason }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if summary.errors %}
+    <div class="alert alert-danger">
+      <strong><i class="bi bi-x-circle"></i> Row Errors ({{ summary.errors|length }})</strong>
+      <ul class="mb-0 small">
+        {% for err in summary.errors %}
+        <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'candidates:list' %}" class="btn btn-primary">
+        <i class="bi bi-people"></i> View Candidates
+      </a>
+      {% if position %}
+      <a href="{% url 'applications:list' %}?position={{ position.pk }}" class="btn btn-outline-secondary">
+        <i class="bi bi-kanban"></i> View Applications
+      </a>
+      {% endif %}
+      <a href="{% url 'candidates:csv_import' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-upload"></i> Import Another
+      </a>
+    </div>
+  </div>
+</div>
+
+{% elif step == "preview" %}
+<!-- ────────────────────────── Step 2: Preview ────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">
+    <i class="bi bi-eye"></i> Preview — {{ position.title }}
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info mb-3">
+      <strong>{{ total_rows }}</strong> rows parsed.
+      {% if total_rows > showing_rows %}
+      Showing first <strong>{{ showing_rows }}</strong>.
+      {% endif %}
+      {% if dynamic_columns %}
+      <br><strong>{{ dynamic_columns|length }}</strong> form question columns detected:
+      <span class="font-monospace small">{{ dynamic_columns|join:", " }}</span>
+      {% endif %}
+    </div>
+
+    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light sticky-top">
+          <tr>
+            <th class="small">#</th>
+            <th class="small">Name</th>
+            <th class="small">Phone</th>
+            <th class="small">Email</th>
+            <th class="small">Campaign</th>
+            <th class="small text-center">Form Answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in preview_rows %}
+          <tr>
+            <td class="small text-muted">{{ forloop.counter }}</td>
+            <td class="small">{{ row.name|default:"—" }}</td>
+            <td class="small">{{ row.phone|default:"—" }}</td>
+            <td class="small">{{ row.email|default:"—" }}</td>
+            <td class="small">{{ row.campaign|default:"—" }}</td>
+            <td class="small text-center">
+              {% if row.form_answers_count %}
+              <span class="badge bg-info rounded-pill">{{ row.form_answers_count }}</span>
+              {% else %}
+              <span class="text-muted">0</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="confirm" value="1">
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-check-lg"></i> Confirm Import ({{ total_rows }} rows)
+        </button>
+      </form>
+      <a href="{% url 'candidates:csv_import' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-counterclockwise"></i> Start Over
+      </a>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ────────────────────────── Step 1: Upload ────────────────────────── -->
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-upload"></i> Upload Meta CSV
+      </div>
+      <div class="card-body">
+        <div class="alert alert-light border small mb-4">
+          <strong>How it works:</strong>
+          <ol class="mb-0 mt-1">
+            <li>Select the target <strong>Position</strong> — all imported candidates will be linked to it.</li>
+            <li>Upload the CSV file exported from <strong>Meta Ads Manager &rarr; Lead Ads</strong>.</li>
+            <li>Review the parsed preview, then confirm the import.</li>
+          </ol>
+          <hr class="my-2">
+          <span class="text-muted">Expected format: UTF-16 LE encoded, tab-delimited. Standard Meta export.</span>
+        </div>
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="id_position" class="form-label fw-medium">Target Position</label>
+            {{ form.position }}
+            {% if form.position.errors %}
+            <div class="invalid-feedback d-block">{{ form.position.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text">{{ form.position.help_text }}</div>
+          </div>
+
+          <div class="mb-4">
+            <label for="id_csv_file" class="form-label fw-medium">CSV File</label>
+            {{ form.csv_file }}
+            {% if form.csv_file.errors %}
+            <div class="invalid-feedback d-block">{{ form.csv_file.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text">{{ form.csv_file.help_text }}</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-eye"></i> Parse &amp; Preview
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
