@@ -73,10 +73,12 @@ def process_call_queue() -> None:
     """
     Find applications ready to be called and place outbound calls via ElevenLabs.
 
-    Two queues are processed:
-      1. CALL_QUEUED      — waiting for their first (or retry) call.
-      2. CALLBACK_SCHEDULED — candidate requested a callback; only processed
-                              once callback_scheduled_at has passed.
+    Two queues are processed differently:
+      1. CALL_QUEUED        — All eligible applications are collected and submitted
+                              as a single batch via the ElevenLabs batch-calling API.
+                              Conversation IDs are assigned asynchronously by webhook.
+      2. CALLBACK_SCHEDULED — One-off calls with specific scheduled times; submitted
+                              individually via the single-call API (as before).
 
     Calling-hours gate: calls are only placed between
     Position.calling_hour_start and Position.calling_hour_end (inclusive start,
@@ -90,27 +92,45 @@ def process_call_queue() -> None:
 
     service = ElevenLabsService()
 
-    # ── Queue 1: explicitly queued applications ────────────────────────────────
+    # ── Queue 1: batch — collect all eligible queued applications ─────────────
     queued = (
         Application.objects
         .filter(status=Application.Status.CALL_QUEUED)
         .select_related("candidate", "position")
     )
 
-    queued_count = 0
+    eligible_for_batch = [
+        app for app in queued
+        if _is_within_calling_hours(app.position, current_hour)
+    ]
+
     for app in queued:
-        if not _is_within_calling_hours(app.position, current_hour):
+        if app not in eligible_for_batch:
             logger.debug(
                 "Skipping application=%s — outside calling hours (hour=%s, window=%s–%s)",
                 app.pk, current_hour,
                 app.position.calling_hour_start,
                 app.position.calling_hour_end,
             )
-            continue
-        _attempt_call(service, app)
-        queued_count += 1
 
-    # ── Queue 2: scheduled callbacks whose time has arrived ────────────────────
+    queued_count = 0
+    if eligible_for_batch:
+        try:
+            created_calls = service.initiate_batch_calls(eligible_for_batch)
+            queued_count = len(created_calls)
+        except ElevenLabsError as exc:
+            logger.error(
+                "Batch call submission failed: %s — marking %s application(s) as CALL_FAILED",
+                exc,
+                len(eligible_for_batch),
+                exc_info=True,
+            )
+            with transaction.atomic():
+                Application.objects.filter(
+                    pk__in=[a.pk for a in eligible_for_batch]
+                ).update(status=Application.Status.CALL_FAILED, updated_at=now)
+
+    # ── Queue 2: individual — scheduled callbacks whose time has arrived ───────
     callbacks = (
         Application.objects
         .filter(
@@ -132,7 +152,7 @@ def process_call_queue() -> None:
 
     if queued_count or callback_count:
         logger.info(
-            "process_call_queue: initiated %s queued + %s callback calls",
+            "process_call_queue: submitted %s queued (batch) + %s callback (individual) calls",
             queued_count,
             callback_count,
         )

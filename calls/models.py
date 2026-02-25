@@ -31,6 +31,9 @@ class Call(models.Model):
         blank=True,
     )
 
+    # Returned by ElevenLabs batch-calling API — groups all calls in a batch submission
+    eleven_labs_batch_id = models.CharField(max_length=100, null=True, blank=True)
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

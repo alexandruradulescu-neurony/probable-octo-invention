@@ -654,7 +654,7 @@ Both validate a shared secret in the request headers before processing.
 
 9. ElevenLabs Integration Details
 Learned from existing codebase — exact API specifics for the call initiation and data retrieval.
-Outbound Call API
+Single Outbound Call API (used for manual "Call Now" and scheduled callbacks)
 Endpoint: POST https://api.elevenlabs.io/v1/convai/twilio/outbound-call
 Headers:
 Content-Type: application/json
@@ -677,6 +677,45 @@ Payload:
 }
 Important: "Allow Overrides" must be enabled in the agent's Security settings in the ElevenLabs dashboard. Without this, sending conversation_config_override will throw an error.
 Response: returns call_id (or id, call_sid, conversation_id) which is stored as Call.eleven_labs_conversation_id.
+
+Batch Calling API (used for queued applications in process_call_queue)
+Endpoint: POST https://api.elevenlabs.io/v1/convai/batch-calling/submit
+Headers:
+Content-Type: application/json
+xi-api-key: {ELEVENLABS_API_KEY}
+Payload:
+{
+  "call_name": "RecruitFlow Batch — N call(s)",
+  "agent_id": "{ELEVENLABS_AGENT_ID from env}",
+  "agent_phone_number_id": "{ELEVENLABS_PHONE_NUMBER_ID from env}",
+  "recipients": [
+    {
+      "phone_number": "{candidate phone in E.164 format}",
+      "conversation_initiation_client_data": {
+        "user_id": "{application.pk}",
+        "conversation_config_override": {
+          "agent": {
+            "prompt": { "prompt": "{personalized system_prompt}" },
+            "first_message": "{personalized first_message}"
+          }
+        }
+      }
+    }
+  ]
+}
+Response: returns { "batch_id": "..." } — individual conversation IDs are NOT returned.
+The batch_id is stored on each created Call record (eleven_labs_batch_id) for auditing.
+
+Queues are split into chunks of 50 recipients maximum to stay within API payload and timeout limits.
+
+Webhook Linkage for Batch Calls:
+ElevenLabs fires one post-call webhook per conversation after each call ends.
+Because the batch response carries no individual conversation IDs, Call records are
+created immediately after batch submission with eleven_labs_conversation_id=NULL.
+When the webhook fires, the handler extracts application.pk from
+conversation_initiation_client_data.user_id (echoed back by ElevenLabs),
+finds the matching unbound INITIATED Call, and atomically binds the conversation_id
+to it. Processing then continues identically to single-call webhooks.
 Prompt Templating
 Both system_prompt and first_message support placeholder variables that are replaced at call time with candidate/position context:
 Placeholder
@@ -738,14 +777,18 @@ If a call has been in initiated or in_progress for more than a configurable thre
 3. process_call_queue job (every 5 min)
    → **Only operates between Position.calling_hour_start and calling_hour_end (default 10:00–18:00)**
    → Skips all calls outside this window — they stay in queue until next valid window
-   → For each call_queued Application:
-     → Replace placeholders in Position.system_prompt + Position.first_message with candidate context
-     → POST to ElevenLabs: /v1/convai/twilio/outbound-call
-       with agent_id, phone_number_id, to_number, and conversation_config_override
-     → Save Call record with eleven_labs_conversation_id from response
+   → Queue 1 (CALL_QUEUED — batch):
+     → Collect all eligible call_queued Applications within calling hours
+     → For each: replace placeholders in Position.system_prompt + Position.first_message
+     → Submit ALL eligible applications as a single batch to ElevenLabs batch-calling API
+       (POST /v1/convai/batch-calling/submit) in chunks of 50
+     → Save one Call record per application (eleven_labs_conversation_id=NULL, batch_id stored)
      → Application status → call_in_progress
-   → Also processes callback_scheduled Applications where callback_scheduled_at has passed
-     and current time is within calling hours
+     → conversation_id is bound later via post-call webhook (see Section 9 — Batch Calling API)
+   → Queue 2 (CALLBACK_SCHEDULED — individual):
+     → Process callback_scheduled Applications where callback_scheduled_at has passed
+       and current time is within calling hours
+     → Each callback is submitted individually via /v1/convai/twilio/outbound-call (one-off, as before)
 
 4. ElevenLabs webhook → POST /webhooks/elevenlabs/
    → Match via Call.eleven_labs_conversation_id

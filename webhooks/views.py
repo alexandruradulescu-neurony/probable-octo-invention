@@ -127,12 +127,17 @@ def elevenlabs_webhook(request):
             "application__position",
         ).get(eleven_labs_conversation_id=conversation_id)
     except Call.DoesNotExist:
-        logger.warning(
-            "ElevenLabs webhook received for unknown conversation_id=%s",
-            conversation_id,
-        )
-        # Return 200 so ElevenLabs does not keep retrying an unknown call.
-        return _ok("call_not_found")
+        # The call may have originated from the batch API, in which case the
+        # conversation_id was not known at submission time.  Attempt late-binding
+        # via the application.pk embedded in the webhook payload's user_id.
+        call = _bind_batch_call(payload, data, conversation_id)
+        if call is None:
+            logger.warning(
+                "ElevenLabs webhook received for unknown conversation_id=%s "
+                "(batch lookup also failed)",
+                conversation_id,
+            )
+            return _ok("call_not_found")
 
     # ── 5. Map ElevenLabs status → Call.Status ─────────────────────────────────
     call_status = _map_elevenlabs_status(raw_status)
@@ -295,6 +300,92 @@ def _map_elevenlabs_status(raw_status: str) -> str:
         "processing": Call.Status.IN_PROGRESS,
     }
     return mapping.get(raw_status, Call.Status.IN_PROGRESS)
+
+
+def _bind_batch_call(
+    payload: dict, data: dict, conversation_id: str
+) -> "Call | None":
+    """
+    Attempt to late-bind a `conversation_id` to a batch-initiated Call record.
+
+    When calls are submitted via the ElevenLabs batch API the `conversation_id`
+    is not known until ElevenLabs fires the per-call webhook.  To link the webhook
+    back to the correct Call record we embed the `application.pk` as `user_id`
+    inside `conversation_initiation_client_data` at submission time.
+
+    This function:
+      1. Extracts `user_id` from the webhook payload.
+      2. Finds the most recent INITIATED Call for that application whose
+         `eleven_labs_conversation_id` is still NULL (i.e. not yet bound).
+      3. Atomically binds the `conversation_id` to that Call and returns it,
+         fully loaded with related objects for further processing.
+
+    A `select_for_update()` lock prevents two concurrent webhook deliveries
+    (rare but possible) from binding the same Call twice.
+
+    Returns the bound Call, or None if the lookup fails.
+    """
+    app_id = _extract_batch_application_id(payload, data)
+    if not app_id:
+        return None
+
+    try:
+        with transaction.atomic():
+            call = (
+                Call.objects
+                .select_for_update()
+                .select_related("application__candidate", "application__position")
+                .filter(
+                    application_id=app_id,
+                    status=Call.Status.INITIATED,
+                    eleven_labs_conversation_id__isnull=True,
+                )
+                .order_by("-initiated_at")
+                .first()
+            )
+            if call is None:
+                logger.warning(
+                    "Batch call lookup: no unbound INITIATED Call for application_id=%s",
+                    app_id,
+                )
+                return None
+
+            call.eleven_labs_conversation_id = conversation_id
+            call.save(update_fields=["eleven_labs_conversation_id"])
+
+        logger.info(
+            "Batch call late-bound: application_id=%s call=%s conversation_id=%s",
+            app_id,
+            call.pk,
+            conversation_id,
+        )
+        return call
+
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "Batch call binding failed for application_id=%s conversation_id=%s: %s",
+            app_id,
+            conversation_id,
+            exc,
+            exc_info=True,
+        )
+        return None
+
+
+def _extract_batch_application_id(payload: dict, data: dict) -> "str | None":
+    """
+    Extract the application PK that was embedded at batch-submission time.
+
+    ElevenLabs echoes `conversation_initiation_client_data` back in the webhook
+    payload.  We look in both `data` and the root `payload` (some API versions
+    nest it differently).
+    """
+    for container in (data, payload):
+        client_data = container.get("conversation_initiation_client_data") or {}
+        user_id = client_data.get("user_id")
+        if user_id:
+            return str(user_id)
+    return None
 
 
 def _format_transcript(turns: list) -> str:
