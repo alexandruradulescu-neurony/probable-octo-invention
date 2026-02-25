@@ -76,15 +76,11 @@ class ElevenLabsService:
         Raises:
             ElevenLabsError: on any API or configuration failure.
         """
+        self._validate_credentials()
+
         candidate = application.candidate
         position = application.position
 
-        if not self.api_key:
-            raise ElevenLabsError("ELEVENLABS_API_KEY is not configured.")
-        if not self.agent_id:
-            raise ElevenLabsError("ELEVENLABS_AGENT_ID is not configured.")
-        if not self.phone_number_id:
-            raise ElevenLabsError("ELEVENLABS_PHONE_NUMBER_ID is not configured.")
         if not candidate.phone:
             raise ElevenLabsError(
                 f"Candidate #{candidate.pk} has no phone number."
@@ -92,10 +88,7 @@ class ElevenLabsService:
 
         attempt_number = application.calls.count() + 1
 
-        # Build placeholder context
         context = _build_placeholder_context(candidate, position)
-
-        # Format prompts — fall back to empty string if not yet set
         system_prompt = _apply_placeholders(position.system_prompt or "", context)
         first_message = _apply_placeholders(position.first_message or "", context)
 
@@ -103,14 +96,9 @@ class ElevenLabsService:
             "agent_id": self.agent_id,
             "agent_phone_number_id": self.phone_number_id,
             "to_number": candidate.phone,
-            "conversation_initiation_client_data": {
-                "conversation_config_override": {
-                    "agent": {
-                        "prompt": {"prompt": system_prompt},
-                        "first_message": first_message,
-                    }
-                }
-            },
+            "conversation_initiation_client_data": _build_agent_override(
+                system_prompt, first_message
+            ),
         }
 
         logger.info(
@@ -160,12 +148,7 @@ class ElevenLabsService:
         Raises:
             ElevenLabsError: if credentials are missing or the API rejects a chunk.
         """
-        if not self.api_key:
-            raise ElevenLabsError("ELEVENLABS_API_KEY is not configured.")
-        if not self.agent_id:
-            raise ElevenLabsError("ELEVENLABS_AGENT_ID is not configured.")
-        if not self.phone_number_id:
-            raise ElevenLabsError("ELEVENLABS_PHONE_NUMBER_ID is not configured.")
+        self._validate_credentials()
 
         all_calls: list = []
 
@@ -203,17 +186,11 @@ class ElevenLabsService:
             system_prompt = _apply_placeholders(position.system_prompt or "", context)
             first_message = _apply_placeholders(position.first_message or "", context)
 
+            override = _build_agent_override(system_prompt, first_message)
+            override["user_id"] = str(app.pk)
             recipients.append({
                 "phone_number": candidate.phone,
-                "conversation_initiation_client_data": {
-                    "user_id": str(app.pk),
-                    "conversation_config_override": {
-                        "agent": {
-                            "prompt": {"prompt": system_prompt},
-                            "first_message": first_message,
-                        }
-                    },
-                },
+                "conversation_initiation_client_data": override,
             })
 
         if not recipients:
@@ -269,6 +246,15 @@ class ElevenLabsService:
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
+    def _validate_credentials(self) -> None:
+        """Raise ElevenLabsError if any required credential is missing."""
+        if not self.api_key:
+            raise ElevenLabsError("ELEVENLABS_API_KEY is not configured.")
+        if not self.agent_id:
+            raise ElevenLabsError("ELEVENLABS_AGENT_ID is not configured.")
+        if not self.phone_number_id:
+            raise ElevenLabsError("ELEVENLABS_PHONE_NUMBER_ID is not configured.")
+
     def _post(self, payload: dict) -> dict:
         """Execute a POST to the single-call endpoint and return the parsed JSON body."""
         return self._post_to(ELEVENLABS_OUTBOUND_URL, payload)
@@ -310,6 +296,29 @@ class ElevenLabsService:
             "Could not find conversation ID in ElevenLabs response: %s", data
         )
         return None
+
+
+# ── Payload helpers ────────────────────────────────────────────────────────────
+
+def _build_agent_override(system_prompt: str, first_message: str) -> dict:
+    """
+    Build the `conversation_initiation_client_data` dict that overrides the
+    agent's system prompt and first message for a single call.
+
+    Used by both the single-call and batch-call paths. For batch calls the
+    caller adds a `user_id` key to the returned dict before use.
+
+    Requires "Allow Overrides" to be enabled in the ElevenLabs agent's
+    Security settings. Spec § 9.
+    """
+    return {
+        "conversation_config_override": {
+            "agent": {
+                "prompt": {"prompt": system_prompt},
+                "first_message": first_message,
+            }
+        }
+    }
 
 
 # ── Placeholder helpers ────────────────────────────────────────────────────────

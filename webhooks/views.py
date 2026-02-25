@@ -27,6 +27,7 @@ from django.db import transaction
 
 from applications.models import Application
 from calls.models import Call
+from calls.utils import format_transcript, map_elevenlabs_status
 from cvs.services import process_inbound_cv as cv_process_inbound
 from evaluations.services import ClaudeService, ClaudeServiceError
 
@@ -140,42 +141,27 @@ def elevenlabs_webhook(request):
             return _ok("call_not_found")
 
     # ── 5. Map ElevenLabs status → Call.Status ─────────────────────────────────
-    call_status = _map_elevenlabs_status(raw_status)
+    call_status = map_elevenlabs_status(raw_status)
     is_completed = call_status == Call.Status.COMPLETED
 
     # ── 6. Format transcript ───────────────────────────────────────────────────
-    formatted_transcript = _format_transcript(transcript_turns)
+    formatted_transcript = format_transcript(transcript_turns)
 
     # ── 7. Persist call data ───────────────────────────────────────────────────
-    update_fields = ["status", "updated_at"] if hasattr(call, "updated_at") else ["status"]
     call.status = call_status
     if formatted_transcript:
         call.transcript = formatted_transcript
-        update_fields.append("transcript")
     if analysis.get("transcript_summary"):
         call.summary = analysis["transcript_summary"]
-        update_fields.append("summary")
     if analysis.get("call_summary_title"):
         call.summary_title = analysis["call_summary_title"]
-        update_fields.append("summary_title")
     if recording_url:
         call.recording_url = recording_url
-        update_fields.append("recording_url")
     duration = metadata.get("call_duration_secs") or data.get("duration_seconds")
     if duration is not None:
         call.duration_seconds = int(duration)
-        update_fields.append("duration_seconds")
     if is_completed or call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
         call.ended_at = timezone.now()
-        update_fields.append("ended_at")
-
-    # Deduplicate update_fields list while preserving order
-    seen = set()
-    unique_fields = []
-    for f in update_fields:
-        if f not in seen:
-            seen.add(f)
-            unique_fields.append(f)
 
     with transaction.atomic():
         # Use save() without update_fields to avoid missing 'updated_at' issues
@@ -285,23 +271,6 @@ def _validate_elevenlabs_signature(
     return None
 
 
-def _map_elevenlabs_status(raw_status: str) -> str:
-    """
-    Map an ElevenLabs call status string to the internal Call.Status value.
-    Spec § 9 — Status mapping.
-    """
-    mapping = {
-        "done": Call.Status.COMPLETED,
-        "completed": Call.Status.COMPLETED,
-        "failed": Call.Status.FAILED,
-        "no_answer": Call.Status.NO_ANSWER,
-        "busy": Call.Status.BUSY,
-        "in_progress": Call.Status.IN_PROGRESS,
-        "processing": Call.Status.IN_PROGRESS,
-    }
-    return mapping.get(raw_status, Call.Status.IN_PROGRESS)
-
-
 def _bind_batch_call(
     payload: dict, data: dict, conversation_id: str
 ) -> "Call | None":
@@ -386,36 +355,6 @@ def _extract_batch_application_id(payload: dict, data: dict) -> "str | None":
         if user_id:
             return str(user_id)
     return None
-
-
-def _format_transcript(turns: list) -> str:
-    """
-    Convert ElevenLabs transcript turns into a human-readable dialogue string.
-
-    ElevenLabs turn objects may use 'message', 'content', or 'text' as the
-    field name for the spoken text — we check all three.
-
-    Spec § 9 — Transcript Format:
-      Agent: Hello, this is a call regarding...
-
-      User: Yes, hello...
-    """
-    if not turns:
-        return ""
-
-    lines = []
-    for turn in turns:
-        role = (turn.get("role") or "").capitalize()
-        text = (
-            turn.get("message")
-            or turn.get("content")
-            or turn.get("text")
-            or ""
-        ).strip()
-        if role and text:
-            lines.append(f"{role}: {text}")
-
-    return "\n\n".join(lines)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

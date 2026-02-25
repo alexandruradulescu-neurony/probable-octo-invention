@@ -29,6 +29,7 @@ from django_apscheduler.util import close_old_connections
 from applications.models import Application
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
+from calls.utils import format_transcript, map_elevenlabs_status
 from evaluations.services import ClaudeService, ClaudeServiceError
 from messaging.models import Message
 from messaging.services import send_followup
@@ -51,17 +52,6 @@ _POLL_ENDPOINT_TEMPLATES = [
     "/v1/conversations/{id}",
     "/v1/calls/{id}",
 ]
-
-# ElevenLabs status → internal Call.Status mapping (shared with webhook layer)
-_EL_STATUS_MAP = {
-    "done": Call.Status.COMPLETED,
-    "completed": Call.Status.COMPLETED,
-    "failed": Call.Status.FAILED,
-    "no_answer": Call.Status.NO_ANSWER,
-    "busy": Call.Status.BUSY,
-    "in_progress": Call.Status.IN_PROGRESS,
-    "processing": Call.Status.IN_PROGRESS,
-}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -301,11 +291,11 @@ def _update_call_from_poll(call: Call, data: dict) -> None:
     processing (Claude evaluation) if the call has completed.
     """
     raw_status = (data.get("status") or "").lower()
-    call_status = _EL_STATUS_MAP.get(raw_status, Call.Status.IN_PROGRESS)
+    call_status = map_elevenlabs_status(raw_status)
     is_completed = call_status == Call.Status.COMPLETED
 
     transcript_turns = data.get("transcript") or []
-    formatted_transcript = _format_transcript(transcript_turns)
+    formatted_transcript = format_transcript(transcript_turns)
     analysis = data.get("analysis") or {}
 
     with transaction.atomic():
@@ -586,24 +576,3 @@ def poll_cv_inbox() -> None:
     logger.info("poll_cv_inbox: processed %s email(s) with attachments", processed)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Shared helpers
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _format_transcript(turns: list) -> str:
-    """
-    Convert ElevenLabs transcript turns into a formatted dialogue string.
-    Handles 'message', 'content', or 'text' as the text field name.
-    Spec § 9 — Transcript Format.
-    """
-    if not turns:
-        return ""
-    lines = []
-    for turn in turns:
-        role = (turn.get("role") or "").capitalize()
-        text = (
-            turn.get("message") or turn.get("content") or turn.get("text") or ""
-        ).strip()
-        if role and text:
-            lines.append(f"{role}: {text}")
-    return "\n\n".join(lines)
