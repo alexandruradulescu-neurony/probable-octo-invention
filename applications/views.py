@@ -27,6 +27,7 @@ from applications.forms import (
 )
 from applications.models import Application, StatusChange
 from calls.models import Call
+from calls.services import ElevenLabsError, ElevenLabsService
 from cvs.models import CVUpload
 from evaluations.models import LLMEvaluation
 from messaging.models import Message
@@ -320,4 +321,37 @@ class ManualCVUploadView(LoginRequiredMixin, View):
             django_messages.success(request, f"CV '{uploaded.name}' uploaded.")
         else:
             django_messages.error(request, "Invalid file upload.")
+        return redirect("applications:detail", pk=pk)
+
+
+class CallNowView(LoginRequiredMixin, View):
+    """
+    POST /applications/<pk>/call-now/
+
+    Immediately initiate an outbound ElevenLabs call for this application,
+    bypassing the scheduler queue. Useful for testing and one-off calls.
+    """
+
+    def post(self, request, pk):
+        app = get_object_or_404(
+            Application.objects.select_related("candidate", "position"), pk=pk
+        )
+
+        service = ElevenLabsService()
+        try:
+            call = service.initiate_outbound_call(app)
+            app.change_status(
+                Application.Status.CALL_IN_PROGRESS,
+                changed_by=request.user,
+                note=f"Immediate call initiated (call #{call.pk})",
+            )
+            django_messages.success(
+                request,
+                f"Call initiated to {app.candidate.phone} "
+                f"(conversation: {call.eleven_labs_conversation_id})",
+            )
+        except ElevenLabsError as exc:
+            logger.error("Call Now failed for application=%s: %s", pk, exc, exc_info=True)
+            django_messages.error(request, f"Call failed: {exc}")
+
         return redirect("applications:detail", pk=pk)

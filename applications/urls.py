@@ -17,4 +17,5 @@ urlpatterns = [
     path("<int:pk>/schedule-callback/", views.ScheduleCallbackView.as_view(), name="schedule_callback"),
     path("<int:pk>/trigger-followup/", views.TriggerFollowupView.as_view(), name="trigger_followup"),
     path("<int:pk>/upload-cv/", views.ManualCVUploadView.as_view(), name="upload_cv"),
+    path("<int:pk>/call-now/", views.CallNowView.as_view(), name="call_now"),
 ]
