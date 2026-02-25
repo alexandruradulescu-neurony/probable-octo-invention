@@ -3,6 +3,13 @@ calls/services.py
 
 ElevenLabs Conversational AI integration service.
 
+Architecture:
+  ElevenLabsClient  — pure HTTP transport (no Django ORM, no transactions).
+                      Independently mockable in tests.
+  ElevenLabsService — orchestration + DB persistence.
+                      Accepts an optional ``client`` via constructor injection
+                      for testability; defaults to a real client from settings.
+
 Spec reference: Section 9 — ElevenLabs Integration Details
   Single call endpoint : POST https://api.elevenlabs.io/v1/convai/twilio/outbound-call
   Batch call endpoint  : POST https://api.elevenlabs.io/v1/convai/batch-calling/submit
@@ -16,7 +23,6 @@ import logging
 import requests
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
 
 from calls.models import Call
 from applications.models import Application
@@ -30,12 +36,8 @@ ELEVENLABS_BATCH_URL = (
     "https://api.elevenlabs.io/v1/convai/batch-calling/submit"
 )
 
-# Maximum recipients per batch submission. Chunking prevents payload-size and
-# timeout issues on very large queues.
 BATCH_CHUNK_SIZE = 50
 
-# Ordered list of field names ElevenLabs may use for the conversation identifier.
-# The spec notes the response may use any of these names.
 CONVERSATION_ID_KEYS = ("conversation_id", "call_id", "id", "call_sid")
 
 
@@ -45,17 +47,103 @@ class ElevenLabsError(Exception):
     """Raised when the ElevenLabs API returns an error or an unexpected response."""
 
 
-# ── Service ────────────────────────────────────────────────────────────────────
+# ── HTTP client (transport only, no Django ORM) ───────────────────────────────
+
+class ElevenLabsClient:
+    """
+    Thin HTTP client for the ElevenLabs ConvAI API.
+
+    Owns:
+      - Credential storage and validation
+      - HTTP POST with error handling
+      - Response parsing (conversation ID extraction)
+
+    Does NOT own:
+      - Database access (Call / Application models)
+      - Transaction management
+      - Prompt templating
+    """
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        agent_id: str | None = None,
+        phone_number_id: str | None = None,
+    ):
+        self.api_key = api_key or settings.ELEVENLABS_API_KEY
+        self.agent_id = agent_id or settings.ELEVENLABS_AGENT_ID
+        self.phone_number_id = phone_number_id or settings.ELEVENLABS_PHONE_NUMBER_ID
+
+    def validate_credentials(self) -> None:
+        """Raise ElevenLabsError if any required credential is missing."""
+        if not self.api_key:
+            raise ElevenLabsError("ELEVENLABS_API_KEY is not configured.")
+        if not self.agent_id:
+            raise ElevenLabsError("ELEVENLABS_AGENT_ID is not configured.")
+        if not self.phone_number_id:
+            raise ElevenLabsError("ELEVENLABS_PHONE_NUMBER_ID is not configured.")
+
+    def post_outbound_call(self, payload: dict) -> dict:
+        """POST to the single-call endpoint. Returns parsed JSON."""
+        return self._post(ELEVENLABS_OUTBOUND_URL, payload)
+
+    def post_batch_call(self, payload: dict) -> dict:
+        """POST to the batch-calling endpoint. Returns parsed JSON."""
+        return self._post(ELEVENLABS_BATCH_URL, payload)
+
+    @staticmethod
+    def extract_conversation_id(data: dict) -> str | None:
+        """
+        Extract the conversation/call identifier from the ElevenLabs response.
+        The spec notes the field name may vary across API versions.
+        """
+        for key in CONVERSATION_ID_KEYS:
+            value = data.get(key)
+            if value:
+                return str(value)
+        logger.warning(
+            "Could not find conversation ID in ElevenLabs response: %s", data
+        )
+        return None
+
+    # ── Internal ──────────────────────────────────────────────────────────────
+
+    def _post(self, url: str, payload: dict) -> dict:
+        """Execute a POST to any ElevenLabs endpoint and return parsed JSON."""
+        headers = {
+            "Content-Type": "application/json",
+            "xi-api-key": self.api_key,
+        }
+        try:
+            resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        except requests.RequestException as exc:
+            raise ElevenLabsError(f"Network error calling ElevenLabs: {exc}") from exc
+
+        if not resp.ok:
+            raise ElevenLabsError(
+                f"ElevenLabs API error {resp.status_code}: {resp.text[:500]}"
+            )
+
+        try:
+            return resp.json()
+        except ValueError as exc:
+            raise ElevenLabsError(
+                f"ElevenLabs returned non-JSON response: {resp.text[:200]}"
+            ) from exc
+
+
+# ── Orchestration service (DB persistence + business logic) ───────────────────
 
 class ElevenLabsService:
     """
-    Thin wrapper around the ElevenLabs ConvAI / Twilio outbound call API.
+    Orchestrates ElevenLabs call initiation and Call/Application persistence.
+
+    The HTTP transport is delegated to ``ElevenLabsClient``, which can be
+    injected via the constructor for testing.
     """
 
-    def __init__(self):
-        self.api_key = settings.ELEVENLABS_API_KEY
-        self.agent_id = settings.ELEVENLABS_AGENT_ID
-        self.phone_number_id = settings.ELEVENLABS_PHONE_NUMBER_ID
+    def __init__(self, client: ElevenLabsClient | None = None):
+        self.client = client or ElevenLabsClient()
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -76,7 +164,7 @@ class ElevenLabsService:
         Raises:
             ElevenLabsError: on any API or configuration failure.
         """
-        self._validate_credentials()
+        self.client.validate_credentials()
 
         candidate = application.candidate
         position = application.position
@@ -93,8 +181,8 @@ class ElevenLabsService:
         first_message = _apply_placeholders(position.first_message or "", context)
 
         payload = {
-            "agent_id": self.agent_id,
-            "agent_phone_number_id": self.phone_number_id,
+            "agent_id": self.client.agent_id,
+            "agent_phone_number_id": self.client.phone_number_id,
             "to_number": candidate.phone,
             "conversation_initiation_client_data": _build_agent_override(
                 system_prompt, first_message
@@ -108,8 +196,8 @@ class ElevenLabsService:
             candidate.phone,
         )
 
-        response_data = self._post(payload)
-        conversation_id = self._extract_conversation_id(response_data)
+        response_data = self.client.post_outbound_call(payload)
+        conversation_id = self.client.extract_conversation_id(response_data)
 
         with transaction.atomic():
             call = Call.objects.create(
@@ -148,17 +236,18 @@ class ElevenLabsService:
         Raises:
             ElevenLabsError: if credentials are missing or the API rejects a chunk.
         """
-        self._validate_credentials()
+        self.client.validate_credentials()
 
         all_calls: list = []
 
-        # Split into chunks to stay within API payload limits.
         for chunk_start in range(0, len(applications), BATCH_CHUNK_SIZE):
             chunk = applications[chunk_start : chunk_start + BATCH_CHUNK_SIZE]
             calls = self._submit_batch_chunk(chunk)
             all_calls.extend(calls)
 
         return all_calls
+
+    # ── Internal ──────────────────────────────────────────────────────────────
 
     def _submit_batch_chunk(self, applications: list) -> list:
         """
@@ -199,8 +288,8 @@ class ElevenLabsService:
 
         payload = {
             "call_name": f"RecruitFlow Batch — {len(recipients)} call(s)",
-            "agent_id": self.agent_id,
-            "agent_phone_number_id": self.phone_number_id,
+            "agent_id": self.client.agent_id,
+            "agent_phone_number_id": self.client.phone_number_id,
             "recipients": recipients,
         }
 
@@ -208,7 +297,7 @@ class ElevenLabsService:
             "Submitting ElevenLabs batch: %s recipient(s)", len(recipients)
         )
 
-        response_data = self._post_to(ELEVENLABS_BATCH_URL, payload)
+        response_data = self.client.post_batch_call(payload)
         batch_id = response_data.get("batch_id") or response_data.get("id")
 
         if not batch_id:
@@ -218,8 +307,6 @@ class ElevenLabsService:
 
         logger.info("ElevenLabs batch submitted: batch_id=%s", batch_id)
 
-        # Map phone → application for fast lookup (recipients preserves order but
-        # skipped apps may have reduced the list, so we match by index).
         eligible_apps = [a for a in applications if a not in skipped]
 
         created_calls: list = []
@@ -243,59 +330,6 @@ class ElevenLabsService:
             len(created_calls),
         )
         return created_calls
-
-    # ── Internal helpers ───────────────────────────────────────────────────────
-
-    def _validate_credentials(self) -> None:
-        """Raise ElevenLabsError if any required credential is missing."""
-        if not self.api_key:
-            raise ElevenLabsError("ELEVENLABS_API_KEY is not configured.")
-        if not self.agent_id:
-            raise ElevenLabsError("ELEVENLABS_AGENT_ID is not configured.")
-        if not self.phone_number_id:
-            raise ElevenLabsError("ELEVENLABS_PHONE_NUMBER_ID is not configured.")
-
-    def _post(self, payload: dict) -> dict:
-        """Execute a POST to the single-call endpoint and return the parsed JSON body."""
-        return self._post_to(ELEVENLABS_OUTBOUND_URL, payload)
-
-    def _post_to(self, url: str, payload: dict) -> dict:
-        """Execute a POST to any ElevenLabs endpoint and return the parsed JSON body."""
-        headers = {
-            "Content-Type": "application/json",
-            "xi-api-key": self.api_key,
-        }
-        try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=30)
-        except requests.RequestException as exc:
-            raise ElevenLabsError(f"Network error calling ElevenLabs: {exc}") from exc
-
-        if not resp.ok:
-            raise ElevenLabsError(
-                f"ElevenLabs API error {resp.status_code}: {resp.text[:500]}"
-            )
-
-        try:
-            return resp.json()
-        except ValueError as exc:
-            raise ElevenLabsError(
-                f"ElevenLabs returned non-JSON response: {resp.text[:200]}"
-            ) from exc
-
-    @staticmethod
-    def _extract_conversation_id(data: dict) -> str | None:
-        """
-        Extract the conversation/call identifier from the ElevenLabs response.
-        The spec notes the field name may vary across API versions.
-        """
-        for key in CONVERSATION_ID_KEYS:
-            value = data.get(key)
-            if value:
-                return str(value)
-        logger.warning(
-            "Could not find conversation ID in ElevenLabs response: %s", data
-        )
-        return None
 
 
 # ── Payload helpers ────────────────────────────────────────────────────────────

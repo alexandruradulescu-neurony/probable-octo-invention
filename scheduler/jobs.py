@@ -29,8 +29,8 @@ from django_apscheduler.util import close_old_connections
 from applications.models import Application
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
-from calls.utils import format_transcript, map_elevenlabs_status
-from evaluations.services import ClaudeService, ClaudeServiceError
+from calls.utils import apply_call_result
+from evaluations.services import trigger_evaluation
 from messaging.models import Message
 from messaging.services import send_followup
 
@@ -290,45 +290,7 @@ def _update_call_from_poll(call: Call, data: dict) -> None:
     Apply the polled ElevenLabs data to the Call record and trigger downstream
     processing (Claude evaluation) if the call has completed.
     """
-    raw_status = (data.get("status") or "").lower()
-    call_status = map_elevenlabs_status(raw_status)
-    is_completed = call_status == Call.Status.COMPLETED
-
-    transcript_turns = data.get("transcript") or []
-    formatted_transcript = format_transcript(transcript_turns)
-    analysis = data.get("analysis") or {}
-
-    with transaction.atomic():
-        call.status = call_status
-        if formatted_transcript:
-            call.transcript = formatted_transcript
-        if analysis.get("transcript_summary"):
-            call.summary = analysis["transcript_summary"]
-        if analysis.get("call_summary_title"):
-            call.summary_title = analysis["call_summary_title"]
-        if data.get("recording_url"):
-            call.recording_url = data["recording_url"]
-        duration = (
-            (data.get("metadata") or {}).get("call_duration_secs")
-            or data.get("duration_seconds")
-        )
-        if duration is not None:
-            call.duration_seconds = int(duration)
-        if is_completed or call_status in (
-            Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY
-        ):
-            call.ended_at = timezone.now()
-        call.save()
-
-        application = call.application
-        if is_completed:
-            application.status = Application.Status.CALL_COMPLETED
-            application.save(update_fields=["status", "updated_at"])
-            application.status = Application.Status.SCORING
-            application.save(update_fields=["status", "updated_at"])
-        elif call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
-            application.status = Application.Status.CALL_FAILED
-            application.save(update_fields=["status", "updated_at"])
+    call_status, is_completed = apply_call_result(call, data)
 
     logger.info(
         "sync_stuck_calls: updated call=%s status=%s application=%s",
@@ -338,24 +300,7 @@ def _update_call_from_poll(call: Call, data: dict) -> None:
     )
 
     if is_completed:
-        try:
-            evaluation = ClaudeService().evaluate_call(call)
-            logger.info(
-                "sync_stuck_calls: evaluation=%s outcome=%s for call=%s",
-                evaluation.pk,
-                evaluation.outcome,
-                call.pk,
-            )
-        except ClaudeServiceError as exc:
-            logger.error(
-                "sync_stuck_calls: Claude evaluation failed for call=%s: %s",
-                call.pk, exc, exc_info=True,
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.error(
-                "sync_stuck_calls: unexpected error evaluating call=%s: %s",
-                call.pk, exc, exc_info=True,
-            )
+        trigger_evaluation(call)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

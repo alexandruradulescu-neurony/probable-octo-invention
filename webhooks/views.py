@@ -18,18 +18,15 @@ import time
 
 import requests as http_requests
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
-from django.utils import timezone
-from django.utils.decorators import method_decorator
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
-from applications.models import Application
 from calls.models import Call
-from calls.utils import format_transcript, map_elevenlabs_status
+from calls.utils import apply_call_result
 from cvs.services import process_inbound_cv as cv_process_inbound
-from evaluations.services import ClaudeService, ClaudeServiceError
+from evaluations.services import trigger_evaluation
 
 logger = logging.getLogger(__name__)
 
@@ -115,12 +112,6 @@ def elevenlabs_webhook(request):
         logger.error("ElevenLabs webhook missing conversation_id: %s", payload)
         return _ok("no_conversation_id")
 
-    raw_status = (data.get("status") or "").lower()
-    transcript_turns = data.get("transcript") or []
-    analysis = data.get("analysis") or {}
-    metadata = data.get("metadata") or {}
-    recording_url = data.get("recording_url") or None
-
     # ── 4. Locate the Call record ──────────────────────────────────────────────
     try:
         call = Call.objects.select_related(
@@ -140,46 +131,8 @@ def elevenlabs_webhook(request):
             )
             return _ok("call_not_found")
 
-    # ── 5. Map ElevenLabs status → Call.Status ─────────────────────────────────
-    call_status = map_elevenlabs_status(raw_status)
-    is_completed = call_status == Call.Status.COMPLETED
-
-    # ── 6. Format transcript ───────────────────────────────────────────────────
-    formatted_transcript = format_transcript(transcript_turns)
-
-    # ── 7. Persist call data ───────────────────────────────────────────────────
-    call.status = call_status
-    if formatted_transcript:
-        call.transcript = formatted_transcript
-    if analysis.get("transcript_summary"):
-        call.summary = analysis["transcript_summary"]
-    if analysis.get("call_summary_title"):
-        call.summary_title = analysis["call_summary_title"]
-    if recording_url:
-        call.recording_url = recording_url
-    duration = metadata.get("call_duration_secs") or data.get("duration_seconds")
-    if duration is not None:
-        call.duration_seconds = int(duration)
-    if is_completed or call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
-        call.ended_at = timezone.now()
-
-    with transaction.atomic():
-        # Use save() without update_fields to avoid missing 'updated_at' issues
-        call.save()
-
-        application = call.application
-
-        if is_completed:
-            application.status = Application.Status.CALL_COMPLETED
-            application.save(update_fields=["status", "updated_at"])
-
-            # Immediately advance to scoring before triggering Claude
-            application.status = Application.Status.SCORING
-            application.save(update_fields=["status", "updated_at"])
-
-        elif call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
-            application.status = Application.Status.CALL_FAILED
-            application.save(update_fields=["status", "updated_at"])
+    # ── 5. Apply call result and advance Application status ──────────────────
+    call_status, is_completed = apply_call_result(call, data)
 
     logger.info(
         "ElevenLabs webhook processed: conversation_id=%s call_status=%s is_completed=%s",
@@ -188,42 +141,11 @@ def elevenlabs_webhook(request):
         is_completed,
     )
 
-    # ── 8. Trigger Claude evaluation for completed calls ───────────────────────
+    # ── 6. Trigger Claude evaluation for completed calls ───────────────────────
     if is_completed:
-        _trigger_evaluation(call)
+        trigger_evaluation(call)
 
     return _ok()
-
-
-def _trigger_evaluation(call: Call) -> None:
-    """
-    Run Claude's evaluation synchronously.
-    Errors are caught and logged — we never let evaluation failures cause
-    the webhook to re-deliver (which would duplicate the call record update).
-    """
-    try:
-        service = ClaudeService()
-        evaluation = service.evaluate_call(call)
-        logger.info(
-            "Claude evaluation complete: evaluation=%s outcome=%s application=%s",
-            evaluation.pk,
-            evaluation.outcome,
-            call.application_id,
-        )
-    except ClaudeServiceError as exc:
-        logger.error(
-            "Claude evaluation failed for call=%s: %s",
-            call.pk,
-            exc,
-            exc_info=True,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.error(
-            "Unexpected error during Claude evaluation for call=%s: %s",
-            call.pk,
-            exc,
-            exc_info=True,
-        )
 
 
 # ── ElevenLabs helpers ─────────────────────────────────────────────────────────

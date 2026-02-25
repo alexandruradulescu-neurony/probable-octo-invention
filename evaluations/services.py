@@ -30,6 +30,41 @@ class ClaudeServiceError(Exception):
     """Raised when the Anthropic API returns an error or an unexpected response."""
 
 
+# ── Fire-and-forget evaluation trigger ─────────────────────────────────────────
+
+def trigger_evaluation(call) -> None:
+    """
+    Run Claude's evaluation for a completed call, catching all errors.
+
+    This is the shared entry point used by both the ElevenLabs webhook view
+    and the sync_stuck_calls polling job.  Errors are logged but never
+    propagated — callers must not fail because of an evaluation failure
+    (the webhook would re-deliver, the scheduler would crash the job).
+    """
+    try:
+        evaluation = ClaudeService().evaluate_call(call)
+        logger.info(
+            "Claude evaluation complete: evaluation=%s outcome=%s application=%s",
+            evaluation.pk,
+            evaluation.outcome,
+            call.application_id,
+        )
+    except ClaudeServiceError as exc:
+        logger.error(
+            "Claude evaluation failed for call=%s: %s",
+            call.pk,
+            exc,
+            exc_info=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "Unexpected error during Claude evaluation for call=%s: %s",
+            call.pk,
+            exc,
+            exc_info=True,
+        )
+
+
 # ── Service ────────────────────────────────────────────────────────────────────
 
 class ClaudeService:
