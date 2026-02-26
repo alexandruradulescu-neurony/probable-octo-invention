@@ -1,0 +1,272 @@
+:root {
+  /* Surfaces */
+  --bg-page: #f8f8f8;
+  --bg-card: #ffffff;
+  --bg-sidebar: #101114;
+  --bg-topbar: #ffffff;
+
+  /* Borders */
+  --border-default: #ebebeb;
+  --border-light: #f0f0f0;
+  --border-sidebar: rgba(255,255,255,.06);
+
+  /* Text */
+  --text-primary: #111113;
+  --text-secondary: #444444;
+  --text-tertiary: #888888;
+  --text-muted: #bbbbbb;
+  --text-sidebar: rgba(255,255,255,.4);
+  --text-sidebar-active: #ffffff;
+
+  /* Status Colours (used sparingly, only for badges/indicators) */
+  --status-screening-bg: #fefce8;
+  --status-screening-text: #854d0e;
+  --status-screening-dot: #ca8a04;
+
+  --status-interview-bg: #f3f0ff;
+  --status-interview-text: #5b21b6;
+  --status-interview-dot: #7c3aed;
+
+  --status-review-bg: #eff6ff;
+  --status-review-text: #1e40af;
+  --status-review-dot: #2563eb;
+
+  --status-offered-bg: #ecfdf5;
+  --status-offered-text: #065f46;
+  --status-offered-dot: #059669;
+
+  --status-rejected-bg: #fef2f2;
+  --status-rejected-text: #991b1b;
+  --status-rejected-dot: #dc2626;
+
+  /* Accents */
+  --accent-positive: #059669;
+  --accent-negative: #dc2626;
+  --accent-primary-btn-bg: #111113;
+  --accent-primary-btn-text: #ffffff;
+
+  /* Radii */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Sidebar */
+  --sidebar-width: 248px;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Typography Weights */
+.fw-medium { font-weight: 500 !important; }
+.fw-semibold { font-weight: 600 !important; }
+.fw-bold { font-weight: 700 !important; }
+
+/* Layout */
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--bg-sidebar);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  border-right: 1px solid var(--border-sidebar);
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--bg-page);
+}
+
+.topbar {
+  background: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-default);
+  padding: 0.75rem 1.5rem;
+  height: 60px;
+}
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.card:hover {
+  /* Subtle shadow only on hover if needed, but keeping it flat by default */
+}
+
+.card-header {
+  background: transparent;
+  padding: 0.75rem 1.1rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 0.95rem 1.1rem;
+}
+
+/* Tables */
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  background: #fafafa;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: #aaaaaa;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.table td {
+  padding: 0.6rem 1.1rem;
+  border-bottom: 1px solid #f7f7f7;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: #fafafa;
+}
+
+/* Forms */
+.form-control, .form-select {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  box-shadow: none !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #111113;
+  outline: none;
+  box-shadow: none !important;
+}
+
+.form-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+/* Buttons */
+.btn {
+  font-size: 0.74rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.42rem 1rem;
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary-btn-bg);
+  color: var(--accent-primary-btn-text);
+  border: 1px solid var(--accent-primary-btn-bg);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #333333;
+  border-color: #333333;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  background-color: #fafafa;
+  color: var(--text-primary);
+  border-color: #dddddd;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 0.42rem 0.75rem;
+}
+
+.btn-ghost:hover {
+  background-color: rgba(0,0,0,0.04);
+  color: var(--text-primary);
+}
+
+/* Badges */
+.badge {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  padding: 0.35em 0.5em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Status Specific Badges */
+.status-screening { background: var(--status-screening-bg); color: var(--status-screening-text); }
+.status-screening .badge-dot { background: var(--status-screening-dot); }
+
+.status-interview { background: var(--status-interview-bg); color: var(--status-interview-text); }
+.status-interview .badge-dot { background: var(--status-interview-dot); }
+
+.status-review { background: var(--status-review-bg); color: var(--status-review-text); }
+.status-review .badge-dot { background: var(--status-review-dot); }
+
+.status-offered { background: var(--status-offered-bg); color: var(--status-offered-text); }
+.status-offered .badge-dot { background: var(--status-offered-dot); }
+
+.status-rejected { background: var(--status-rejected-bg); color: var(--status-rejected-text); }
+.status-rejected .badge-dot { background: var(--status-rejected-dot); }
+
+/* Alerts */
+.alert {
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  border: none;
+}
+
+.alert-success { background: var(--status-offered-bg); color: var(--status-offered-text); }
+.alert-danger { background: var(--status-rejected-bg); color: var(--status-rejected-text); }
+.alert-warning { background: var(--status-screening-bg); color: var(--status-screening-text); }
+.alert-info { background: var(--status-review-bg); color: var(--status-review-text); }
+
+/* Utilities */
+.text-muted-custom { color: var(--text-muted); }
+.text-tertiary { color: var(--text-tertiary); }
+.tabular-nums { font-variant-numeric: tabular-nums; }
