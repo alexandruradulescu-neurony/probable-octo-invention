@@ -413,6 +413,18 @@ def check_cv_followups() -> None:
         .values("sent_at")[:1]
     )
 
+    # Pre-annotate the most recent transition INTO an awaiting-CV status so the
+    # fallback baseline is resolved in a single query instead of N+1 per app.
+    latest_awaiting_cv_transition = (
+        StatusChange.objects
+        .filter(
+            application=OuterRef("pk"),
+            to_status__in=list(AWAITING_CV_STATUSES),
+        )
+        .order_by("-changed_at")
+        .values("changed_at")[:1]
+    )
+
     pending_followup_apps = (
         Application.objects
         .filter(
@@ -421,7 +433,10 @@ def check_cv_followups() -> None:
             cv_received_at__isnull=True,
         )
         .select_related("candidate", "position")
-        .annotate(_last_sent_at=Subquery(latest_sent_msg))
+        .annotate(
+            _last_sent_at=Subquery(latest_sent_msg),
+            _status_change_at=Subquery(latest_awaiting_cv_transition),
+        )
     )
 
     advanced = 0
@@ -430,16 +445,7 @@ def check_cv_followups() -> None:
         last_sent_at = app._last_sent_at
 
         if last_sent_at is None:
-            last_sent_at = (
-                StatusChange.objects
-                .filter(
-                    application=app,
-                    to_status__in=list(AWAITING_CV_STATUSES),
-                )
-                .order_by("-changed_at")
-                .values_list("changed_at", flat=True)
-                .first()
-            )
+            last_sent_at = app._status_change_at
 
         if last_sent_at is None:
             last_sent_at = app.updated_at

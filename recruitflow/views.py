@@ -232,12 +232,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         awaiting_cv_statuses = cls.AWAITING_CV_STATUSES
         completed_statuses = cls.COMPLETED_STATUSES
 
+        # Single aggregate query replaces 5 separate COUNT queries.
+        totals = Application.objects.aggregate(
+            pending=Count("id", filter=Q(status__in=pending_statuses)),
+            screening=Count("id", filter=Q(status__in=screening_statuses)),
+            evaluated=Count("id", filter=Q(status__in=qualified_statuses)),
+            awaiting_cv=Count("id", filter=Q(status__in=awaiting_cv_statuses)),
+            completed=Count("id", filter=Q(status__in=completed_statuses)),
+        )
+
         stages = [
-            {"label": "Pending",     "count": Application.objects.filter(status__in=pending_statuses).count(),     "color": "#A3AED0"},
-            {"label": "Screening",   "count": Application.objects.filter(status__in=screening_statuses).count(),   "color": "#7551FF"},
-            {"label": "Evaluated",   "count": Application.objects.filter(status__in=qualified_statuses).count(),   "color": "#4318FF"},
-            {"label": "Awaiting CV", "count": Application.objects.filter(status__in=awaiting_cv_statuses).count(), "color": "#F0B429"},
-            {"label": "Completed",   "count": Application.objects.filter(status__in=completed_statuses).count(),   "color": "#01B574"},
+            {"label": "Pending",     "count": totals["pending"],     "color": "#A3AED0"},
+            {"label": "Screening",   "count": totals["screening"],   "color": "#7551FF"},
+            {"label": "Evaluated",   "count": totals["evaluated"],   "color": "#4318FF"},
+            {"label": "Awaiting CV", "count": totals["awaiting_cv"], "color": "#F0B429"},
+            {"label": "Completed",   "count": totals["completed"],   "color": "#01B574"},
         ]
 
         max_count = max((s["count"] for s in stages), default=1) or 1
