@@ -87,6 +87,7 @@ LOCAL_APPS = [
     "webhooks",
     "prompts",
     "scheduler",
+    "config",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -200,6 +201,7 @@ WHAPI_WEBHOOK_SECRET = env("WHAPI_WEBHOOK_SECRET", default="")
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
 GOOGLE_REFRESH_TOKEN = env("GOOGLE_REFRESH_TOKEN", default="")
+GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI", default="http://localhost:8010/settings/gmail/callback/")
 
 GMAIL_INBOX_LABEL = env("GMAIL_INBOX_LABEL", default="CVs")
 GMAIL_PROCESSED_LABEL = env("GMAIL_PROCESSED_LABEL", default="CVs-Processed")

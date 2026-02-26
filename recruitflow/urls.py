@@ -32,6 +32,9 @@ urlpatterns = [
     path("cvs/", include("cvs.urls", namespace="cvs")),
     path("prompts/", include("prompts.urls", namespace="prompts")),
 
+    # ── Settings ───────────────────────────────────────────────────────────────
+    path("settings/", include("config.urls", namespace="config")),
+
     # ── Webhooks (CSRF-exempt, no login required) ──────────────────────────────
     path("webhooks/", include("webhooks.urls", namespace="webhooks")),
 ]

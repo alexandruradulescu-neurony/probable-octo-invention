@@ -98,7 +98,15 @@ class GmailService:
 
         client_id = settings.GOOGLE_CLIENT_ID
         client_secret = settings.GOOGLE_CLIENT_SECRET
-        refresh_token = settings.GOOGLE_REFRESH_TOKEN
+
+        # Prefer DB-stored OAuth credential (connected via Settings page) over env token.
+        try:
+            from config.models import OAuthCredential
+            db_cred = OAuthCredential.objects.first()
+        except Exception:
+            db_cred = None
+
+        refresh_token = db_cred.refresh_token if db_cred else settings.GOOGLE_REFRESH_TOKEN
 
         if not all([client_id, client_secret, refresh_token]):
             raise RuntimeError("Gmail API credentials not configured (GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN).")

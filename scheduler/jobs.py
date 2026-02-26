@@ -471,7 +471,14 @@ def poll_cv_inbox() -> None:
 
     Spec § 6 — poll_cv_inbox, § 10 step 5.
     """
-    if not settings.GMAIL_POLL_ENABLED:
+    # Check DB flag first (controlled via Settings page), fall back to env setting.
+    try:
+        from config.models import SystemSetting
+        poll_enabled = SystemSetting.get_bool("gmail_poll_enabled", default=settings.GMAIL_POLL_ENABLED)
+    except Exception:
+        poll_enabled = settings.GMAIL_POLL_ENABLED
+
+    if not poll_enabled:
         return
 
     from cvs.services import process_inbound_cv as cv_process_inbound
