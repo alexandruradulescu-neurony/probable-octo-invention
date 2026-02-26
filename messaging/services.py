@@ -50,8 +50,10 @@ class WhapiService:
             return None
 
         url = f"{self.base_url}/messages/text"
+        # Whapi JID format requires digits only — strip any leading '+'.
+        jid_number = phone.lstrip("+")
         payload = {
-            "to": f"{phone}@s.whatsapp.net",
+            "to": f"{jid_number}@s.whatsapp.net",
             "body": body,
         }
         headers = {
