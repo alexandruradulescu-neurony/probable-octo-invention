@@ -1,0 +1,16 @@
+feat: inbound messages, message templates, global search, logo and UI polish
+
+- Store inbound WhatsApp and email replies as CandidateReply model
+- Group inbox by conversation with expand/collapse and delete
+- Add MessageTemplate model with CRUD and live preview (10 seeded defaults)
+- Wire send_cv_request/send_followup to use DB templates with fallback
+- Add GlobalSearchView with AJAX dropdown (candidates, positions, applications)
+- Rename sidebar Prompt Templates to Templates with tabbed hub
+- Convert notification bell to messages link with unread badge
+- Redesign sidebar logo: bigger, no drop shadow, larger logotype
+- Fix Whapi text extraction: read msg text body not msg body
+- Fix json_repair fallback for Claude malformed JSON (Romanian quotes)
+- Increase ANTHROPIC_MAX_TOKENS default to 8192, add stop_reason detection
+- Add evaluations DEBUG logging for full Claude request/response
+- Clear test data from DB (keep admin user, OAuth, prompt templates)
+- Clear DjangoJobExecution history

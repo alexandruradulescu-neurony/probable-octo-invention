@@ -26,8 +26,10 @@ from django.db import transaction
 
 from calls.models import Call
 from calls.utils import apply_call_result
+from candidates.services import lookup_candidate_by_email, lookup_candidate_by_phone
 from cvs.services import process_inbound_cv as cv_process_inbound
 from evaluations.services import trigger_evaluation
+from messaging.models import CandidateReply
 
 logger = logging.getLogger(__name__)
 
@@ -342,7 +344,7 @@ def whapi_webhook(request):
 
     messages = payload.get("messages") or []
     if not messages:
-        # Whapi sends other event types (status updates, etc.) — acknowledge silently.
+        logger.debug("Whapi webhook: no messages in payload. keys=%s", list(payload.keys()))
         return _ok("no_messages")
 
     # ── 3. Process each inbound message ───────────────────────────────────────
@@ -375,31 +377,76 @@ def _validate_whapi_token(request, secret: str) -> bool:
     return False
 
 
+def _extract_whapi_text(msg: dict, msg_type: str) -> str:
+    """
+    Extract the plain-text body from a Whapi message object.
+
+    Whapi nests the text under a type-specific key:
+      text messages  → msg["text"]["body"]
+      media captions → msg["caption"] or msg[msg_type]["caption"]
+    Falls back to the top-level "body" key for forward-compatibility.
+    """
+    # Text messages
+    text_obj = msg.get("text")
+    if isinstance(text_obj, dict):
+        body = (text_obj.get("body") or "").strip()
+        if body:
+            return body
+
+    # Media captions: top-level "caption" or nested under the type key
+    caption = msg.get("caption") or ""
+    if not caption:
+        type_obj = msg.get(msg_type) or {}
+        caption = (type_obj.get("caption") or "") if isinstance(type_obj, dict) else ""
+
+    # Final fallback
+    return (caption or msg.get("body") or "").strip()
+
+
 def _handle_whapi_message(msg: dict) -> None:
     """
     Process a single Whapi message object.
     Downloads media and delegates to the CV smart-matching service.
+
+    Whapi stores media data under a key matching the message type
+    (e.g. msg["document"], msg["image"]) rather than a generic "media" key.
+    We fall back to "media" for forward-compatibility.
     """
     msg_type = (msg.get("type") or "").lower()
     sender_raw = msg.get("from") or ""
 
+    # Skip outbound messages (fromMe=True means WE sent it)
+    if msg.get("from_me") or msg.get("fromMe"):
+        return
+
     sender = sender_raw.split("@")[0] if "@" in sender_raw else sender_raw
 
     if msg_type in _WHAPI_MEDIA_TYPES:
-        media = msg.get("media") or {}
-        media_url = media.get("url") or media.get("link") or ""
-        file_name = media.get("filename") or media.get("file_name") or "attachment"
-        text = (msg.get("body") or msg.get("caption") or "").strip()
+        # Whapi puts media info under the type-specific key (e.g. "document"),
+        # with a fallback to the generic "media" key.
+        media = msg.get(msg_type) or msg.get("media") or {}
+        media_url = media.get("link") or media.get("url") or ""
+        file_name = (
+            media.get("file_name")
+            or media.get("filename")
+            or media.get("name")
+            or f"attachment.{msg_type}"
+        )
+        text = _extract_whapi_text(msg, msg_type)
 
         logger.info(
-            "Whapi inbound media message: sender=%s type=%s media_url=%s",
+            "Whapi inbound media message: sender=%s type=%s file=%s media_url=%s",
             sender,
             msg_type,
+            file_name,
             media_url[:80] if media_url else "(none)",
         )
 
         if not media_url:
-            logger.warning("Whapi media message has no URL — skipping")
+            logger.warning(
+                "Whapi media message has no URL — skipping. msg_type=%s keys=%s",
+                msg_type, list(msg.keys()),
+            )
             return
 
         file_content = _download_whapi_media(media_url)
@@ -421,20 +468,98 @@ def _handle_whapi_message(msg: dict) -> None:
                 sender, exc, exc_info=True,
             )
 
+        # Persist any caption text accompanying the document as a CandidateReply.
+        if text:
+            _save_candidate_reply(
+                sender=sender,
+                channel="whatsapp",
+                body=text,
+                external_id=msg.get("id"),
+            )
+
     elif msg_type == "text":
-        logger.debug(
-            "Whapi inbound text message from sender=%s (no action)", sender
+        body = _extract_whapi_text(msg, msg_type)
+        if body:
+            _save_candidate_reply(
+                sender=sender,
+                channel="whatsapp",
+                body=body,
+                external_id=msg.get("id"),
+            )
+        else:
+            logger.debug("Whapi inbound empty text from sender=%s — skipping", sender)
+
+
+def _save_candidate_reply(
+    sender: str,
+    channel: str,
+    body: str,
+    subject: str = "",
+    external_id: str | None = None,
+) -> None:
+    """
+    Create a CandidateReply for an inbound message from a candidate.
+
+    Attempts to resolve the sender to a Candidate and their most recent
+    open Application.  Both FKs are optional — an unmatched sender still
+    produces a record so the recruiter can review it.
+    """
+    from applications.models import Application as App
+
+    try:
+        if "@" in sender:
+            candidate = lookup_candidate_by_email(sender)
+        else:
+            candidate = lookup_candidate_by_phone(sender)
+
+        application = None
+        if candidate:
+            application = (
+                App.objects
+                .filter(candidate=candidate)
+                .exclude(status=App.Status.CLOSED)
+                .order_by("-updated_at")
+                .first()
+            )
+
+        CandidateReply.objects.create(
+            candidate=candidate,
+            application=application,
+            channel=channel,
+            sender=sender,
+            subject=subject,
+            body=body,
+            external_id=external_id,
+        )
+        logger.info(
+            "CandidateReply saved: channel=%s sender=%s candidate=%s application=%s",
+            channel, sender,
+            candidate.pk if candidate else None,
+            application.pk if application else None,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to save CandidateReply for sender=%s: %s", sender, exc, exc_info=True
         )
 
 
 def _download_whapi_media(url: str) -> bytes | None:
-    """Download a media file from Whapi. Returns raw bytes or None on failure."""
+    """
+    Download a media file from Whapi. Returns raw bytes or None on failure.
+    The WHAPI_TOKEN is included as a Bearer token — required for authenticated
+    media endpoints on most Whapi plans.
+    """
     if urlparse(url).scheme != "https":
         logger.warning("Rejected non-HTTPS Whapi media URL: %s", url[:100])
         return None
 
+    headers = {}
+    token = settings.WHAPI_TOKEN
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
     try:
-        resp = http_requests.get(url, timeout=30)
+        resp = http_requests.get(url, headers=headers, timeout=30)
         resp.raise_for_status()
         return resp.content
     except http_requests.RequestException as exc:

@@ -1,7 +1,11 @@
 """
 candidates/services.py
 
-Meta Ads Lead Form CSV import service.
+Public services:
+  lookup_candidate_by_phone(phone) → Candidate | None
+  lookup_candidate_by_email(email) → Candidate | None
+  import_meta_csv(...)             → summary dict
+  parse_meta_csv_preview(...)      → preview dict
 
 Spec reference: Section 5 — CSV Import Specification
   Encoding  : UTF-16 LE (with BOM)
@@ -104,6 +108,67 @@ def _clean_form_value(value: str) -> str:
     Meta sometimes URL-encodes spaces as underscores in exported values.
     """
     return value.replace("_", " ").strip()
+
+
+# ── Candidate lookup helpers (shared with messaging / webhooks) ────────────────
+
+def _digits_only(phone: str) -> str:
+    """Strip all non-digit characters from a phone string."""
+    return re.sub(r"\D", "", phone or "")
+
+
+def _phones_match(query_digits: str, stored_phone: str) -> bool:
+    """
+    Compare two phone numbers by their digit-only representations.
+    Handles country-code prefix differences by checking if either is a suffix
+    of the other (minimum 7 significant digits required).
+    """
+    stored_digits = _digits_only(stored_phone)
+    if not stored_digits or len(query_digits) < 7:
+        return False
+    if query_digits == stored_digits:
+        return True
+    short, long_ = (
+        (query_digits, stored_digits)
+        if len(query_digits) <= len(stored_digits)
+        else (stored_digits, query_digits)
+    )
+    return long_.endswith(short) and len(short) >= 7
+
+
+def lookup_candidate_by_phone(phone: str) -> "Candidate | None":
+    """
+    Return a Candidate whose phone or whatsapp_number matches the given number.
+    Normalises to digits-only for comparison, handling country-code differences.
+    Returns None if no match is found.
+    """
+    digits = _digits_only(phone)
+    if not digits:
+        return None
+    for candidate in Candidate.objects.filter(phone__isnull=False).only(
+        "id", "phone", "whatsapp_number"
+    ):
+        if _phones_match(digits, candidate.phone):
+            return candidate
+        if candidate.whatsapp_number and _phones_match(digits, candidate.whatsapp_number):
+            return candidate
+    return None
+
+
+def lookup_candidate_by_email(email: str) -> "Candidate | None":
+    """
+    Return a Candidate whose email exactly matches (case-insensitive).
+    Accepts both bare addresses and RFC 2822 'Name <addr>' strings.
+    Returns None if no match is found.
+    """
+    if not email:
+        return None
+    # Extract bare address from "Name <addr>" format
+    match = re.search(r"<([^>]+@[^>]+)>", email)
+    bare = match.group(1).strip() if match else email.strip()
+    if not bare or "@" not in bare:
+        return None
+    return Candidate.objects.filter(email__iexact=bare).first()
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

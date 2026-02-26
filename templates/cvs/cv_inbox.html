@@ -5,6 +5,37 @@
 
 {% block content %}
 <style>
+  /* Application autocomplete — portalled to <body> to escape overflow:hidden */
+  #app-search-portal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-default, #e2e8f0);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: 0 6px 24px rgba(0,0,0,.13);
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 260px;
+  }
+  #app-search-portal.open { display: block; }
+  #app-search-portal li {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    color: var(--text-primary, #1a202c);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #app-search-portal li:hover,
+  #app-search-portal li.active { background: rgba(117,81,255,.09); }
+  #app-search-portal li.empty { color: var(--text-muted, #a0aec0); cursor: default; }
+  .app-search-input.has-value { border-color: var(--accent-primary) !important; }
+
   .nav-tabs {
     border-bottom: 1px solid var(--border-default);
     margin-bottom: 1rem;
@@ -92,10 +123,14 @@
               </td>
               <td class="text-sm text-secondary">{{ item.attachment_name|default:"—" }}</td>
               <td>
-                <form method="post" action="{% url 'cvs:assign_unmatched' %}" class="d-flex gap-2 align-items-center">
+                <form method="post" action="{% url 'cvs:assign_unmatched' %}" class="d-flex gap-2 align-items-center app-assign-form">
                   {% csrf_token %}
                   <input type="hidden" name="unmatched_id" value="{{ item.pk }}">
-                  <input type="number" name="application_id" placeholder="App ID" class="form-control" style="width: 80px;" required>
+                  <input type="hidden" name="application_id" class="app-id-value" required>
+                  <div class="app-search-wrap" style="min-width:220px;">
+                    <input type="text" class="form-control form-control-sm app-search-input"
+                           placeholder="Search candidate or position…" autocomplete="off">
+                  </div>
                   <button type="submit" class="btn btn-secondary btn-sm">Assign</button>
                 </form>
               </td>
@@ -151,10 +186,14 @@
                       Confirm
                     </button>
                   </form>
-                  <form method="post" action="{% url 'cvs:reassign' %}" class="d-inline-flex gap-2 align-items-center">
+                  <form method="post" action="{% url 'cvs:reassign' %}" class="d-inline-flex gap-2 align-items-center app-assign-form">
                     {% csrf_token %}
                     <input type="hidden" name="cv_upload_id" value="{{ cv.pk }}">
-                    <input type="number" name="application_id" placeholder="App ID" class="form-control" style="width: 70px;" required>
+                    <input type="hidden" name="application_id" class="app-id-value" required>
+                    <div class="app-search-wrap" style="min-width:200px;">
+                      <input type="text" class="form-control form-control-sm app-search-input"
+                             placeholder="Search candidate…" autocomplete="off">
+                    </div>
                     <button type="submit" class="btn btn-secondary btn-sm">Reassign</button>
                   </form>
                 </div>
@@ -175,4 +214,145 @@
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  "use strict";
+
+  const SEARCH_URL = "{% url 'cvs:application_search' %}";
+
+  // ── Shared portal dropdown (appended to <body> to escape overflow:hidden) ──
+  const portal = document.createElement("ul");
+  portal.id = "app-search-portal";
+  document.body.appendChild(portal);
+
+  let activeOwner = null;   // the textInput currently driving the portal
+  let activeHidden = null;
+  let activeIdx = -1;
+  let lastResults = [];
+  let debounceTimer = null;
+
+  function positionPortal(input) {
+    const r = input.getBoundingClientRect();
+    portal.style.top   = (r.bottom + 4) + "px";
+    portal.style.left  = r.left + "px";
+    portal.style.width = Math.max(r.width, 260) + "px";
+  }
+
+  function openPortal(input, hiddenInput, items) {
+    activeOwner = input;
+    activeHidden = hiddenInput;
+    lastResults = items;
+    activeIdx = -1;
+    portal.innerHTML = "";
+
+    if (!items.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No applications found";
+      portal.appendChild(li);
+    } else {
+      items.forEach(function (item) {
+        const li = document.createElement("li");
+        li.textContent = item.label;
+        li.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          selectItem(item);
+        });
+        portal.appendChild(li);
+      });
+    }
+
+    positionPortal(input);
+    portal.classList.add("open");
+  }
+
+  function closePortal() {
+    portal.classList.remove("open");
+    activeOwner = null;
+    activeHidden = null;
+    activeIdx = -1;
+  }
+
+  function selectItem(item) {
+    if (activeHidden) activeHidden.value = item.id;
+    if (activeOwner)  {
+      activeOwner.value = item.label;
+      activeOwner.classList.add("has-value");
+    }
+    closePortal();
+  }
+
+  // Reposition on scroll / resize so it doesn't drift
+  window.addEventListener("scroll", function () {
+    if (activeOwner) positionPortal(activeOwner);
+  }, true);
+  window.addEventListener("resize", function () {
+    if (activeOwner) positionPortal(activeOwner);
+  });
+
+  // ── Per-input wiring ────────────────────────────────────────────────────────
+  function initAutocomplete(form) {
+    const textInput   = form.querySelector(".app-search-input");
+    const hiddenInput = form.querySelector(".app-id-value");
+    if (!textInput || !hiddenInput) return;
+
+    function clearSelection() {
+      hiddenInput.value = "";
+      textInput.classList.remove("has-value");
+    }
+
+    textInput.addEventListener("input", function () {
+      clearSelection();
+      clearTimeout(debounceTimer);
+      const q = textInput.value.trim();
+      if (!q) { closePortal(); return; }
+      debounceTimer = setTimeout(function () {
+        fetch(SEARCH_URL + "?q=" + encodeURIComponent(q), { credentials: "same-origin" })
+          .then(function (r) { return r.json(); })
+          .then(function (data) { openPortal(textInput, hiddenInput, data.results || []); })
+          .catch(closePortal);
+      }, 220);
+    });
+
+    textInput.addEventListener("keydown", function (e) {
+      if (activeOwner !== textInput || !portal.classList.contains("open")) return;
+      const items = portal.querySelectorAll("li:not(.empty)");
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+      } else if (e.key === "Enter" && activeIdx >= 0) {
+        e.preventDefault();
+        selectItem(lastResults[activeIdx]);
+        return;
+      } else if (e.key === "Escape") {
+        closePortal(); return;
+      }
+      items.forEach(function (li, i) { li.classList.toggle("active", i === activeIdx); });
+    });
+
+    textInput.addEventListener("blur", function () {
+      setTimeout(function () {
+        if (activeOwner === textInput) closePortal();
+      }, 160);
+    });
+
+    form.addEventListener("submit", function (e) {
+      if (!hiddenInput.value) {
+        e.preventDefault();
+        textInput.focus();
+        textInput.style.borderColor = "var(--accent-danger)";
+        setTimeout(function () { textInput.style.borderColor = ""; }, 1500);
+      }
+    });
+  }
+
+  document.querySelectorAll(".app-assign-form").forEach(initAutocomplete);
+}());
+</script>
 {% endblock %}

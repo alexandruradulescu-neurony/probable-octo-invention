@@ -12,6 +12,7 @@ app_name = "candidates"
 
 urlpatterns = [
     path("", views.CandidateListView.as_view(), name="list"),
+    path("bulk-delete/", views.BulkDeleteCandidatesView.as_view(), name="bulk_delete"),
     path("<int:pk>/", views.CandidateDetailView.as_view(), name="detail"),
     path("<int:pk>/notes/", views.CandidateUpdateNotesView.as_view(), name="update_notes"),
     path("<int:pk>/contact/", views.CandidateUpdateContactView.as_view(), name="update_contact"),

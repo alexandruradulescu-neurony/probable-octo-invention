@@ -426,26 +426,26 @@ body {
 
 /* ─── Sidebar ───────────────────────────────────────────────────────────────── */
 .sidebar .brand-logo {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   background: linear-gradient(135deg, #4318FF 0%, #7551FF 100%);
   color: #ffffff;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 0.9rem;
-  letter-spacing: -0.02em;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(67, 24, 255, 0.30);
 }
 
 .sidebar .brand-text {
   color: #1B2559;
   font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .sidebar-section-label {
@@ -592,6 +592,70 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* ─── Global search dropdown ─────────────────────────────────────────────── */
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 320px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 999;
+  overflow: hidden;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.search-dropdown-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 0.6rem 0.9rem 0.25rem;
+}
+
+.search-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-left: 3px solid transparent;
+}
+
+.search-dropdown-item:hover,
+.search-dropdown-item.active {
+  background: var(--bg-page);
+  border-left-color: var(--accent-primary);
+}
+
+.search-dropdown-item-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-dropdown-item-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.search-dropdown-empty {
+  padding: 1rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .topbar-search { position: relative; }
@@ -822,6 +886,68 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ─── Bulk action bar ────────────────────────────────────────────────────── */
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #4318FF, #7551FF);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 15px rgba(67, 24, 255, 0.25);
+  flex-wrap: wrap;
+}
+.bulk-count-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bulk-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+.bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.bulk-btn:hover { background: rgba(255, 255, 255, 0.28); }
+.bulk-btn-danger { border-color: rgba(255, 120, 120, 0.5); background: rgba(220, 53, 69, 0.35); }
+.bulk-btn-danger:hover { background: rgba(220, 53, 69, 0.55); }
+.bulk-select {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.8rem;
+  max-width: 200px;
+}
+.bulk-select option { background: #4318FF; color: #fff; }
+
+/* ─── Clickable table rows ───────────────────────────────────────────────── */
+
+.table tbody tr[data-href] {
+  cursor: pointer;
+}
+.table tbody tr[data-href]:hover td {
+  background: var(--bg-page);
+}
+
 /* ─── Settings page ──────────────────────────────────────────────────────── */
 
 .settings-icon-wrap {
@@ -907,3 +1033,8 @@ body {
 
 /* Utility: letter-spacing */
 .letter-spacing-1 { letter-spacing: 0.05em; }
+
+@keyframes rf-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

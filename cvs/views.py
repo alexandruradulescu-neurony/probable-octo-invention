@@ -14,8 +14,10 @@ Two tabs:
 import logging
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.files.storage import default_storage
 from django.db import transaction
-from django.http import HttpResponseBadRequest
+from django.db.models import Q
+from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 from django.views import View
@@ -26,6 +28,88 @@ from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
 
 logger = logging.getLogger(__name__)
+
+class CVDeleteView(LoginRequiredMixin, View):
+    """
+    POST /cvs/<pk>/delete/
+
+    Deletes a CVUpload record (and all sibling records sharing the same
+    file_path for that candidate) plus the physical file from storage.
+
+    A `next` POST param controls where to redirect after deletion.
+    """
+
+    def post(self, request, pk):
+        cv = get_object_or_404(CVUpload, pk=pk)
+        file_path = cv.file_path
+        candidate = cv.candidate
+
+        if file_path:
+            # Remove every CVUpload for this candidate that points to the same file
+            # (one upload can be fanned out to multiple application records).
+            CVUpload.objects.filter(candidate=candidate, file_path=file_path).delete()
+            # Only delete the physical file if no other candidate references it.
+            if not CVUpload.objects.filter(file_path=file_path).exists():
+                try:
+                    if default_storage.exists(file_path):
+                        default_storage.delete(file_path)
+                except Exception as exc:
+                    logger.warning("Could not delete CV file %s: %s", file_path, exc)
+        else:
+            cv.delete()
+
+        logger.info(
+            "CV %s deleted by user %s (candidate=%s file=%s)",
+            pk, request.user.pk, candidate.pk if candidate else "—", file_path,
+        )
+
+        next_url = request.POST.get("next") or "/"
+        return redirect(next_url)
+
+
+class ApplicationSearchView(LoginRequiredMixin, View):
+    """
+    GET /cvs/application-search/?q=<query>
+
+    Returns up to 10 active applications whose candidate name, position title,
+    or application ID contains the query string.  Used by the assign/reassign
+    autocomplete inputs in the CV inbox.
+    """
+
+    def get(self, request):
+        q = (request.GET.get("q") or "").strip()
+        if not q:
+            return JsonResponse({"results": []})
+
+        filters = (
+            Q(candidate__first_name__icontains=q)
+            | Q(candidate__last_name__icontains=q)
+            | Q(position__title__icontains=q)
+        )
+        # Allow direct lookup by application PK
+        if q.isdigit():
+            filters |= Q(pk=int(q))
+
+        applications = (
+            Application.objects
+            .filter(filters)
+            .exclude(status=Application.Status.CLOSED)
+            .select_related("candidate", "position")
+            .order_by("-created_at")[:10]
+        )
+
+        results = [
+            {
+                "id": app.pk,
+                "label": (
+                    f"{app.candidate.full_name} — {app.position.title} "
+                    f"(#{app.pk} · {app.get_status_display()})"
+                ),
+            }
+            for app in applications
+        ]
+        return JsonResponse({"results": results})
+
 
 class CVInboxView(LoginRequiredMixin, TemplateView):
     """
@@ -54,14 +138,18 @@ class CVInboxView(LoginRequiredMixin, TemplateView):
 
 class AssignUnmatchedView(LoginRequiredMixin, View):
     """
-    POST handler: manually assign an UnmatchedInbound item to an Application.
+    POST handler: manually assign an UnmatchedInbound item to a candidate.
 
-    Creates a CVUpload, advances the Application status, and marks the
-    UnmatchedInbound as resolved.
+    The recruiter picks any application belonging to the target candidate.
+    The system then finds ALL of that candidate's awaiting-CV applications
+    and advances every one of them — identical to the auto-matching pipeline.
+
+    A CVUpload is created for each advanced application, using the file that
+    was saved to disk when the inbound was originally received.
 
     POST params:
         unmatched_id    : int  (UnmatchedInbound PK)
-        application_id  : int  (Application PK)
+        application_id  : int  (any Application PK for the target candidate)
     """
 
     def post(self, request):
@@ -72,33 +160,69 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Missing unmatched_id or application_id.")
 
         unmatched = get_object_or_404(UnmatchedInbound, pk=unmatched_id, resolved=False)
-        application = get_object_or_404(Application, pk=application_id)
+        anchor_application = get_object_or_404(Application, pk=application_id)
+        candidate = anchor_application.candidate
+
+        source = channel_to_source(unmatched.channel)
+        file_name = unmatched.attachment_name or "unknown"
+        file_path = unmatched.file_path or ""
+
+        # Find all awaiting-CV applications for this candidate (same as auto-matching)
+        from cvs.constants import AWAITING_CV_STATUSES
+        awaiting_apps = list(
+            Application.objects
+            .filter(candidate=candidate, status__in=list(AWAITING_CV_STATUSES))
+            .select_related("candidate", "position")
+        )
+
+        # If none are awaiting a CV, fall back to just the anchor application so
+        # the CVUpload is still created and the unmatched item is resolved.
+        target_apps = awaiting_apps or [anchor_application]
 
         now = timezone.now()
+        advanced_count = 0
 
         with transaction.atomic():
-            CVUpload.objects.create(
-                application=application,
-                file_name=unmatched.attachment_name or "unknown",
-                file_path="",
-                source=channel_to_source(unmatched.channel),
-                match_method=CVUpload.MatchMethod.MANUAL,
-                needs_review=False,
-            )
-
-            advance_application_status(application)
+            for app in target_apps:
+                CVUpload.objects.create(
+                    candidate=candidate,
+                    application=app,
+                    file_name=file_name,
+                    file_path=file_path,
+                    source=source,
+                    match_method=CVUpload.MatchMethod.MANUAL,
+                    needs_review=False,
+                )
+                advanced = advance_application_status(app)
+                if advanced:
+                    advanced_count += 1
 
             unmatched.resolved = True
-            unmatched.resolved_by_application = application
+            unmatched.resolved_by_application = anchor_application
             unmatched.resolved_at = now
             unmatched.save(update_fields=[
                 "resolved", "resolved_by_application", "resolved_at",
             ])
 
         logger.info(
-            "Unmatched %s assigned to application %s by user %s",
-            unmatched.pk, application.pk, request.user.pk,
+            "Unmatched %s assigned to candidate %s (%s app(s) advanced) by user %s",
+            unmatched.pk, candidate.pk, advanced_count, request.user.pk,
         )
+
+        if not awaiting_apps:
+            from django.contrib import messages as msg_framework
+            msg_framework.warning(
+                request,
+                f"CV assigned to {candidate.full_name} but no applications were in an "
+                "awaiting-CV status — status was not changed.",
+            )
+        elif advanced_count:
+            from django.contrib import messages as msg_framework
+            msg_framework.success(
+                request,
+                f"CV assigned to {candidate.full_name}: "
+                f"{advanced_count} application(s) advanced to CV Received.",
+            )
 
         return redirect("cvs:inbox")
 

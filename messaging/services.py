@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from applications.models import Application
 from applications.transitions import set_awaiting_cv
-from messaging.models import Message
+from messaging.models import Message, MessageTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ class WhapiService:
         self.token = settings.WHAPI_TOKEN
         self.base_url = (settings.WHAPI_API_URL or "").rstrip("/")
 
-    def send_text(self, phone: str, body: str) -> str | None:
+    def send_text(self, phone: str, body: str) -> tuple[bool, str | None]:
         """
         Send a plain-text WhatsApp message.
 
@@ -43,11 +43,13 @@ class WhapiService:
             body:  Message text.
 
         Returns:
-            External message ID on success, or None on failure.
+            (success, external_id) — success is True whenever the HTTP call
+            succeeds (2xx), regardless of whether Whapi returns a usable ID.
+            external_id may be None even on success if the response omits it.
         """
         if not self.token or not self.base_url:
             logger.warning("Whapi credentials not configured — message not sent")
-            return None
+            return False, None
 
         url = f"{self.base_url}/messages/text"
         # Whapi JID format requires digits only — strip any leading '+'.
@@ -65,12 +67,18 @@ class WhapiService:
             resp = http_requests.post(url, json=payload, headers=headers, timeout=20)
             resp.raise_for_status()
             data = resp.json()
-            msg_id = data.get("message_id") or data.get("id")
+            # Whapi may return the ID under several key names depending on version.
+            msg_id = (
+                data.get("message_id")
+                or data.get("id")
+                or (data.get("message") or {}).get("id")
+                or (data.get("messages") or [{}])[0].get("id")
+            ) or None
             logger.info("WhatsApp sent to %s: external_id=%s", phone, msg_id)
-            return msg_id
+            return True, msg_id
         except http_requests.RequestException as exc:
             logger.error("Whapi send failed to %s: %s", phone, exc)
-            return None
+            return False, None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -155,42 +163,67 @@ class GmailService:
             logger.error("Gmail send failed to %s: %s", to, exc)
             return None
 
-    def list_unread_with_attachments(self, label: str) -> list[dict]:
+    def list_unread_messages(self, label: str | None = None) -> tuple[list[dict], int]:
         """
-        List unread messages in the given label that have attachments.
+        Fetch all unread messages, optionally scoped to a Gmail label.
 
-        Returns list of dicts: {id, sender, subject, body_snippet, attachments: [{name, data}]}
+        Unlike the previous approach, this does NOT filter by has:attachment —
+        every unread email is returned so the caller can decide what to do with
+        each one (process CV if attachment found, mark-as-read otherwise).
+
+        Returns:
+            (messages, query_count) where:
+              messages     — list of dicts: {id, sender, subject, body_snippet,
+                             attachments: [{name, data}]}  — attachments may be []
+              query_count  — total unread messages the query matched
         """
         try:
             svc = self.service
         except Exception as exc:
             logger.error("Gmail service init failed: %s", exc)
-            return []
+            return [], 0
 
         try:
-            query = f"label:{label} is:unread has:attachment"
+            query = f"label:{label} is:unread" if label else "is:unread"
             result = svc.users().messages().list(
-                userId="me", q=query, maxResults=20
+                userId="me", q=query, maxResults=50
             ).execute()
             message_ids = [m["id"] for m in result.get("messages", [])]
         except Exception as exc:
             logger.error("Gmail list failed: %s", exc)
-            return []
+            return [], 0
 
+        query_count = len(message_ids)
         messages = []
         for mid in message_ids:
             try:
-                msg_data = self._fetch_message_with_attachments(svc, mid)
-                if msg_data:
-                    messages.append(msg_data)
+                msg_data = self._fetch_message(svc, mid)
+                messages.append(msg_data)
             except Exception as exc:
                 logger.warning("Failed to fetch Gmail message %s: %s", mid, exc)
 
-        return messages
+        return messages, query_count
+
+    def mark_as_read(self, message_id: str) -> None:
+        """Remove the UNREAD system label from a message."""
+        try:
+            self.service.users().messages().modify(
+                userId="me",
+                id=message_id,
+                body={"removeLabelIds": ["UNREAD"]},
+            ).execute()
+        except Exception as exc:
+            logger.warning("Gmail mark-as-read failed for %s: %s", message_id, exc)
 
     @staticmethod
-    def _fetch_message_with_attachments(svc, message_id: str) -> dict | None:
-        """Fetch a single Gmail message and download its attachments."""
+    def _fetch_message(svc, message_id: str) -> dict:
+        """
+        Fetch a single Gmail message and download any file attachments.
+
+        Always returns a dict (attachments list may be empty).
+        Walks the full MIME tree recursively so attachments nested inside
+        multipart/related or multipart/alternative wrappers are not missed.
+        """
         msg = svc.users().messages().get(
             userId="me", id=message_id, format="full"
         ).execute()
@@ -200,21 +233,15 @@ class GmailService:
         subject = headers.get("subject", "")
         snippet = msg.get("snippet", "")
 
-        attachments = []
-        parts = msg.get("payload", {}).get("parts", [])
-        for part in parts:
-            filename = part.get("filename")
-            body = part.get("body", {})
-            att_id = body.get("attachmentId")
-            if filename and att_id:
-                att = svc.users().messages().attachments().get(
-                    userId="me", messageId=message_id, id=att_id
-                ).execute()
-                data = base64.urlsafe_b64decode(att["data"])
-                attachments.append({"name": filename, "data": data})
+        attachment_parts = GmailService._collect_attachment_parts(msg.get("payload", {}))
 
-        if not attachments:
-            return None
+        attachments = []
+        for part in attachment_parts:
+            att = svc.users().messages().attachments().get(
+                userId="me", messageId=message_id, id=part["att_id"]
+            ).execute()
+            data = base64.urlsafe_b64decode(att["data"])
+            attachments.append({"name": part["filename"], "data": data})
 
         return {
             "id": message_id,
@@ -223,6 +250,22 @@ class GmailService:
             "body_snippet": snippet,
             "attachments": attachments,
         }
+
+    @staticmethod
+    def _collect_attachment_parts(part: dict) -> list[dict]:
+        """
+        Recursively walk a MIME part tree and return all parts that have a
+        non-empty filename and an attachmentId (i.e. real file attachments,
+        not inline body text or embedded images without a name).
+        """
+        results = []
+        filename = part.get("filename", "")
+        att_id = part.get("body", {}).get("attachmentId")
+        if filename and att_id:
+            results.append({"filename": filename, "att_id": att_id})
+        for child in part.get("parts", []):
+            results.extend(GmailService._collect_attachment_parts(child))
+        return results
 
     def move_to_label(self, message_id: str, add_label: str, remove_label: str | None = None) -> None:
         """Add a label (and optionally remove another) from a Gmail message."""
@@ -251,42 +294,111 @@ class GmailService:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Message body templates
+# Message body resolution
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _cv_request_body(candidate, position, qualified: bool) -> str:
-    if qualified:
-        return (
-            f"Hi {candidate.first_name},\n\n"
-            f"Great news! Following your recent call about the {position.title} position, "
-            f"we'd like to move forward with your application.\n\n"
-            f"Could you please send us your CV/resume at your earliest convenience?\n\n"
-            f"Your application reference is #{candidate.applications.filter(position=position).first().pk}.\n\n"
-            f"Thank you!\nThe {position.title} Recruitment Team"
-        )
-    return (
-        f"Hi {candidate.first_name},\n\n"
-        f"Thank you for your interest in the {position.title} position and for taking "
-        f"the time to speak with us.\n\n"
-        f"While this particular role may not be the best fit right now, we'd love to "
-        f"keep your details on file for future opportunities. If you'd like, please "
-        f"send us your CV/resume.\n\n"
-        f"Best regards,\nThe Recruitment Team"
-    )
+# Hardcoded fallback bodies — used only when no active MessageTemplate exists
+# for a given message_type × channel combination.
+_FALLBACK_BODIES: dict[tuple[str, str], str] = {
+    (Message.MessageType.CV_REQUEST, Message.Channel.WHATSAPP): (
+        "Hi {first_name},\n\nGreat news! Following your recent call about the "
+        "{position_title} position, we'd like to move forward.\n\n"
+        "Please send us your CV at your earliest convenience.\n\n"
+        "Your application reference is #{application_pk}.\n\nThank you!"
+    ),
+    (Message.MessageType.CV_REQUEST, Message.Channel.EMAIL): (
+        "Hi {first_name},\n\nGreat news! Following your recent call about the "
+        "{position_title} position, we'd like to move forward with your application.\n\n"
+        "Could you please send us your CV/resume at your earliest convenience?\n\n"
+        "Your application reference is #{application_pk}.\n\n"
+        "Thank you!\nThe {position_title} Recruitment Team"
+    ),
+    (Message.MessageType.CV_REQUEST_REJECTED, Message.Channel.WHATSAPP): (
+        "Hi {first_name},\n\nThank you for your interest in the {position_title} position. "
+        "While this role may not be the best fit right now, we'd love to keep your details "
+        "on file. Feel free to send us your CV!\n\nBest regards!"
+    ),
+    (Message.MessageType.CV_REQUEST_REJECTED, Message.Channel.EMAIL): (
+        "Hi {first_name},\n\nThank you for your interest in the {position_title} position "
+        "and for taking the time to speak with us.\n\n"
+        "While this particular role may not be the best fit right now, we'd love to keep "
+        "your details on file. If you'd like, please send us your CV/resume.\n\n"
+        "Best regards,\nThe Recruitment Team"
+    ),
+    (Message.MessageType.CV_FOLLOWUP_1, Message.Channel.WHATSAPP): (
+        "Hi {first_name}, just a gentle reminder — we're still waiting for your CV "
+        "for the {position_title} role. Please send it at your earliest convenience."
+    ),
+    (Message.MessageType.CV_FOLLOWUP_1, Message.Channel.EMAIL): (
+        "Hi {first_name},\n\nJust a gentle reminder that we're still waiting for your CV "
+        "for the {position_title} role.\n\nPlease send it at your earliest convenience.\n\n"
+        "Best regards,\nThe Recruitment Team"
+    ),
+    (Message.MessageType.CV_FOLLOWUP_2, Message.Channel.WHATSAPP): (
+        "Hi {first_name}, this is a final reminder regarding your CV for the "
+        "{position_title} position. Please send it as soon as possible so we can "
+        "continue with your application."
+    ),
+    (Message.MessageType.CV_FOLLOWUP_2, Message.Channel.EMAIL): (
+        "Hi {first_name},\n\nThis is a final reminder regarding your CV for the "
+        "{position_title} position.\n\nPlease send it as soon as possible so we can "
+        "continue processing your application.\n\nBest regards,\nThe Recruitment Team"
+    ),
+}
+
+_FALLBACK_SUBJECTS: dict[str, str] = {
+    Message.MessageType.CV_REQUEST:          "CV Request — {position_title}",
+    Message.MessageType.CV_REQUEST_REJECTED: "Thank you — {position_title}",
+    Message.MessageType.CV_FOLLOWUP_1:       "Reminder: CV for {position_title}",
+    Message.MessageType.CV_FOLLOWUP_2:       "Final Reminder: CV for {position_title}",
+    Message.MessageType.REJECTION:           "Your application — {position_title}",
+}
 
 
-def _followup_body(candidate, position, message_type: str) -> str:
-    if message_type == Message.MessageType.CV_FOLLOWUP_1:
-        return (
-            f"Hi {candidate.first_name}, just a gentle reminder — "
-            f"we're still waiting for your CV for the {position.title} role. "
-            f"Please send it at your earliest convenience."
-        )
-    return (
-        f"Hi {candidate.first_name}, this is a final reminder regarding "
-        f"your CV for the {position.title} position. "
-        f"Please send it as soon as possible so we can continue with your application."
-    )
+def _resolve_message(
+    message_type: str,
+    channel: str,
+    *,
+    first_name: str,
+    position_title: str,
+    application_pk: int,
+) -> tuple[str, str]:
+    """
+    Return (subject, body) for a given message_type × channel combination.
+
+    Priority:
+      1. Active MessageTemplate from the database (user-customised)
+      2. Hardcoded fallback from _FALLBACK_BODIES
+
+    Placeholders in both DB templates and fallbacks are resolved identically.
+    """
+    ctx = {
+        "first_name":      first_name,
+        "position_title":  position_title,
+        "application_pk":  str(application_pk),
+    }
+
+    tpl = MessageTemplate.objects.filter(
+        message_type=message_type,
+        channel=channel,
+        is_active=True,
+    ).first()
+
+    if tpl:
+        body    = tpl.render(**ctx)
+        subject = tpl.render_subject(position_title=position_title)
+    else:
+        raw_body = _FALLBACK_BODIES.get((message_type, channel), "")
+        body     = raw_body.format(**ctx)
+        raw_subj = _FALLBACK_SUBJECTS.get(message_type, "")
+        subject  = raw_subj.format(**ctx)
+        if not tpl:
+            logger.debug(
+                "No active MessageTemplate for %s/%s — using hardcoded fallback",
+                message_type, channel,
+            )
+
+    return subject, body
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -300,49 +412,55 @@ def send_cv_request(application: Application, qualified: bool) -> list[Message]:
       - qualified=False → WhatsApp only, status → awaiting_cv_rejected
     """
     candidate = application.candidate
-    position = application.position
-    body = _cv_request_body(candidate, position, qualified)
-    now = timezone.now()
-    created = []
+    position  = application.position
+    now       = timezone.now()
+    created   = []
 
-    if qualified:
-        msg_type = Message.MessageType.CV_REQUEST
-        new_status = Application.Status.AWAITING_CV
-    else:
-        msg_type = Message.MessageType.CV_REQUEST_REJECTED
-        new_status = Application.Status.AWAITING_CV_REJECTED
+    msg_type = (
+        Message.MessageType.CV_REQUEST if qualified
+        else Message.MessageType.CV_REQUEST_REJECTED
+    )
 
     # WhatsApp (always)
+    _wa_subject, wa_body = _resolve_message(
+        msg_type, Message.Channel.WHATSAPP,
+        first_name=candidate.first_name or "",
+        position_title=position.title or "",
+        application_pk=application.pk,
+    )
     whapi = WhapiService()
-    wa_ext_id = whapi.send_text(candidate.phone, body)
-    wa_msg = Message.objects.create(
+    wa_ok, wa_ext_id = whapi.send_text(candidate.phone, wa_body)
+    created.append(Message.objects.create(
         application=application,
         channel=Message.Channel.WHATSAPP,
         message_type=msg_type,
-        status=Message.Status.SENT if wa_ext_id else Message.Status.FAILED,
+        status=Message.Status.SENT if wa_ok else Message.Status.FAILED,
         external_id=wa_ext_id,
-        body=body,
-        sent_at=now if wa_ext_id else None,
-        error_detail=None if wa_ext_id else "Whapi send failed",
-    )
-    created.append(wa_msg)
+        body=wa_body,
+        sent_at=now if wa_ok else None,
+        error_detail=None if wa_ok else "Whapi send failed",
+    ))
 
     # Email (qualified only)
     if qualified and candidate.email:
+        email_subject, email_body = _resolve_message(
+            msg_type, Message.Channel.EMAIL,
+            first_name=candidate.first_name or "",
+            position_title=position.title or "",
+            application_pk=application.pk,
+        )
         gmail = GmailService()
-        subject = f"CV Request — {position.title}"
-        email_ext_id = gmail.send_email(candidate.email, subject, body)
-        email_msg = Message.objects.create(
+        email_ext_id = gmail.send_email(candidate.email, email_subject, email_body)
+        created.append(Message.objects.create(
             application=application,
             channel=Message.Channel.EMAIL,
             message_type=msg_type,
             status=Message.Status.SENT if email_ext_id else Message.Status.FAILED,
             external_id=email_ext_id,
-            body=body,
+            body=email_body,
             sent_at=now if email_ext_id else None,
             error_detail=None if email_ext_id else "Gmail send failed",
-        )
-        created.append(email_msg)
+        ))
 
     set_awaiting_cv(
         application,
@@ -362,38 +480,48 @@ def send_followup(application: Application, message_type: str) -> list[Message]:
     Send a follow-up message for qualified candidates (email + WhatsApp).
     """
     candidate = application.candidate
-    position = application.position
-    body = _followup_body(candidate, position, message_type)
-    now = timezone.now()
-    created = []
+    position  = application.position
+    now       = timezone.now()
+    created   = []
 
     # WhatsApp
+    _wa_subj, wa_body = _resolve_message(
+        message_type, Message.Channel.WHATSAPP,
+        first_name=candidate.first_name or "",
+        position_title=position.title or "",
+        application_pk=application.pk,
+    )
     whapi = WhapiService()
-    wa_ext_id = whapi.send_text(candidate.phone, body)
+    wa_ok, wa_ext_id = whapi.send_text(candidate.phone, wa_body)
     wa_msg = Message.objects.create(
         application=application,
         channel=Message.Channel.WHATSAPP,
         message_type=message_type,
-        status=Message.Status.SENT if wa_ext_id else Message.Status.FAILED,
+        status=Message.Status.SENT if wa_ok else Message.Status.FAILED,
         external_id=wa_ext_id,
-        body=body,
-        sent_at=now if wa_ext_id else None,
-        error_detail=None if wa_ext_id else "Whapi send failed",
+        body=wa_body,
+        sent_at=now if wa_ok else None,
+        error_detail=None if wa_ok else "Whapi send failed",
     )
     created.append(wa_msg)
 
     # Email
     if candidate.email:
+        email_subject, email_body = _resolve_message(
+            message_type, Message.Channel.EMAIL,
+            first_name=candidate.first_name or "",
+            position_title=position.title or "",
+            application_pk=application.pk,
+        )
         gmail = GmailService()
-        subject = f"Reminder: CV for {position.title}"
-        email_ext_id = gmail.send_email(candidate.email, subject, body)
+        email_ext_id = gmail.send_email(candidate.email, email_subject, email_body)
         email_msg = Message.objects.create(
             application=application,
             channel=Message.Channel.EMAIL,
             message_type=message_type,
             status=Message.Status.SENT if email_ext_id else Message.Status.FAILED,
             external_id=email_ext_id,
-            body=body,
+            body=email_body,
             sent_at=now if email_ext_id else None,
             error_detail=None if email_ext_id else "Gmail send failed",
         )

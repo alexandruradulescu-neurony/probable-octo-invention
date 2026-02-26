@@ -32,8 +32,8 @@ class Application(models.Model):
 
         # ── Not-qualified path ────────────────────────────────────────────────
         NOT_QUALIFIED = "not_qualified", "Not Qualified"
-        AWAITING_CV_REJECTED = "awaiting_cv_rejected", "Awaiting CV (Rejected)"
-        CV_RECEIVED_REJECTED = "cv_received_rejected", "CV Received (Rejected)"
+        AWAITING_CV_REJECTED = "awaiting_cv_rejected", "Awaiting CV – Not Qualified"
+        CV_RECEIVED_REJECTED = "cv_received_rejected", "CV Received – Not Qualified"
 
         # ── Special outcomes ──────────────────────────────────────────────────
         CALLBACK_SCHEDULED = "callback_scheduled", "Callback Scheduled"

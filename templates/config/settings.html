@@ -106,7 +106,22 @@
 
         {# Polling controls — always visible #}
         <div class="settings-divider"></div>
-        <div class="text-xs fw-600 text-secondary text-uppercase letter-spacing-1 mb-2">Auto-Polling</div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="text-xs fw-600 text-secondary text-uppercase letter-spacing-1">Auto-Polling</div>
+          <button id="poll-now-btn"
+                  title="Poll Gmail inbox now"
+                  {% if not cred %}disabled{% endif %}
+                  style="display:inline-flex;align-items:center;gap:5px;background:none;border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:3px 8px;font-size:0.72rem;color:var(--text-secondary);cursor:pointer;transition:border-color .15s,color .15s;"
+                  onmouseover="if(!this.disabled){this.style.borderColor='var(--accent-primary)';this.style.color='var(--accent-primary)';}"
+                  onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-secondary)';">
+            <svg id="poll-now-icon" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 .49-3.54"></path>
+            </svg>
+            Poll now
+          </button>
+        </div>
 
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div>
@@ -314,6 +329,7 @@
   "use strict";
 
   const STATUS_URL = "{% url 'config:status_json' %}";
+  const POLL_NOW_URL = "{% url 'config:gmail_poll_now' %}";
   const REFRESH_MS = 30000;
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -363,13 +379,70 @@
   function renderGmail(data) {
     const lastPolledEl = document.getElementById("gmail-last-polled");
     if (!lastPolledEl) return;
-    if (data.status === "ok") {
-      lastPolledEl.textContent = "";
-    } else if (data.status === "error") {
+    if (data.status === "error") {
       lastPolledEl.textContent = "⚠ Token error — reconnect Gmail.";
       lastPolledEl.style.color = "var(--accent-danger)";
     }
   }
+
+  // ── Poll-now button ───────────────────────────────────────────────────────
+
+  (function initPollNow() {
+    const btn = document.getElementById("poll-now-btn");
+    const icon = document.getElementById("poll-now-icon");
+    const lastPolledEl = document.getElementById("gmail-last-polled");
+    if (!btn) return;
+
+    btn.addEventListener("click", function () {
+      btn.disabled = true;
+      icon.style.animation = "rf-spin 0.8s linear infinite";
+      if (lastPolledEl) {
+        lastPolledEl.textContent = "Polling…";
+        lastPolledEl.style.color = "var(--text-secondary)";
+      }
+
+      const csrfToken = (document.querySelector("[name=csrfmiddlewaretoken]") || {}).value || "";
+
+      fetch(POLL_NOW_URL, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrfToken },
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          btn.disabled = false;
+          icon.style.animation = "";
+          if (lastPolledEl) {
+            var ts = new Date().toLocaleTimeString();
+            if (data.ok) {
+              var detail = "";
+              if (typeof data.query_matches !== "undefined") {
+                var scope = data.label ? "\u201c" + data.label + "\u201d" : "inbox";
+                detail = " · " + scope + " · "
+                  + data.query_matches + " unread · "
+                  + (data.with_cv || 0) + " w/CV · "
+                  + (data.skipped || 0) + " skipped · "
+                  + (data.processed || 0) + " ingested";
+              }
+              lastPolledEl.innerHTML =
+                '<span style="color:var(--accent-positive)">✓ ' + ts + ' — ' + data.message + '</span>'
+                + (detail ? '<br><span style="color:var(--text-muted);font-size:0.7rem;">' + detail + '</span>' : '');
+            } else {
+              lastPolledEl.innerHTML =
+                '<span style="color:var(--accent-danger)">⚠ ' + (data.error || "Unknown error") + '</span>';
+            }
+          }
+        })
+        .catch(function () {
+          btn.disabled = false;
+          icon.style.animation = "";
+          if (lastPolledEl) {
+            lastPolledEl.innerHTML =
+              '<span style="color:var(--accent-danger)">⚠ Network error — poll failed.</span>';
+          }
+        });
+    });
+  }());
 
   function renderClaude(data) {
     const badge = document.getElementById("claude-badge");

@@ -4,9 +4,15 @@ from django.utils import timezone
 
 class CVUpload(models.Model):
     """
-    Received CV files. Separate from Application so multiple versions
-    can be tracked. A single CV submission may be attached to multiple
-    Applications when a candidate has open applications across positions.
+    Received CV files.
+
+    A CV belongs primarily to a Candidate (the person) — stored on the
+    candidate FK so it can be retrieved directly from the candidate profile.
+    It is also linked to one or more Applications so that each open
+    application for that candidate gets its status advanced.
+
+    A single inbound submission may produce multiple CVUpload rows (one per
+    awaiting application) but they all share the same file_path on disk.
     """
 
     class Source(models.TextChoices):
@@ -22,6 +28,15 @@ class CVUpload(models.Model):
         CV_CONTENT = "cv_content", "CV Content Extraction"
         MANUAL = "manual", "Manual Assignment"
 
+    # Primary owner — the person who submitted the CV
+    candidate = models.ForeignKey(
+        "candidates.Candidate",
+        on_delete=models.CASCADE,
+        related_name="cv_uploads",
+        null=True,
+        blank=True,
+    )
+    # The specific application this upload advances (one record per application)
     application = models.ForeignKey(
         "applications.Application",
         on_delete=models.CASCADE,
@@ -29,7 +44,7 @@ class CVUpload(models.Model):
     )
     file_name = models.CharField(max_length=255)
     # Local filesystem path or S3 object key, depending on storage backend
-    file_path = models.CharField(max_length=500)
+    file_path = models.CharField(max_length=500, blank=True, default="")
 
     source = models.CharField(max_length=20, choices=Source.choices)
 
@@ -78,6 +93,9 @@ class UnmatchedInbound(models.Model):
 
     # Full raw payload from the inbound source for debugging / re-processing
     raw_payload = models.JSONField()
+
+    # CV file saved to disk at ingestion time so manual assignment has the file
+    file_path = models.CharField(max_length=500, blank=True, default="")
 
     received_at = models.DateTimeField(default=timezone.now)
 

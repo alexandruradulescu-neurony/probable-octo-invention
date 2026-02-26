@@ -12,6 +12,7 @@ import json
 import logging
 
 import anthropic
+import json_repair
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -136,6 +137,15 @@ class ClaudeService:
             position.pk,
             prompt_template.pk,
         )
+        logger.debug(
+            "generate_prompts REQUEST — model=%s max_tokens=%s\n"
+            "=== SYSTEM ===\n%s\n"
+            "=== USER (meta-prompt after placeholder substitution) ===\n%s",
+            settings.ANTHROPIC_MODEL,
+            settings.ANTHROPIC_MAX_TOKENS,
+            "You are an expert recruiter. Respond ONLY with a valid JSON object — no prose, no markdown fences.",
+            user_message,
+        )
 
         raw = self._send_message(
             model=settings.ANTHROPIC_MODEL,
@@ -144,6 +154,12 @@ class ClaudeService:
                 "Respond ONLY with a valid JSON object — no prose, no markdown fences."
             ),
             user=user_message,
+        )
+
+        logger.debug(
+            "generate_prompts RESPONSE (len=%s chars):\n%s",
+            len(raw),
+            raw,
         )
 
         data = _parse_claude_json(raw)
@@ -354,7 +370,8 @@ class ClaudeService:
         the raw text content of the first content block.
 
         Raises:
-            ClaudeServiceError on any Anthropic API error.
+            ClaudeServiceError on any Anthropic API error or if the response
+            was truncated due to hitting the max_tokens limit.
         """
         try:
             message = self.client.messages.create(
@@ -369,6 +386,23 @@ class ClaudeService:
         if not message.content:
             raise ClaudeServiceError("Anthropic returned an empty response.")
 
+        stop_reason = getattr(message, "stop_reason", None)
+        input_tokens = getattr(message.usage, "input_tokens", "?")
+        output_tokens = getattr(message.usage, "output_tokens", "?")
+
+        logger.debug(
+            "Claude usage: input_tokens=%s output_tokens=%s stop_reason=%s max_tokens=%s",
+            input_tokens, output_tokens, stop_reason, settings.ANTHROPIC_MAX_TOKENS,
+        )
+
+        if stop_reason == "max_tokens":
+            raise ClaudeServiceError(
+                f"Claude's response was truncated — hit the max_tokens limit "
+                f"({settings.ANTHROPIC_MAX_TOKENS}). "
+                f"Used {output_tokens} output tokens. "
+                f"Increase ANTHROPIC_MAX_TOKENS in your .env file."
+            )
+
         return message.content[0].text
 
 
@@ -377,19 +411,35 @@ class ClaudeService:
 def _parse_claude_json(raw: str) -> dict:
     """
     Parse a JSON object from Claude's response text.
-    Strips markdown code fences if present before parsing.
+
+    Strategy (in order):
+      1. Strip markdown code fences, attempt strict json.loads.
+      2. If that fails (e.g. Claude included unescaped quotes in Romanian /
+         multi-language text), repair the JSON with json_repair and re-parse.
 
     Raises:
-        ClaudeServiceError if the text cannot be parsed as JSON.
+        ClaudeServiceError if the text cannot be parsed even after repair.
     """
     text = strip_json_fence(raw)
 
+    # Pass 1 — strict parse
     try:
         result = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ClaudeServiceError(
-            f"Failed to parse Claude JSON response: {exc}. Raw: {raw[:300]}"
-        ) from exc
+    except json.JSONDecodeError as first_exc:
+        logger.debug(
+            "Strict JSON parse failed (%s) — attempting json_repair. Raw[:200]=%r",
+            first_exc, raw[:200],
+        )
+        # Pass 2 — repair then parse
+        try:
+            repaired = json_repair.repair_json(text, return_objects=False)
+            result = json.loads(repaired)
+            logger.info("json_repair successfully fixed Claude's malformed JSON output.")
+        except Exception as second_exc:
+            raise ClaudeServiceError(
+                f"Failed to parse Claude JSON response even after repair: "
+                f"{second_exc}. Original error: {first_exc}. Raw: {raw[:300]}"
+            ) from second_exc
 
     if not isinstance(result, dict):
         raise ClaudeServiceError(

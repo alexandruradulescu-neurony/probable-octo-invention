@@ -107,11 +107,12 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
             .prefetch_related(
                 Prefetch(
                     "calls",
-                    queryset=Call.objects.order_by("attempt_number"),
-                ),
-                Prefetch(
-                    "evaluations",
-                    queryset=LLMEvaluation.objects.order_by("-evaluated_at"),
+                    queryset=Call.objects.order_by("attempt_number").prefetch_related(
+                        Prefetch(
+                            "evaluations",
+                            queryset=LLMEvaluation.objects.order_by("evaluated_at"),
+                        )
+                    ),
                 ),
                 Prefetch(
                     "messages",
@@ -134,8 +135,8 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         ctx["candidate"] = app.candidate
         ctx["position"] = app.position
         ctx["calls"] = app.calls.all()
-        ctx["evaluations"] = app.evaluations.all()
         ctx["sent_messages"] = app.messages.all()
+        ctx["candidate_replies"] = app.candidate_replies.order_by("-received_at")
         ctx["cv_uploads"] = app.cv_uploads.all()
         ctx["status_changes"] = app.status_changes.all()
 
@@ -193,6 +194,64 @@ class TriggerCallsView(LoginRequiredMixin, View):
                 request,
                 f"{skipped} application(s) skipped (not in Pending Call status).",
             )
+
+        return redirect("applications:list")
+
+
+class BulkActionApplicationsView(LoginRequiredMixin, View):
+    """
+    POST /applications/bulk-action/
+
+    Handles three bulk actions on a selected set of applications:
+      action=delete        — permanently delete selected applications
+      action=move          — reassign selected applications to target_position
+      action=trigger_calls — queue pending_call applications for calling
+    """
+
+    def post(self, request):
+        pks    = request.POST.getlist("application_ids")
+        action = request.POST.get("action", "")
+
+        if not pks:
+            django_messages.warning(request, "No applications selected.")
+            return redirect("applications:list")
+
+        qs    = Application.objects.filter(pk__in=pks)
+        count = qs.count()
+
+        if action == "delete":
+            qs.delete()
+            django_messages.success(request, f"Deleted {count} application(s).")
+
+        elif action == "move":
+            position_id = request.POST.get("target_position", "").strip()
+            if not position_id:
+                django_messages.error(request, "Select a target position before moving.")
+            else:
+                try:
+                    pos = Position.objects.get(pk=position_id)
+                    qs.update(position=pos)
+                    django_messages.success(
+                        request,
+                        f"Moved {count} application(s) to '{pos.title}'.",
+                    )
+                except Position.DoesNotExist:
+                    django_messages.error(request, "Selected position not found.")
+
+        elif action == "trigger_calls":
+            eligible = qs.filter(status=Application.Status.PENDING_CALL)
+            queued   = eligible.update(status=Application.Status.CALL_QUEUED)
+            skipped  = count - queued
+            if queued:
+                django_messages.success(request, f"{queued} application(s) queued for calling.")
+            if skipped:
+                django_messages.warning(
+                    request,
+                    f"{skipped} application(s) skipped — only Pending Call status can be queued.",
+                )
+
+        else:
+            django_messages.error(request, "Unknown bulk action.")
 
         return redirect("applications:list")
 

@@ -11,6 +11,7 @@ import logging
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
@@ -43,6 +44,20 @@ class PositionListView(LoginRequiredMixin, ListView):
             )
             .order_by("-created_at")
         )
+
+
+class BulkDeletePositionsView(LoginRequiredMixin, View):
+    """POST /positions/bulk-delete/ — permanently delete selected positions + their applications."""
+
+    def post(self, request):
+        from django.contrib import messages
+        pks = request.POST.getlist("position_ids")
+        if not pks:
+            messages.warning(request, "No positions selected.")
+            return redirect("positions:list")
+        count, _ = Position.objects.filter(pk__in=pks).delete()
+        messages.success(request, f"Deleted {count} record(s) (positions and related applications).")
+        return redirect("positions:list")
 
 
 class PositionCreateView(LoginRequiredMixin, CreateView):

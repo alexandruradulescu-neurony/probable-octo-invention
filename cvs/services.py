@@ -38,6 +38,7 @@ from django.db import transaction
 
 from applications.models import Application
 from candidates.models import Candidate
+from candidates.services import lookup_candidate_by_email, lookup_candidate_by_phone
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
@@ -293,6 +294,7 @@ def process_inbound_cv(
         subject=subject,
         text_body=text_body,
         file_name=file_name,
+        file_content=file_content,
         raw_payload=raw_payload or {},
     )
     logger.info(
@@ -313,36 +315,30 @@ def process_inbound_cv(
 # Matching helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _match_by_email(email: str) -> Candidate | None:
-    """Return a Candidate whose email exactly matches (case-insensitive)."""
-    return (
-        Candidate.objects
-        .filter(email__iexact=email.strip())
-        .first()
-    )
+def _extract_email_address(sender: str) -> str | None:
+    """
+    Extract the bare email address from a sender string.
+
+    Handles both formats:
+      "John Doe <john@example.com>"  → "john@example.com"
+      "john@example.com"             → "john@example.com"
+    """
+    match = re.search(r"<([^>]+@[^>]+)>", sender or "")
+    if match:
+        return match.group(1).strip()
+    if "@" in (sender or ""):
+        return sender.strip()
+    return None
+
+
+def _match_by_email(sender: str) -> Candidate | None:
+    """Delegate to the shared public helper in candidates.services."""
+    return lookup_candidate_by_email(sender)
 
 
 def _match_by_phone(raw_phone: str) -> Candidate | None:
-    """
-    Return a Candidate whose phone or whatsapp_number matches.
-    Normalises both the query and stored values to digits-only for comparison,
-    so +44 7700 900123 matches 07700900123 etc.
-    """
-    digits = _digits_only(raw_phone)
-    if not digits:
-        return None
-
-    # Fetch candidates whose stored phone/whatsapp digits contain or equal the
-    # submitted digits.  Exact-suffix match handles country-code differences.
-    candidates = Candidate.objects.filter(phone__isnull=False).only(
-        "id", "phone", "whatsapp_number"
-    )
-    for candidate in candidates:
-        if _phones_match(digits, candidate.phone):
-            return candidate
-        if candidate.whatsapp_number and _phones_match(digits, candidate.whatsapp_number):
-            return candidate
-    return None
+    """Delegate to the shared public helper in candidates.services."""
+    return lookup_candidate_by_phone(raw_phone)
 
 
 def _extract_application_id(subject: str, text_body: str) -> int | None:
@@ -489,6 +485,7 @@ def _process_candidate_match(
     with transaction.atomic():
         for app in applications:
             cv = CVUpload.objects.create(
+                candidate=candidate,
                 application=app,
                 file_name=file_name,
                 file_path=file_path,
@@ -583,15 +580,31 @@ def _save_unmatched(
     subject: str,
     text_body: str,
     file_name: str,
+    file_content: bytes,
     raw_payload: dict,
 ) -> UnmatchedInbound:
-    """Create an UnmatchedInbound record for manual recruiter assignment."""
+    """
+    Create an UnmatchedInbound record for manual recruiter assignment.
+
+    The CV file is saved to disk immediately so that when a recruiter
+    manually assigns the record, the actual file is available to attach.
+    """
+    file_path = ""
+    if file_content:
+        try:
+            file_path = _save_cv_file(file_name, file_content)
+        except Exception as exc:
+            logger.warning(
+                "Failed to save file for unmatched inbound (file=%s): %s", file_name, exc
+            )
+
     return UnmatchedInbound.objects.create(
         channel=channel,
         sender=sender,
         subject=(subject or None),
         body_snippet=(text_body or "")[:500] or None,
         attachment_name=file_name or None,
+        file_path=file_path,
         raw_payload=raw_payload,
     )
 

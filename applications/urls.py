@@ -11,6 +11,7 @@ app_name = "applications"
 urlpatterns = [
     path("", views.ApplicationListView.as_view(), name="list"),
     path("trigger-calls/", views.TriggerCallsView.as_view(), name="trigger_calls"),
+    path("bulk-action/", views.BulkActionApplicationsView.as_view(), name="bulk_action"),
     path("<int:pk>/", views.ApplicationDetailView.as_view(), name="detail"),
     path("<int:pk>/override-status/", views.StatusOverrideView.as_view(), name="override_status"),
     path("<int:pk>/add-note/", views.AddNoteView.as_view(), name="add_note"),

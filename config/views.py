@@ -130,6 +130,9 @@ def gmail_callback(request):
     if settings.DEBUG:
         os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")
 
+    # Google returns a superset of requested scopes; allow that without raising ScopeChanged.
+    os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
+
     try:
         from google_auth_oauthlib.flow import Flow
         from googleapiclient.discovery import build
@@ -216,6 +219,43 @@ def update_interval(request):
     except (ValueError, TypeError):
         messages.error(request, "Invalid interval — must be a whole number between 1 and 1440.")
     return redirect("config:settings")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Manual Gmail poll
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@login_required
+@require_POST
+def gmail_poll_now(request):
+    """Immediately run the Gmail CV-inbox poll, bypassing the auto-poll toggle."""
+    cred = OAuthCredential.objects.first()
+    if not cred:
+        return JsonResponse({"ok": False, "error": "No Gmail account connected."}, status=400)
+
+    try:
+        from scheduler.jobs import _run_poll_cv_inbox
+
+        result = _run_poll_cv_inbox()
+
+        if result["query_matches"] == 0:
+            scope = f'label "{result["label"]}"' if result["label"] else "inbox"
+            if not result["label_found"] and result["label"]:
+                scope = f'inbox (label "{result["label"]}" not found — searched all unread)'
+            msg = f"No unread emails in {scope}."
+        else:
+            parts = []
+            if result["with_cv"]:
+                parts.append(f'{result["with_cv"]} with CV → {result["processed"]} attachment(s) ingested')
+            if result["skipped"]:
+                parts.append(f'{result["skipped"]} without attachment marked as read')
+            msg = f'{result["query_matches"]} email(s) checked. ' + "; ".join(parts) + "."
+
+        return JsonResponse({"ok": True, "message": msg, **result})
+    except Exception as exc:
+        logger.error("gmail_poll_now failed: %s", exc, exc_info=True)
+        return JsonResponse({"ok": False, "error": str(exc)}, status=500)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

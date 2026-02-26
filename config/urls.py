@@ -17,5 +17,6 @@ urlpatterns = [
     path("gmail/disconnect/", views.gmail_disconnect, name="gmail_disconnect"),
     path("polling/toggle/", views.toggle_polling, name="toggle_polling"),
     path("polling/interval/", views.update_interval, name="update_interval"),
+    path("gmail/poll-now/", views.gmail_poll_now, name="gmail_poll_now"),
     path("status.json", views.status_json, name="status_json"),
 ]

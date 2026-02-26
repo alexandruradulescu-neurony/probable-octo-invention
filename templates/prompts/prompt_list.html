@@ -1,19 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Prompt Templates — RecruitFlow{% endblock %}
-{% block breadcrumb %}Configure{% endblock %}
-{% block page_title %}Prompt Templates{% endblock %}
+{% block title %}Templates — RecruitFlow{% endblock %}
+{% block breadcrumb %}Configure &rsaquo; Templates{% endblock %}
+{% block page_title %}Templates{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'prompts:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
   <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  New Template
+  New Prompt
 </a>
 {% endblock %}
 
 {% block content %}
+
+<!-- Tab navigation -->
+<div class="d-flex gap-2 mb-4">
+  <a href="{% url 'prompts:list' %}"
+     class="btn btn-primary d-inline-flex align-items-center gap-2">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+      <polyline points="16 18 22 12 16 6"></polyline>
+      <polyline points="8 6 2 12 8 18"></polyline>
+    </svg>
+    AI Prompts
+  </a>
+  <a href="{% url 'messaging:template_list' %}"
+     class="btn btn-secondary d-inline-flex align-items-center gap-2">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+      <polyline points="22,6 12,13 2,6"></polyline>
+    </svg>
+    Message Templates
+  </a>
+</div>
+
 <div class="card">
   <div class="card-header">
-    <h2 class="card-header-title">All Templates</h2>
+    <h2 class="card-header-title">AI Prompt Templates</h2>
   </div>
   <div class="table-responsive">
     <table class="table mb-0">

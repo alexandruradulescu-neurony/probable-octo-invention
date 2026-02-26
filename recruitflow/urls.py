@@ -4,11 +4,13 @@ recruitflow/urls.py
 Root URL configuration.
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-from recruitflow.views import DashboardView
+from recruitflow.views import DashboardView, GlobalSearchView
 
 urlpatterns = [
     # ── Admin ──────────────────────────────────────────────────────────────────
@@ -24,6 +26,7 @@ urlpatterns = [
 
     # ── Dashboard ──────────────────────────────────────────────────────────────
     path("", DashboardView.as_view(), name="dashboard"),
+    path("search/", GlobalSearchView.as_view(), name="search"),
 
     # ── App routes ─────────────────────────────────────────────────────────────
     path("positions/", include("positions.urls", namespace="positions")),
@@ -35,6 +38,9 @@ urlpatterns = [
     # ── Settings ───────────────────────────────────────────────────────────────
     path("settings/", include("config.urls", namespace="config")),
 
+    # ── Messaging (candidate reply inbox) ──────────────────────────────────────
+    path("messages/", include("messaging.urls", namespace="messaging")),
+
     # ── Webhooks (CSRF-exempt, no login required) ──────────────────────────────
     path("webhooks/", include("webhooks.urls", namespace="webhooks")),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

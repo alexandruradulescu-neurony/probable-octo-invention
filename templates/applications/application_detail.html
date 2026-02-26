@@ -63,13 +63,21 @@
                 <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank" class="text-decoration-none">{{ candidate.whatsapp_number }}</a>
               </div>
               {% endif %}
+              {% with cv_uploads|first as latest_cv %}
+              {% if latest_cv and latest_cv.file_path %}
+              <div class="d-flex align-items-center gap-2 text-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-danger);" class="flex-shrink-0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <a href="/{{ latest_cv.file_path }}" download="{{ latest_cv.file_name }}" class="text-decoration-none">Download CV</a>
+              </div>
+              {% endif %}
+              {% endwith %}
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Call History -->
+    <!-- Call History (with inline evaluations) -->
     <div class="card mb-4">
       <div class="card-header">
         <h2 class="card-header-title">Call History</h2>
@@ -78,6 +86,8 @@
       <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
         {% for call in calls %}
         <div class="list-group-item py-3 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
+
+          {# ── Call header ── #}
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="d-flex align-items-center gap-2">
               <span class="fw-semibold text-sm">Attempt #{{ call.attempt_number }}</span>
@@ -94,17 +104,18 @@
               {% if call.duration_seconds %}&middot; {{ call.duration_seconds }}s{% endif %}
             </div>
           </div>
-          
+
+          {# ── Call summary ── #}
           {% if call.summary_title %}
           <div class="text-sm text-secondary fw-medium">{{ call.summary_title }}</div>
           {% endif %}
-          
           {% if call.summary %}
           <div class="text-sm text-secondary mt-1" style="line-height: 1.5;">{{ call.summary }}</div>
           {% endif %}
-          
+
+          {# ── Transcript (collapsible) ── #}
           {% if call.transcript %}
-          <div class="mt-3">
+          <div class="mt-2">
             <a class="text-xs fw-medium text-decoration-underline" data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
               View Transcript
             </a>
@@ -113,6 +124,43 @@
             </div>
           </div>
           {% endif %}
+
+          {# ── AI Evaluation (embedded) ── #}
+          {% for ev in call.evaluations.all %}
+          <div class="mt-3 p-3" style="background: var(--bg-page); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0" style="color:var(--accent-primary);">
+                  <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span class="text-xs fw-semibold" style="color:var(--accent-primary);text-transform:uppercase;letter-spacing:.05em;">AI Evaluation</span>
+                {% if ev.outcome == "qualified" %}
+                  <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
+                {% elif ev.outcome == "not_qualified" %}
+                  <div class="badge status-rejected"><span class="badge-dot"></span> Not Qualified</div>
+                {% elif ev.outcome == "callback_requested" %}
+                  <div class="badge status-review"><span class="badge-dot"></span> Callback Requested</div>
+                {% elif ev.outcome == "needs_human" %}
+                  <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
+                {% endif %}
+                <span class="text-xs fw-semibold text-secondary">{{ ev.score }}/100</span>
+              </div>
+              <div class="text-xs text-tertiary tabular-nums">{{ ev.evaluated_at|date:"M j, H:i" }}</div>
+            </div>
+            <div class="text-sm text-secondary" style="line-height: 1.5;">{{ ev.reasoning }}</div>
+            {% if ev.callback_requested and ev.callback_notes %}
+            <div class="mt-2 p-2 text-sm" style="background: var(--status-review-bg); border-radius: var(--radius-sm); color: var(--status-review-text);">
+              <strong>Callback note:</strong> {{ ev.callback_notes }}
+            </div>
+            {% endif %}
+            {% if ev.needs_human and ev.needs_human_notes %}
+            <div class="mt-2 p-2 text-sm" style="background: var(--status-rejected-bg); border-radius: var(--radius-sm); color: var(--status-rejected-text);">
+              <strong>Escalation:</strong> {{ ev.needs_human_notes }}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
         </div>
         {% endfor %}
       </div>
@@ -123,73 +171,51 @@
       {% endif %}
     </div>
 
-    <!-- LLM Evaluations -->
+    <!-- Pre-screening Answers -->
+    {% if form_answers_list %}
     <div class="card mb-4">
       <div class="card-header">
-        <h2 class="card-header-title">LLM Evaluations</h2>
+        <h2 class="card-header-title">Pre-screening Answers</h2>
       </div>
-      {% if evaluations %}
       <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
-        {% for ev in evaluations %}
-        <div class="list-group-item py-3 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              {% if ev.outcome == "qualified" %}
-                <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
-              {% elif ev.outcome == "not_qualified" %}
-                <div class="badge status-rejected"><span class="badge-dot"></span> Not Qualified</div>
-              {% elif ev.outcome == "callback_requested" %}
-                <div class="badge status-review"><span class="badge-dot"></span> Callback Requested</div>
-              {% elif ev.outcome == "needs_human" %}
-                <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
-              {% endif %}
-              <span class="text-sm fw-semibold">Score: {{ ev.score }}/100</span>
-            </div>
-            <div class="text-xs text-tertiary tabular-nums">{{ ev.evaluated_at|date:"M j, Y H:i" }}</div>
-          </div>
-          
-          <div class="text-sm text-secondary" style="line-height: 1.5;">{{ ev.reasoning }}</div>
-          
-          {% if ev.callback_requested and ev.callback_notes %}
-          <div class="mt-2 p-2 text-sm" style="background: var(--status-review-bg); border-radius: var(--radius-sm); color: var(--status-review-text);">
-            <strong>Callback:</strong> {{ ev.callback_notes }}
-          </div>
-          {% endif %}
-          
-          {% if ev.needs_human and ev.needs_human_notes %}
-          <div class="mt-2 p-2 text-sm" style="background: var(--status-rejected-bg); border-radius: var(--radius-sm); color: var(--status-rejected-text);">
-            <strong>Escalation:</strong> {{ ev.needs_human_notes }}
-          </div>
-          {% endif %}
+        {% for qa in form_answers_list %}
+        <div class="list-group-item py-2 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
+          <div class="text-xs text-tertiary fw-semibold mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">{{ qa.question }}</div>
+          <div class="text-sm fw-medium">{{ qa.answer }}</div>
         </div>
         {% endfor %}
       </div>
-      {% else %}
-      <div class="card-body text-center py-5">
-        <div class="text-sm text-tertiary">No evaluations completed.</div>
-      </div>
-      {% endif %}
     </div>
+    {% endif %}
 
-    <!-- Messages -->
+    <!-- Messages (outbound + inbound) -->
     <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Messages Sent</h2>
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h2 class="card-header-title">Messages</h2>
+        {% with unread=candidate_replies|length %}
+        {% if unread %}
+        <span class="badge status-screening"><span class="badge-dot"></span> {{ unread }} from candidate</span>
+        {% endif %}
+        {% endwith %}
       </div>
-      {% if sent_messages %}
+      {% if sent_messages or candidate_replies %}
       <div class="table-responsive">
         <table class="table mb-0">
           <thead>
             <tr>
+              <th style="width:28px;"></th>
               <th>Channel</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Sent At</th>
+              <th>Content</th>
+              <th>Status / Time</th>
             </tr>
           </thead>
           <tbody>
+            {# ── Outbound messages ─────────────────────────────────────────── #}
             {% for msg in sent_messages %}
             <tr>
+              <td class="text-center ps-3" title="Outbound">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--text-muted);"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </td>
               <td>
                 {% if msg.channel == "email" %}
                   <div class="d-flex align-items-center gap-1 text-sm text-secondary">
@@ -197,7 +223,7 @@
                     Email
                   </div>
                 {% else %}
-                  <div class="d-flex align-items-center gap-1 text-sm" style="color: var(--accent-positive);">
+                  <div class="d-flex align-items-center gap-1 text-sm" style="color:var(--accent-positive);">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                     WhatsApp
                   </div>
@@ -205,15 +231,58 @@
               </td>
               <td class="text-sm text-secondary">{{ msg.get_message_type_display }}</td>
               <td>
-                {% if msg.status == "sent" or msg.status == "delivered" %}
-                  <div class="badge status-offered"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
-                {% elif msg.status == "failed" %}
-                  <div class="badge status-rejected"><span class="badge-dot"></span> Failed</div>
+                <div>
+                  {% if msg.status == "sent" or msg.status == "delivered" %}
+                    <div class="badge status-offered"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
+                  {% elif msg.status == "failed" %}
+                    <div class="badge status-rejected"><span class="badge-dot"></span> Failed</div>
+                  {% else %}
+                    <div class="badge status-screening"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-muted-custom tabular-nums mt-1">{{ msg.sent_at|date:"M j, Y H:i"|default:"—" }}</div>
+              </td>
+            </tr>
+            {% endfor %}
+            {# ── Inbound replies ───────────────────────────────────────────── #}
+            {% for reply in candidate_replies %}
+            <tr style="{% if not reply.is_read %}background:var(--bg-subtle);{% endif %}">
+              <td class="text-center ps-3" title="From candidate">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-primary);"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              </td>
+              <td>
+                {% if reply.channel == "email" %}
+                  <div class="d-flex align-items-center gap-1 text-sm text-secondary">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    Email
+                  </div>
                 {% else %}
-                  <div class="badge status-screening"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
+                  <div class="d-flex align-items-center gap-1 text-sm" style="color:var(--accent-positive);">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    WhatsApp
+                  </div>
                 {% endif %}
               </td>
-              <td class="text-xs text-muted-custom tabular-nums">{{ msg.sent_at|date:"M j, Y H:i"|default:"—" }}</td>
+              <td style="max-width:240px;">
+                {% if reply.subject %}
+                <div class="text-xs text-muted-custom mb-1">{{ reply.subject|truncatechars:60 }}</div>
+                {% endif %}
+                <div class="text-sm">{{ reply.body|truncatechars:100 }}</div>
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  {% if not reply.is_read %}
+                  <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent-primary);flex-shrink:0;" title="Unread"></span>
+                  {% endif %}
+                  <form method="post" action="{% url 'messaging:reply_read' reply.pk %}?next={{ request.path }}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm"
+                            style="font-size:11px;padding:1px 6px;border:1px solid var(--border-light);border-radius:var(--radius-sm);background:none;color:var(--text-muted);"
+                            title="Mark as read">✓</button>
+                  </form>
+                </div>
+                <div class="text-xs text-muted-custom tabular-nums mt-1">{{ reply.received_at|date:"M j, Y H:i" }}</div>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -221,7 +290,7 @@
       </div>
       {% else %}
       <div class="card-body text-center py-4">
-        <div class="text-sm text-tertiary">No messages sent yet.</div>
+        <div class="text-sm text-tertiary">No messages yet.</div>
       </div>
       {% endif %}
     </div>
@@ -231,172 +300,57 @@
   <!-- Right column: Metadata & Actions -->
   <div class="col-lg-4">
 
-    <!-- Actions block -->
-    <div class="mb-4">
-      <h6 class="text-xs fw-semibold text-tertiary mb-3" style="text-transform: uppercase; letter-spacing: 0.05em;">Take Action</h6>
-      
-      <!-- Status Override -->
-      <form method="post" action="{% url 'applications:override_status' application.pk %}" class="card mb-3">
-        {% csrf_token %}
-        <div class="card-body">
-          <label class="form-label">Change Status</label>
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-header-title">Quick Actions</h2>
+      </div>
+
+      {# ── Change Status ── #}
+      <div class="px-3 pt-3 pb-3" style="border-bottom: 1px solid var(--border-light);">
+        <div class="text-xs fw-semibold text-tertiary mb-2" style="text-transform:uppercase;letter-spacing:.05em;">Change Status</div>
+        <form method="post" action="{% url 'applications:override_status' application.pk %}">
+          {% csrf_token %}
           <div class="d-flex flex-column gap-2">
             {{ status_override_form.new_status }}
             {{ status_override_form.reason }}
-            <button type="submit" class="btn btn-secondary w-100">Update</button>
+            <button type="submit" class="btn btn-secondary btn-sm w-100">Update Status</button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
 
-      <!-- Add Note -->
-      <form method="post" action="{% url 'applications:add_note' application.pk %}" class="card mb-3">
-        {% csrf_token %}
-        <div class="card-body">
-          <label class="form-label">Internal Note</label>
-          {{ add_note_form.note }}
-          <button type="submit" class="btn btn-secondary w-100 mt-2">Save Note</button>
-        </div>
-      </form>
-
-      <!-- Schedule Callback -->
-      <form method="post" action="{% url 'applications:schedule_callback' application.pk %}" class="card mb-3">
-        {% csrf_token %}
-        <div class="card-body">
-          <label class="form-label">Schedule Callback</label>
+      {# ── Schedule Callback ── #}
+      <div class="px-3 pt-3 pb-3" style="border-bottom: 1px solid var(--border-light);">
+        <div class="text-xs fw-semibold text-tertiary mb-2" style="text-transform:uppercase;letter-spacing:.05em;">Schedule Callback</div>
+        <form method="post" action="{% url 'applications:schedule_callback' application.pk %}">
+          {% csrf_token %}
           <div class="d-flex flex-column gap-2">
             {{ schedule_callback_form.callback_at }}
             {{ schedule_callback_form.note }}
-            <button type="submit" class="btn btn-secondary w-100">Schedule</button>
+            <button type="submit" class="btn btn-secondary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              Schedule
+            </button>
           </div>
-        </div>
-      </form>
-
-      <!-- Trigger Follow-up -->
-      <form method="post" action="{% url 'applications:trigger_followup' application.pk %}" class="mb-3">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          Trigger Follow-up
-        </button>
-      </form>
-    </div>
-
-    <!-- Upload CV Card -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Curriculum Vitae</h2>
-      </div>
-      <div class="card-body p-3">
-        {% if cv_uploads %}
-        <div class="d-flex flex-column gap-2 mb-3">
-          {% for cv in cv_uploads %}
-          <div class="p-2 border d-flex align-items-center justify-content-between" style="border-color: var(--border-default) !important; background: var(--bg-page); border-radius: var(--radius-sm);">
-            <div>
-              <div class="text-sm fw-medium">{{ cv.file_name }}</div>
-              <div class="text-xs text-tertiary">{{ cv.received_at|date:"M j, Y" }} &middot; {{ cv.get_source_display }}</div>
-            </div>
-            {% if cv.needs_review %}
-            <div class="badge status-screening">Review</div>
-            {% endif %}
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        
-        <form method="post" action="{% url 'applications:upload_cv' application.pk %}" enctype="multipart/form-data">
-          {% csrf_token %}
-          <label class="form-label" style="text-transform: none; letter-spacing: 0;">Upload New CV</label>
-          {{ manual_cv_upload_form.cv_file }}
-          <button type="submit" class="btn btn-secondary w-100 mt-2">Upload</button>
         </form>
       </div>
-    </div>
 
-    <!-- Application Meta -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Application Info</h2>
-      </div>
-      <div class="card-body p-0">
-        <table class="table meta-table mb-0">
-          <tbody>
-            <tr>
-              <td>ID</td>
-              <td class="tabular-nums">#{{ application.pk }}</td>
-            </tr>
-            <tr>
-              <td>Created</td>
-              <td class="tabular-nums">{{ application.created_at|date:"M j, Y H:i" }}</td>
-            </tr>
-            <tr>
-              <td>Updated</td>
-              <td class="tabular-nums">{{ application.updated_at|date:"M j, Y H:i" }}</td>
-            </tr>
-            {% if application.callback_scheduled_at %}
-            <tr>
-              <td>Callback At</td>
-              <td class="tabular-nums">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td>
-            </tr>
-            {% endif %}
-            {% if application.cv_received_at %}
-            <tr>
-              <td>CV Received</td>
-              <td class="tabular-nums">{{ application.cv_received_at|date:"M j, Y H:i" }}</td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
+      {# ── Send CV Reminder ── #}
+      <div class="px-3 pt-3 pb-3">
+        <div class="text-xs fw-semibold text-tertiary mb-2" style="text-transform:uppercase;letter-spacing:.05em;">Send Reminder</div>
+        <form method="post" action="{% url 'applications:trigger_followup' application.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary btn-sm w-100 d-inline-flex align-items-center justify-content-center gap-2">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Send CV Follow-up
+          </button>
+        </form>
+        <div class="text-xs text-tertiary mt-2">Sends a WhatsApp &amp; email nudge asking the candidate to submit their CV.</div>
       </div>
     </div>
-
-    <!-- Candidate Meta -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Source Data</h2>
-      </div>
-      <div class="card-body p-0">
-        <table class="table meta-table mb-0">
-          <tbody>
-            <tr>
-              <td>Source</td>
-              <td>{{ candidate.get_source_display }}</td>
-            </tr>
-            {% if candidate.campaign_name %}
-            <tr>
-              <td>Campaign</td>
-              <td>{{ candidate.campaign_name }}</td>
-            </tr>
-            {% endif %}
-            {% if candidate.platform %}
-            <tr>
-              <td>Platform</td>
-              <td>{{ candidate.platform|upper }}</td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Pre-screening Answers -->
-    {% if form_answers_list %}
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Pre-screening</h2>
-      </div>
-      <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
-        {% for qa in form_answers_list %}
-        <div class="list-group-item py-2 px-3 border-0 border-bottom" style="border-color: var(--border-light) !important;">
-          <div class="text-xs text-tertiary fw-semibold mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">{{ qa.question }}</div>
-          <div class="text-sm fw-medium">{{ qa.answer }}</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
 
     <!-- Timeline -->
-    <div class="card">
+    <div class="card mb-4">
       <div class="card-header">
         <h2 class="card-header-title">Timeline</h2>
       </div>
@@ -433,6 +387,153 @@
         {% else %}
         <div class="text-center text-sm text-tertiary">No timeline entries yet.</div>
         {% endif %}
+      </div>
+    </div>
+
+    <!-- Internal Note -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-header-title">Internal Note</h2>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'applications:add_note' application.pk %}">
+          {% csrf_token %}
+          {{ add_note_form.note }}
+          <button type="submit" class="btn btn-secondary btn-sm w-100 mt-2">Save Note</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Upload CV Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-header-title">Curriculum Vitae</h2>
+      </div>
+      <div class="card-body p-3">
+        {% if cv_uploads %}
+        <div class="d-flex flex-column gap-2 mb-3">
+          {% for cv in cv_uploads %}
+          <div class="p-2 border d-flex align-items-center justify-content-between gap-2"
+               style="border-color: var(--border-default) !important; background: var(--bg-page); border-radius: var(--radius-sm);">
+            <div class="d-flex align-items-center gap-2 overflow-hidden">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"
+                   class="flex-shrink-0" style="color:var(--accent-danger);">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <div class="overflow-hidden">
+                <div class="text-sm fw-medium text-truncate" title="{{ cv.file_name }}">{{ cv.file_name }}</div>
+                <div class="text-xs text-tertiary">
+                  {{ cv.received_at|date:"M j, Y" }} &middot; {{ cv.get_source_display }}
+                  {% if cv.match_method %} &middot; {{ cv.get_match_method_display }}{% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              {% if cv.needs_review %}
+              <div class="badge status-screening">Review</div>
+              {% endif %}
+              {% if cv.file_path %}
+              <a href="/{{ cv.file_path }}" download="{{ cv.file_name }}"
+                 class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download
+              </a>
+              {% else %}
+              <span class="text-xs text-secondary">No file</span>
+              {% endif %}
+              <form method="post" action="{% url 'cvs:cv_delete' cv.pk %}" class="m-0"
+                    onsubmit="return confirm('Delete this CV? This cannot be undone.');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" title="Delete CV"
+                        class="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                        style="width:26px;height:26px;border:1px solid var(--border-light);border-radius:var(--radius-sm);background:none;color:var(--text-muted);transition:border-color .15s,color .15s;"
+                        onmouseover="this.style.borderColor='var(--accent-danger)';this.style.color='var(--accent-danger)';"
+                        onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-muted)';">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"
+                       stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6"></path><path d="M14 11v6"></path>
+                    <path d="M9 6V4h6v2"></path>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" action="{% url 'applications:upload_cv' application.pk %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label class="form-label" style="text-transform: none; letter-spacing: 0;">Upload New CV</label>
+          {{ manual_cv_upload_form.cv_file }}
+          <button type="submit" class="btn btn-secondary w-100 mt-2">Upload</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Details (Application + Source merged) -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-header-title">Details</h2>
+      </div>
+      <div class="card-body p-0">
+        <table class="table meta-table mb-0">
+          <tbody>
+            <tr>
+              <td>ID</td>
+              <td class="tabular-nums">#{{ application.pk }}</td>
+            </tr>
+            <tr>
+              <td>Created</td>
+              <td class="tabular-nums">{{ application.created_at|date:"M j, Y H:i" }}</td>
+            </tr>
+            <tr>
+              <td>Updated</td>
+              <td class="tabular-nums">{{ application.updated_at|date:"M j, Y H:i" }}</td>
+            </tr>
+            {% if application.cv_received_at %}
+            <tr>
+              <td>CV Received</td>
+              <td class="tabular-nums">{{ application.cv_received_at|date:"M j, Y H:i" }}</td>
+            </tr>
+            {% endif %}
+            {% if application.callback_scheduled_at %}
+            <tr>
+              <td>Callback At</td>
+              <td class="tabular-nums">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+              <td colspan="2" style="background:var(--bg-page);padding:0;height:1px;"></td>
+            </tr>
+            <tr>
+              <td>Source</td>
+              <td>{{ candidate.get_source_display }}</td>
+            </tr>
+            {% if candidate.campaign_name %}
+            <tr>
+              <td>Campaign</td>
+              <td>{{ candidate.campaign_name }}</td>
+            </tr>
+            {% endif %}
+            {% if candidate.platform %}
+            <tr>
+              <td>Platform</td>
+              <td>{{ candidate.platform|upper }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
       </div>
     </div>
 

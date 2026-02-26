@@ -145,7 +145,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = env("TIME_ZONE", default="Europe/Bucharest")
 
 USE_I18N = True
 
@@ -179,9 +179,9 @@ APSCHEDULER_TIMEZONE = env("APSCHEDULER_TIMEZONE", default="UTC")
 # ─── Third-Party: Anthropic ────────────────────────────────────────────────────
 
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
-ANTHROPIC_MODEL = env("ANTHROPIC_MODEL", default="claude-sonnet-4-20250514")
-ANTHROPIC_FAST_MODEL = env("ANTHROPIC_FAST_MODEL", default="claude-3-5-haiku-20241022")
-ANTHROPIC_MAX_TOKENS = env.int("ANTHROPIC_MAX_TOKENS", default=4096)
+ANTHROPIC_MODEL = env("ANTHROPIC_MODEL", default="claude-sonnet-4-6")
+ANTHROPIC_FAST_MODEL = env("ANTHROPIC_FAST_MODEL", default="claude-haiku-4-5")
+ANTHROPIC_MAX_TOKENS = env.int("ANTHROPIC_MAX_TOKENS", default=8192)
 
 # ─── Third-Party: ElevenLabs ───────────────────────────────────────────────────
 
@@ -241,7 +241,7 @@ LOGGING = {
         "calls": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "candidates": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "cvs": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
-        "evaluations": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "evaluations": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
         "messaging": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "scheduler": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "webhooks": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},

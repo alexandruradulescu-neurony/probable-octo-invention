@@ -147,6 +147,114 @@
       {% endif %}
     </div>
 
+    <!-- CVs / Documents -->
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h2 class="card-header-title">CVs / Documents{% if cv_files %} ({{ cv_files|length }}){% endif %}</h2>
+      </div>
+      {% if cv_files %}
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Received</th>
+              <th>Source</th>
+              <th>Applications</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cv in cv_files %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"
+                       style="flex-shrink:0;color:var(--accent-danger);">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                  </svg>
+                  <span class="text-sm fw-medium text-truncate" style="max-width:180px;" title="{{ cv.file_name }}">
+                    {{ cv.file_name }}
+                  </span>
+                  {% if cv.needs_review %}
+                  <span class="badge status-screening" style="font-size:0.65rem;padding:2px 6px;">Review</span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-secondary mt-1">{{ cv.match_method }}</div>
+              </td>
+              <td class="text-xs text-secondary tabular-nums" style="white-space:nowrap;">
+                {{ cv.received_at|date:"d M Y H:i" }}
+              </td>
+              <td class="text-xs text-secondary">{{ cv.source }}</td>
+              <td>
+                <div class="d-flex flex-column gap-1">
+                  {% for app in cv.applications %}
+                  <a href="{% url 'applications:detail' app.pk %}"
+                     class="text-xs" style="color:var(--accent-primary);text-decoration:none;">
+                    {{ app.position.title }} #{{ app.pk }}
+                  </a>
+                  {% empty %}
+                  <span class="text-xs text-secondary">—</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td class="text-end">
+                <div class="d-inline-flex align-items-center gap-1">
+                  {% if cv.file_path %}
+                  <a href="/{{ cv.file_path }}"
+                     download="{{ cv.file_name }}"
+                     class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download
+                  </a>
+                  {% else %}
+                  <span class="text-xs text-secondary">No file</span>
+                  {% endif %}
+                  <form method="post" action="{% url 'cvs:cv_delete' cv.pk %}" class="m-0"
+                        onsubmit="return confirm('Delete this CV? This cannot be undone.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" title="Delete CV"
+                            class="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                            style="width:26px;height:26px;border:1px solid var(--border-light);border-radius:var(--radius-sm);background:none;color:var(--text-muted);transition:border-color .15s,color .15s;"
+                            onmouseover="this.style.borderColor='var(--accent-danger)';this.style.color='var(--accent-danger)';"
+                            onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-muted)';">
+                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2"
+                           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        <path d="M10 11v6"></path><path d="M14 11v6"></path>
+                        <path d="M9 6V4h6v2"></path>
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-4">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"
+             style="color:var(--text-muted);" class="mb-2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <div class="text-sm text-tertiary">No CVs received yet.</div>
+      </div>
+      {% endif %}
+    </div>
+
     <!-- Form Answers -->
     {% if form_answers_list %}
     <div class="card mb-4">

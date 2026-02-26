@@ -9,7 +9,10 @@ from datetime import timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
+from django.http import JsonResponse
+from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import TemplateView
 
 from applications.models import Application, StatusChange
@@ -18,6 +21,69 @@ from candidates.models import Candidate
 from cvs.models import CVUpload, UnmatchedInbound
 from messaging.models import Message
 from positions.models import Position
+
+
+class GlobalSearchView(LoginRequiredMixin, View):
+    """
+    GET /search/?q=<query>
+
+    Returns a JSON list of matching records across Candidates, Positions,
+    and Applications. Used by the topbar search dropdown.
+    Minimum query length: 2 characters.
+    """
+
+    MAX_PER_TYPE = 5
+
+    def get(self, request):
+        q = (request.GET.get("q") or "").strip()
+        if len(q) < 2:
+            return JsonResponse({"results": []})
+
+        results = []
+
+        # Candidates
+        for c in (
+            Candidate.objects
+            .filter(
+                Q(first_name__icontains=q) | Q(last_name__icontains=q)
+                | Q(email__icontains=q)    | Q(phone__icontains=q)
+            )[:self.MAX_PER_TYPE]
+        ):
+            results.append({
+                "type":  "Candidate",
+                "label": c.full_name,
+                "sub":   c.phone or c.email or "",
+                "url":   reverse("candidates:detail", args=[c.pk]),
+            })
+
+        # Positions
+        for p in Position.objects.filter(title__icontains=q)[:self.MAX_PER_TYPE]:
+            results.append({
+                "type":  "Position",
+                "label": p.title,
+                "sub":   p.get_status_display(),
+                "url":   reverse("positions:detail", args=[p.pk]),
+            })
+
+        # Applications (match by candidate name or position title)
+        for a in (
+            Application.objects
+            .filter(
+                Q(candidate__first_name__icontains=q)
+                | Q(candidate__last_name__icontains=q)
+                | Q(position__title__icontains=q)
+            )
+            .select_related("candidate", "position")
+            [:self.MAX_PER_TYPE]
+        ):
+            results.append({
+                "type":  "Application",
+                "label": f"{a.candidate.full_name} — {a.position.title}",
+                "sub":   a.get_status_display(),
+                "url":   reverse("applications:detail", args=[a.pk]),
+            })
+
+        return JsonResponse({"results": results, "query": q})
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):

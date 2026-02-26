@@ -33,7 +33,7 @@ from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from calls.utils import apply_call_result
 from evaluations.services import trigger_evaluation
-from messaging.models import Message
+from messaging.models import CandidateReply, Message
 from messaging.services import send_followup
 
 logger = logging.getLogger(__name__)
@@ -415,18 +415,24 @@ def check_cv_followups() -> None:
 @close_old_connections
 def close_stale_rejected() -> None:
     """
-    Silently close AWAITING_CV_REJECTED applications where the candidate has
-    not sent a CV within Position.rejected_cv_timeout_days.
+    Silently close rejected applications that have reached their end-of-life.
+    No message is sent in either case. Spec § 6 — close_stale_rejected.
 
-    No message is sent. The application is simply moved to CLOSED.
-    Spec § 6 — close_stale_rejected, § 10 step 6b.
+    Two cases are handled:
+
+    1. AWAITING_CV_REJECTED (no CV received):
+       Close when updated_at + rejected_cv_timeout_days has elapsed.
+       The candidate never responded to the CV request.
+
+    2. CV_RECEIVED_REJECTED (CV was received from a not-qualified candidate):
+       Close when cv_received_at + rejected_cv_timeout_days has elapsed.
+       The CV is on file; no further action is needed in the pipeline.
     """
     now = timezone.now()
+    to_close = []
 
-    # Fetch candidates where the timeout may have elapsed.
-    # We compare against updated_at (which is refreshed on every status change)
-    # as the best available proxy for when the application entered this state.
-    stale_apps = (
+    # Case 1: still waiting for CV — timed out
+    awaiting = (
         Application.objects
         .filter(
             status=Application.Status.AWAITING_CV_REJECTED,
@@ -434,22 +440,34 @@ def close_stale_rejected() -> None:
         )
         .select_related("position")
     )
-
-    to_close = []
-    for app in stale_apps:
-        timeout_days = app.position.rejected_cv_timeout_days
-        deadline = app.updated_at + timedelta(days=timeout_days)
+    for app in awaiting:
+        deadline = app.updated_at + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
-            to_close.append(app.pk)
+            to_close.append((app.pk, "Rejected CV timeout — no CV received"))
+
+    # Case 2: CV received but candidate was not qualified — archive after same window
+    received = (
+        Application.objects
+        .filter(
+            status=Application.Status.CV_RECEIVED_REJECTED,
+            cv_received_at__isnull=False,
+        )
+        .select_related("position")
+    )
+    for app in received:
+        deadline = app.cv_received_at + timedelta(days=app.position.rejected_cv_timeout_days)
+        if now >= deadline:
+            to_close.append((app.pk, "Rejected CV timeout — CV received, closing"))
 
     if not to_close:
         return
 
-    stale_to_close = list(Application.objects.filter(pk__in=to_close))
+    pk_to_note = {pk: note for pk, note in to_close}
+    apps_to_close = list(Application.objects.filter(pk__in=pk_to_note.keys()))
     closed_count = 0
     with transaction.atomic():
-        for app in stale_to_close:
-            set_closed(app, note="Rejected CV timeout reached")
+        for app in apps_to_close:
+            set_closed(app, note=pk_to_note[app.pk])
             closed_count += 1
 
     logger.info(
@@ -481,51 +499,164 @@ def poll_cv_inbox() -> None:
     if not poll_enabled:
         return
 
+    _run_poll_cv_inbox()
+
+
+def _save_email_reply(
+    sender: str,
+    body: str,
+    subject: str = "",
+    external_id: str | None = None,
+) -> None:
+    """
+    Persist an inbound email as a CandidateReply.
+    Imported lazily to avoid circular-import issues with the scheduler module.
+    """
+    from applications.models import Application as App
+    from candidates.services import lookup_candidate_by_email
+
+    try:
+        candidate = lookup_candidate_by_email(sender)
+        application = None
+        if candidate:
+            application = (
+                App.objects
+                .filter(candidate=candidate)
+                .exclude(status=App.Status.CLOSED)
+                .order_by("-updated_at")
+                .first()
+            )
+
+        CandidateReply.objects.create(
+            candidate=candidate,
+            application=application,
+            channel=CandidateReply.Channel.EMAIL,
+            sender=sender,
+            subject=subject,
+            body=body,
+            external_id=external_id,
+        )
+        logger.info(
+            "CandidateReply saved: channel=email sender=%s candidate=%s application=%s",
+            sender,
+            candidate.pk if candidate else None,
+            application.pk if application else None,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to save email CandidateReply for sender=%s: %s", sender, exc, exc_info=True
+        )
+
+
+def _run_poll_cv_inbox() -> dict:
+    """
+    Core Gmail CV-inbox polling logic — runs unconditionally (no poll_enabled guard).
+
+    Fetches ALL unread messages (the inbox is dedicated to CV submissions).
+    For each email:
+      • If it contains file attachments → run each through the CV pipeline and
+        move the message to GMAIL_PROCESSED_LABEL (or mark as read if no label).
+      • If it has no attachments → mark as read so it is not picked up again.
+
+    GMAIL_INBOX_LABEL is used as an optional scope filter; if the label does not
+    exist in Gmail the poll falls back to querying all unread mail.
+
+    Returns a diagnostic dict:
+        label          — configured inbox label (may be None/empty)
+        label_found    — whether the label was resolved in Gmail
+        query_matches  — total unread messages fetched
+        with_cv        — count that contained at least one file attachment
+        skipped        — count that had no attachments (marked as read only)
+        processed      — count whose attachments were ingested into the CV pipeline
+    """
     from cvs.services import process_inbound_cv as cv_process_inbound
     from messaging.services import GmailService
 
     gmail = GmailService()
 
-    inbox_label = settings.GMAIL_INBOX_LABEL
+    inbox_label = settings.GMAIL_INBOX_LABEL or None
     processed_label = settings.GMAIL_PROCESSED_LABEL
 
-    inbox_label_id = gmail.get_label_id(inbox_label)
-    processed_label_id = gmail.get_label_id(processed_label)
+    # Resolve label IDs — failures are non-fatal; we just widen the scope.
+    inbox_label_id = gmail.get_label_id(inbox_label) if inbox_label else None
+    processed_label_id = gmail.get_label_id(processed_label) if processed_label else None
 
-    if not inbox_label_id:
-        logger.warning("poll_cv_inbox: Gmail label '%s' not found — skipping", inbox_label)
-        return
+    label_found = inbox_label_id is not None if inbox_label else True
+    if inbox_label and not inbox_label_id:
+        logger.warning(
+            "poll_cv_inbox: Gmail label '%s' not found — polling all unread mail instead",
+            inbox_label,
+        )
 
-    messages = gmail.list_unread_with_attachments(inbox_label)
-    if not messages:
-        return
+    # Fetch all unread messages (scoped to label if it exists).
+    effective_label = inbox_label if inbox_label_id else None
+    messages, query_count = gmail.list_unread_messages(effective_label)
 
+    with_cv = 0
+    skipped = 0
     processed = 0
+
     for msg in messages:
-        for att in msg.get("attachments", []):
-            try:
-                cv_process_inbound(
-                    channel="email",
-                    sender=msg["sender"],
-                    file_name=att["name"],
-                    file_content=att["data"],
-                    text_body=msg.get("body_snippet", ""),
-                    subject=msg.get("subject", ""),
-                )
-            except Exception as exc:
-                logger.error(
-                    "poll_cv_inbox: CV processing failed for Gmail msg=%s att=%s: %s",
-                    msg["id"], att["name"], exc, exc_info=True,
-                )
+        attachments = msg.get("attachments", [])
+        sender = msg.get("sender", "")
+        body_snippet = (msg.get("body_snippet") or "").strip()
+        subject = (msg.get("subject") or "").strip()
 
-        if processed_label_id:
-            gmail.move_to_label(
-                msg["id"],
-                add_label=processed_label_id,
-                remove_label=inbox_label_id,
+        if attachments:
+            with_cv += 1
+            for att in attachments:
+                try:
+                    cv_process_inbound(
+                        channel="email",
+                        sender=sender,
+                        file_name=att["name"],
+                        file_content=att["data"],
+                        text_body=body_snippet,
+                        subject=subject,
+                    )
+                    processed += 1
+                except Exception as exc:
+                    logger.error(
+                        "poll_cv_inbox: CV processing failed for Gmail msg=%s att=%s: %s",
+                        msg["id"], att["name"], exc, exc_info=True,
+                    )
+
+            # If the email body has text alongside the CV, save it as a reply.
+            if body_snippet:
+                _save_email_reply(sender, body_snippet, subject, external_id=msg["id"])
+
+            # Move to processed label (which also marks as read), or just mark as read.
+            if processed_label_id:
+                gmail.move_to_label(
+                    msg["id"],
+                    add_label=processed_label_id,
+                    remove_label=inbox_label_id,
+                )
+            else:
+                gmail.mark_as_read(msg["id"])
+
+        else:
+            # No attachment — if there is a text body, record it as a candidate reply.
+            skipped += 1
+            if body_snippet:
+                _save_email_reply(sender, body_snippet, subject, external_id=msg["id"])
+            gmail.mark_as_read(msg["id"])
+            logger.debug(
+                "poll_cv_inbox: no attachment in msg=%s from=%s subject=%r — marked as read",
+                msg["id"], sender, subject,
             )
-        processed += 1
 
-    logger.info("poll_cv_inbox: processed %s email(s) with attachments", processed)
+    logger.info(
+        "poll_cv_inbox: %s unread fetched | %s had CV attachment(s) | %s skipped (no attachment)",
+        query_count, with_cv, skipped,
+    )
+    return {
+        "label": inbox_label,
+        "label_found": label_found,
+        "query_matches": query_count,
+        "with_cv": with_cv,
+        "skipped": skipped,
+        "processed": processed,
+    }
 
 

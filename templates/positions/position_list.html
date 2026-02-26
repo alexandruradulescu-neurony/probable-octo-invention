@@ -11,6 +11,21 @@
 {% endblock %}
 
 {% block content %}
+<form method="post" action="{% url 'positions:bulk_delete' %}" id="bulk-form">
+{% csrf_token %}
+
+<div id="bulk-bar" class="bulk-action-bar mb-3" style="display:none;">
+  <span class="bulk-count-label"><strong id="bulk-count">0</strong> selected</span>
+  <div class="d-flex align-items-center gap-2">
+    <div class="bulk-divider"></div>
+    <button type="submit" name="action" value="delete" class="bulk-btn bulk-btn-danger"
+            onclick="return confirm('Delete selected positions and ALL their applications? This cannot be undone.')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+      Delete
+    </button>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <h2 class="card-header-title">All Positions</h2>
@@ -19,6 +34,9 @@
     <table class="table mb-0">
       <thead>
         <tr>
+          <th style="width:2.5rem; padding-left:1.1rem;" class="no-row-click">
+            <input type="checkbox" class="form-check-input" id="select-all">
+          </th>
           <th>Title</th>
           <th>Status</th>
           <th class="text-center">Open Applications</th>
@@ -28,7 +46,10 @@
       </thead>
       <tbody>
         {% for pos in positions %}
-        <tr>
+        <tr data-href="{% url 'applications:list' %}?position={{ pos.pk }}">
+          <td style="padding-left:1.1rem;" class="no-row-click">
+            <input type="checkbox" class="form-check-input row-check" name="position_ids" value="{{ pos.pk }}">
+          </td>
           <td>
             <div class="fw-medium">{{ pos.title }}</div>
           </td>
@@ -45,7 +66,7 @@
             <span class="badge badge-neutral">{{ pos.open_applications_count }}</span>
           </td>
           <td class="text-xs text-muted-custom">{{ pos.created_at|date:"M j, Y" }}</td>
-          <td class="text-end">
+          <td class="text-end no-row-click">
             <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="btn btn-secondary btn-sm">Applications</a>
             <a href="{% url 'positions:edit' pos.pk %}" class="btn btn-secondary btn-sm">Edit</a>
           </td>
@@ -64,4 +85,10 @@
     </table>
   </div>
 </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>initBulkSelect('.row-check', 'select-all', 'bulk-bar', 'bulk-count');</script>
 {% endblock %}

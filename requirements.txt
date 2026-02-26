@@ -9,6 +9,7 @@ django-environ==0.13.0
 
 # AI / LLM
 anthropic==0.79.0
+json-repair==0.58.0
 
 # Task Scheduling
 django-apscheduler==0.7.0

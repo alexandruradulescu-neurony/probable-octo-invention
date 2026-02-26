@@ -72,6 +72,19 @@ class CandidateListView(LoginRequiredMixin, ListView):
         return ctx
 
 
+class BulkDeleteCandidatesView(LoginRequiredMixin, View):
+    """POST /candidates/bulk-delete/ — permanently delete selected candidates + their applications."""
+
+    def post(self, request):
+        pks = request.POST.getlist("candidate_ids")
+        if not pks:
+            messages.warning(request, "No candidates selected.")
+            return redirect("candidates:list")
+        count, _ = Candidate.objects.filter(pk__in=pks).delete()
+        messages.success(request, f"Deleted {count} record(s) (candidates and related applications).")
+        return redirect("candidates:list")
+
+
 class CandidateDetailView(LoginRequiredMixin, DetailView):
     """
     Full candidate profile: contact info, Meta lead info, form answers,
@@ -97,6 +110,36 @@ class CandidateDetailView(LoginRequiredMixin, DetailView):
             .select_related("position")
             .order_by("-updated_at")
         )
+
+        # Build a de-duplicated list of CV files for this candidate.
+        # Multiple CVUpload rows may share the same file_path (one per application),
+        # so we group by file_path and collect the associated applications.
+        from cvs.models import CVUpload
+        all_uploads = (
+            CVUpload.objects
+            .filter(candidate=candidate)
+            .select_related("application__position")
+            .order_by("-received_at")
+        )
+        seen_paths = {}
+        cv_files = []
+        for upload in all_uploads:
+            key = upload.file_path or upload.pk  # ungrouped if no path
+            if key not in seen_paths:
+                seen_paths[key] = {
+                    "pk": upload.pk,
+                    "file_name": upload.file_name,
+                    "file_path": upload.file_path,
+                    "source": upload.get_source_display(),
+                    "match_method": upload.get_match_method_display() if upload.match_method else "—",
+                    "received_at": upload.received_at,
+                    "needs_review": upload.needs_review,
+                    "applications": [],
+                }
+                cv_files.append(seen_paths[key])
+            if upload.application:
+                seen_paths[key]["applications"].append(upload.application)
+        ctx["cv_files"] = cv_files
 
         form_answers = candidate.form_answers
         if form_answers and isinstance(form_answers, dict):
