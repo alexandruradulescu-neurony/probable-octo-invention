@@ -163,6 +163,64 @@ def import_meta_csv(file_path_or_object, position_id: int) -> dict:
     return summary
 
 
+def parse_meta_csv_preview(file_obj) -> dict:
+    """
+    Parse an uploaded Meta CSV file and build preview metadata for the UI.
+
+    Returns:
+        {
+            "text": str,
+            "preview_rows": list[dict],
+            "dynamic_columns": list[str],
+            "total_rows": int,
+            "showing_rows": int,
+        }
+    """
+    raw = file_obj.read()
+    if isinstance(raw, bytes):
+        text = raw.decode("utf-16")
+    else:
+        text = raw
+
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    rows = list(reader)
+    if not rows:
+        return {
+            "text": text,
+            "preview_rows": [],
+            "dynamic_columns": [],
+            "total_rows": 0,
+            "showing_rows": 0,
+        }
+
+    preview_rows = []
+    dynamic_columns = set()
+    for row in rows:
+        dyn = {
+            col.strip(): _clean_form_value(val or "")
+            for col, val in row.items()
+            if col.strip() not in STANDARD_COLUMNS
+            and col.strip() not in IGNORED_COLUMNS
+            and (val or "").strip()
+        }
+        dynamic_columns.update(dyn.keys())
+        preview_rows.append({
+            "name": (row.get("full_name") or "").strip(),
+            "phone": (row.get("phone_number") or "").strip(),
+            "email": (row.get("email") or "").strip(),
+            "campaign": (row.get("campaign_name") or "").strip(),
+            "form_answers_count": len(dyn),
+        })
+
+    return {
+        "text": text,
+        "preview_rows": preview_rows[:100],
+        "dynamic_columns": sorted(dynamic_columns),
+        "total_rows": len(preview_rows),
+        "showing_rows": min(len(preview_rows), 100),
+    }
+
+
 # ── Internal helpers ───────────────────────────────────────────────────────────
 
 def _read_csv(file_path_or_object) -> list[dict]:

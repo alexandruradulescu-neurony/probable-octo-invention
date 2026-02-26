@@ -6,13 +6,9 @@ Spec § 12.5.
 """
 
 import logging
-import uuid
-from pathlib import Path
 
-from django.conf import settings
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.files.storage import default_storage
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
@@ -26,6 +22,7 @@ from applications.forms import (
     StatusOverrideForm,
 )
 from applications.models import Application, StatusChange
+from applications.services import handle_manual_cv_upload
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from cvs.models import CVUpload
@@ -284,39 +281,7 @@ class ManualCVUploadView(LoginRequiredMixin, View):
         form = ManualCVUploadForm(request.POST, request.FILES)
         if form.is_valid():
             uploaded = form.cleaned_data["cv_file"]
-            unique_name = f"{uuid.uuid4().hex[:8]}_{uploaded.name}"
-
-            media_root = Path(settings.MEDIA_ROOT) / "cvs"
-            media_root.mkdir(parents=True, exist_ok=True)
-            file_path = media_root / unique_name
-
-            with open(file_path, "wb") as f:
-                for chunk in uploaded.chunks():
-                    f.write(chunk)
-
-            CVUpload.objects.create(
-                application=app,
-                file_name=uploaded.name,
-                file_path=str(file_path),
-                source=CVUpload.Source.MANUAL_UPLOAD,
-                match_method=CVUpload.MatchMethod.MANUAL,
-            )
-
-            if app.status in (
-                Application.Status.AWAITING_CV,
-                Application.Status.CV_FOLLOWUP_1,
-                Application.Status.CV_FOLLOWUP_2,
-                Application.Status.CV_OVERDUE,
-                Application.Status.AWAITING_CV_REJECTED,
-            ):
-                new_status = (
-                    Application.Status.CV_RECEIVED
-                    if app.qualified
-                    else Application.Status.CV_RECEIVED_REJECTED
-                )
-                app.cv_received_at = timezone.now()
-                app.save(update_fields=["cv_received_at", "updated_at"])
-                app.change_status(new_status, changed_by=request.user, note="CV manually uploaded")
+            handle_manual_cv_upload(app, uploaded, changed_by=request.user)
 
             django_messages.success(request, f"CV '{uploaded.name}' uploaded.")
         else:

@@ -5,7 +5,6 @@ Candidate List, Candidate Detail, and CSV Import (two-step flow).
 Spec § 12.4 — Candidates.
 """
 
-import csv
 import io
 import logging
 
@@ -19,22 +18,10 @@ from django.views.generic import DetailView, ListView
 from applications.models import Application
 from candidates.forms import CandidateContactForm, CandidateNoteForm, CSVImportForm
 from candidates.models import Candidate
-from candidates.services import import_meta_csv
+from candidates.services import import_meta_csv, parse_meta_csv_preview
 from positions.models import Position
 
 logger = logging.getLogger(__name__)
-
-# ── Column constants (mirrored from services.py for preview) ──────────────────
-
-_STANDARD_COLUMNS = frozenset({
-    "id", "created_time", "campaign_name", "platform",
-    "email", "full_name", "phone_number",
-})
-_IGNORED_COLUMNS = frozenset({
-    "ad_id", "ad_name", "adset_id", "adset_name",
-    "form_id", "form_name", "is_organic", "inbox_url",
-})
-
 
 class CandidateListView(LoginRequiredMixin, ListView):
     """
@@ -188,52 +175,26 @@ class CSVImportView(LoginRequiredMixin, View):
         position = form.cleaned_data["position"]
 
         try:
-            raw = csv_file.read()
-            if isinstance(raw, bytes):
-                text = raw.decode("utf-16")
-            else:
-                text = raw
-
-            reader = csv.DictReader(io.StringIO(text), delimiter="\t")
-            rows = list(reader)
+            preview_data = parse_meta_csv_preview(csv_file)
         except Exception as exc:
             logger.warning("CSV parse error: %s", exc)
             messages.error(request, f"Failed to parse CSV: {exc}")
             return render(request, self.template_name, {"form": form})
 
-        if not rows:
+        if not preview_data["total_rows"]:
             messages.warning(request, "The CSV file is empty or could not be parsed.")
             return render(request, self.template_name, {"form": form})
 
-        preview_rows = []
-        dynamic_columns = set()
-        for row in rows:
-            dyn = {
-                col.strip(): (val or "").replace("_", " ").strip()
-                for col, val in row.items()
-                if col.strip() not in _STANDARD_COLUMNS
-                and col.strip() not in _IGNORED_COLUMNS
-                and (val or "").strip()
-            }
-            dynamic_columns.update(dyn.keys())
-            preview_rows.append({
-                "name": (row.get("full_name") or "").strip(),
-                "phone": (row.get("phone_number") or "").strip(),
-                "email": (row.get("email") or "").strip(),
-                "campaign": (row.get("campaign_name") or "").strip(),
-                "form_answers_count": len(dyn),
-            })
-
-        request.session["_csv_import_text"] = text
+        request.session["_csv_import_text"] = preview_data["text"]
         request.session["_csv_import_position_id"] = position.pk
 
         return render(request, self.template_name, {
             "step": "preview",
             "position": position,
-            "preview_rows": preview_rows[:100],
-            "total_rows": len(preview_rows),
-            "showing_rows": min(len(preview_rows), 100),
-            "dynamic_columns": sorted(dynamic_columns),
+            "preview_rows": preview_data["preview_rows"],
+            "total_rows": preview_data["total_rows"],
+            "showing_rows": preview_data["showing_rows"],
+            "dynamic_columns": preview_data["dynamic_columns"],
         })
 
     def _confirm(self, request):
