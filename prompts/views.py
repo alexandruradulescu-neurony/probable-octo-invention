@@ -9,12 +9,19 @@ import json
 import logging
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
+
+
+class _StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Only staff/admin users may access prompt template management."""
+
+    def test_func(self):
+        return self.request.user.is_staff
 
 from evaluations.services import ClaudeService, ClaudeServiceError
 from prompts.forms import PromptTemplateForm
@@ -23,7 +30,7 @@ from prompts.models import PromptTemplate
 logger = logging.getLogger(__name__)
 
 
-class PromptTemplateListView(LoginRequiredMixin, ListView):
+class PromptTemplateListView(_StaffRequiredMixin, ListView):
     model = PromptTemplate
     template_name = "prompts/prompt_list.html"
     context_object_name = "templates"
@@ -44,7 +51,7 @@ class PromptTemplateListView(LoginRequiredMixin, ListView):
         return ctx
 
 
-class PromptTemplateCreateView(LoginRequiredMixin, CreateView):
+class PromptTemplateCreateView(_StaffRequiredMixin, CreateView):
     model = PromptTemplate
     form_class = PromptTemplateForm
     template_name = "prompts/prompt_form.html"
@@ -57,7 +64,7 @@ class PromptTemplateCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class PromptTemplateUpdateView(LoginRequiredMixin, UpdateView):
+class PromptTemplateUpdateView(_StaffRequiredMixin, UpdateView):
     model = PromptTemplate
     form_class = PromptTemplateForm
     template_name = "prompts/prompt_form.html"
@@ -69,7 +76,7 @@ class PromptTemplateUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-class ToggleActiveView(LoginRequiredMixin, View):
+class ToggleActiveView(_StaffRequiredMixin, View):
     """
     POST /prompts/<pk>/toggle-active/
 
@@ -98,7 +105,7 @@ class ToggleActiveView(LoginRequiredMixin, View):
         return redirect("prompts:list")
 
 
-class TestGenerateView(LoginRequiredMixin, View):
+class TestGenerateView(_StaffRequiredMixin, View):
     """
     POST /prompts/<pk>/test-generate/
 

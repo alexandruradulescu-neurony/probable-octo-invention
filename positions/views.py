@@ -152,10 +152,15 @@ class GenerateSectionView(LoginRequiredMixin, View):
         # Auto-save to DB when editing an existing Position
         position_pk = body.get("position_pk")
         if position_pk and str(position_pk).lstrip("-").isdigit() and int(position_pk) > 0:
-            Position.objects.filter(pk=int(position_pk)).update(**{section: value})
-            logger.info(
-                "Auto-saved section=%s to position=%s (%d chars)",
-                section, position_pk, len(value),
-            )
+            rows = Position.objects.filter(pk=int(position_pk)).update(**{section: value})
+            if rows:
+                logger.info(
+                    "Auto-saved section=%s to position=%s (%d chars)",
+                    section, position_pk, len(value),
+                )
+            else:
+                logger.warning(
+                    "Auto-save skipped: position=%s not found in DB", position_pk,
+                )
 
         return JsonResponse({"section": section, "value": value})

@@ -10,11 +10,17 @@ from prompts.models import PromptTemplate
 
 
 class PromptTemplateForm(forms.ModelForm):
+    section = forms.ChoiceField(
+        choices=[("", "— Select a section —")] + list(PromptTemplate.Section.choices),
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Section",
+        help_text="Which prompt field this template generates for a Position.",
+    )
+
     class Meta:
         model = PromptTemplate
         fields = ["section", "name", "meta_prompt"]
         widgets = {
-            "section": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "meta_prompt": forms.Textarea(attrs={
                 "class": "form-control font-monospace",
@@ -30,7 +36,6 @@ class PromptTemplateForm(forms.ModelForm):
             }),
         }
         labels = {
-            "section": "Section",
             "name": "Template Name",
             "meta_prompt": "Meta-Prompt",
         }

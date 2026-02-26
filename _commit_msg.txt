@@ -1,0 +1,6 @@
+fix: address code review findings (tests, security, validation)
+
+- Fix failing test: split into retry-remaining and retries-exhausted scenarios
+- Require section field in PromptTemplateForm (prevents blank/unusable templates)
+- Restrict prompt template views to staff users only (UserPassesTestMixin)
+- Log warning when auto-save targets a non-existent position_pk

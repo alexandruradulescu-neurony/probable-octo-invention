@@ -52,9 +52,23 @@ class ApplyCallResultTests(TestCase):
         self.assertEqual(call.duration_seconds, 30)
         self.assertIn("Agent: Salut", call.transcript)
 
-    def test_failed_call_sets_application_call_failed(self):
+    def test_failed_call_with_retries_remaining_schedules_callback(self):
         app = _make_app()
+        # attempt 1 of 2 (default call_retry_max=2) → should schedule retry
         call = Call.objects.create(application=app, attempt_number=1, status=Call.Status.INITIATED)
+
+        status, is_completed = apply_call_result(call, {"status": "failed"})
+
+        self.assertFalse(is_completed)
+        self.assertEqual(status, Call.Status.FAILED)
+        app.refresh_from_db()
+        self.assertEqual(app.status, Application.Status.CALLBACK_SCHEDULED)
+        self.assertIsNotNone(app.callback_scheduled_at)
+
+    def test_failed_call_with_retries_exhausted_sets_call_failed(self):
+        app = _make_app()
+        # attempt 2 of 2 → all retries exhausted → should mark call_failed
+        call = Call.objects.create(application=app, attempt_number=2, status=Call.Status.INITIATED)
 
         status, is_completed = apply_call_result(call, {"status": "failed"})
 
