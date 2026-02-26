@@ -17,9 +17,9 @@
   <div class="alert alert-danger mb-4 d-flex align-items-start gap-2">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
     <div>
-      <div style="font-weight: 600; margin-bottom: 0.25rem;">Please correct the errors below.</div>
+      <div class="fw-semibold mb-1">Please correct the errors below.</div>
       {% if form.non_field_errors %}
-      <ul class="mb-0 ps-3" style="font-size: 0.75rem;">
+      <ul class="mb-0 ps-3 text-sm">
         {% for error in form.non_field_errors %}
         <li>{{ error }}</li>
         {% endfor %}
@@ -40,12 +40,12 @@
           <div class="mb-3">
             <label for="id_title" class="form-label">Title</label>
             {{ form.title }}
-            {% if form.title.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.title.errors.0 }}</div>{% endif %}
+            {% if form.title.errors %}<div class="error-text">{{ form.title.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-3">
             <label for="id_description" class="form-label">Description</label>
             {{ form.description }}
-            {% if form.description.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.description.errors.0 }}</div>{% endif %}
+            {% if form.description.errors %}<div class="error-text">{{ form.description.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-3">
             <label for="id_status" class="form-label">Status</label>
@@ -54,10 +54,10 @@
           <div class="mb-0">
             <label for="id_campaign_questions" class="form-label">
               Campaign Questions
-              <span style="color: var(--text-tertiary); font-weight: 400; text-transform: none; letter-spacing: 0;">(one per line)</span>
+              <span class="text-tertiary" style="font-weight: 400; text-transform: none; letter-spacing: 0;">(one per line)</span>
             </label>
             {{ form.campaign_questions }}
-            {% if form.campaign_questions.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
+            {% if form.campaign_questions.errors %}<div class="error-text">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
           </div>
         </div>
       </div>
@@ -74,24 +74,24 @@
         <div class="card-body">
           <div class="alert alert-info mb-4 d-flex align-items-start gap-2" style="padding: 0.75rem;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div style="font-size: 0.72rem; line-height: 1.4;">
+            <div class="text-sm" style="line-height: 1.4;">
               The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.
             </div>
           </div>
           <div class="mb-4">
             <label for="id_system_prompt" class="form-label">System Prompt</label>
             {{ form.system_prompt }}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Personality, instructions, how to ask screening questions.</div>
+            <div class="help-text">Personality, instructions, how to ask screening questions.</div>
           </div>
           <div class="mb-4">
             <label for="id_first_message" class="form-label">First Message</label>
             {{ form.first_message }}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Opening line the agent says when the candidate picks up.</div>
+            <div class="help-text">Opening line the agent says when the candidate picks up.</div>
           </div>
           <div class="mb-0">
             <label for="id_qualification_prompt" class="form-label">Qualification Prompt</label>
             {{ form.qualification_prompt }}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Sent to Claude along with the transcript for scoring.</div>
+            <div class="help-text">Sent to Claude along with the transcript for scoring.</div>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@
             <div class="col-6">
               <label for="id_calling_hour_end" class="form-label">Call Until (hour)</label>
               {{ form.calling_hour_end }}
-              {% if form.calling_hour_end.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
+              {% if form.calling_hour_end.errors %}<div class="error-text">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
             </div>
           </div>
         </div>
@@ -134,12 +134,12 @@
           <div class="mb-3">
             <label for="id_follow_up_interval_hours" class="form-label">Follow-up Interval (hours)</label>
             {{ form.follow_up_interval_hours }}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Qualified candidates only.</div>
+            <div class="help-text">Qualified candidates only.</div>
           </div>
           <div class="mb-0">
             <label for="id_rejected_cv_timeout_days" class="form-label">Rejected CV Timeout (days)</label>
             {{ form.rejected_cv_timeout_days }}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Days before auto-closing rejected apps with no CV.</div>
+            <div class="help-text">Days before auto-closing rejected apps with no CV.</div>
           </div>
         </div>
       </div>

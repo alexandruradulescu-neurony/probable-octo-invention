@@ -15,17 +15,16 @@
 
 {% block content %}
 <style>
-  /* Stat Card Specifics */
   .stat-card-label {
     text-transform: uppercase;
-    font-size: 0.68rem;
+    font-size: 0.8rem;
     color: var(--text-tertiary);
     letter-spacing: 0.05em;
     font-weight: 600;
     margin-bottom: 0.5rem;
   }
   .stat-card-value {
-    font-size: 1.6rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
@@ -33,11 +32,10 @@
     margin-bottom: 0.35rem;
   }
   .stat-card-subline {
-    font-size: 0.68rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
   }
 
-  /* Pipeline Widget */
   .pipeline-row {
     display: flex;
     align-items: center;
@@ -46,8 +44,8 @@
   }
   .pipeline-row:last-child { margin-bottom: 0; }
   .pipeline-label {
-    width: 72px;
-    font-size: 0.78rem;
+    width: 80px;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     font-weight: 500;
   }
@@ -64,19 +62,18 @@
     transition: width 0.4s ease;
   }
   .pipeline-count {
-    width: 28px;
+    width: 32px;
     text-align: right;
-    font-size: 0.78rem;
+    font-size: 0.875rem;
     color: var(--text-primary);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Activity Feed */
   .activity-item {
     display: flex;
     gap: 0.75rem;
-    padding: 0.55rem 0;
+    padding: 0.6rem 0;
     position: relative;
     border-radius: 4px;
     margin: 0 -0.5rem;
@@ -86,25 +83,25 @@
   }
   .activity-item:hover { background: #f7f7f8; }
   .activity-time {
-    min-width: 38px;
+    min-width: 44px;
     text-align: right;
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
-    padding-top: 0.15rem;
+    padding-top: 0.1rem;
     white-space: nowrap;
   }
   .activity-divider {
     width: 1px;
     background: var(--border-default);
     position: absolute;
-    left: calc(38px + 0.75rem + 0.5rem);
+    left: calc(44px + 0.75rem + 0.5rem);
     top: 0;
     bottom: 0;
   }
   .activity-text {
     flex: 1;
-    font-size: 0.78rem;
+    font-size: 0.875rem;
     color: var(--text-secondary);
     margin-left: 0.75rem;
     line-height: 1.4;
@@ -161,7 +158,7 @@
     <div class="card">
       <div class="card-header">
         <h2 class="card-header-title">Active Positions Overview</h2>
-        <a href="{% url 'positions:list' %}" class="text-decoration-none text-tertiary" style="font-size: 0.66rem;">View all &rarr;</a>
+        <a href="{% url 'positions:list' %}" class="view-all-link">View all &rarr;</a>
       </div>
       
       {% if position_summaries %}
@@ -181,34 +178,34 @@
             <tr>
               <td>
                 <div class="fw-medium text-primary">{{ s.position.title }}</div>
-                <div class="text-muted" style="font-size: 0.6rem;">{{ s.total }} total candidates</div>
+                <div class="text-xs text-muted-custom">{{ s.total }} total candidates</div>
               </td>
               <td>
                 {% if s.pending_calls %}
                   <div class="badge status-screening"><span class="badge-dot"></span> {{ s.pending_calls }}</div>
                 {% else %}
-                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                  <span class="text-muted-custom">-</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.in_progress %}
                   <div class="badge status-interview"><span class="badge-dot"></span> {{ s.in_progress }}</div>
                 {% else %}
-                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                  <span class="text-muted-custom">-</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.awaiting_cv %}
                   <div class="badge status-review"><span class="badge-dot"></span> {{ s.awaiting_cv }}</div>
                 {% else %}
-                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                  <span class="text-muted-custom">-</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.completed %}
                   <div class="badge status-offered"><span class="badge-dot"></span> {{ s.completed }}</div>
                 {% else %}
-                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                  <span class="text-muted-custom">-</span>
                 {% endif %}
               </td>
             </tr>
@@ -219,8 +216,8 @@
       {% else %}
       <div class="card-body text-center py-5">
         <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-        <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No open positions</div>
-        <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create a position to start tracking candidates.</div>
+        <div class="empty-state-title">No open positions</div>
+        <div class="empty-state-desc">Create a position to start tracking candidates.</div>
         <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
       </div>
       {% endif %}
@@ -230,7 +227,7 @@
     {% with a=attention_required %}
     {% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
     <div class="mt-4">
-      <h6 class="fw-semibold mb-3" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">Needs Attention</h6>
+      <h6 class="fw-semibold text-sm mb-3" style="text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">Needs Attention</h6>
       <div class="row g-2">
         {% if a.call_failures %}
         <div class="col-sm-6">
@@ -293,7 +290,7 @@
           <div class="pipeline-count">{{ stage.count }}</div>
         </div>
         {% empty %}
-        <div style="font-size: 0.75rem; color: var(--text-tertiary); text-align: center; padding: 1rem 0;">No applications yet.</div>
+        <div class="text-sm text-tertiary text-center py-3">No applications yet.</div>
         {% endfor %}
       </div>
     </div>
@@ -312,12 +309,12 @@
           <div class="activity-text">
             <strong>{{ sc.application.candidate.full_name }}</strong>
             moved to {{ sc.get_to_status_display }}
-            <span style="color: var(--text-tertiary);">for {{ sc.application.position.title }}</span>
+            <span class="text-tertiary">for {{ sc.application.position.title }}</span>
           </div>
         </div>
         {% endfor %}
         {% else %}
-        <div style="font-size: 0.75rem; color: var(--text-tertiary); text-align: center; padding: 1rem 0;">No recent activity.</div>
+        <div class="text-sm text-tertiary text-center py-3">No recent activity.</div>
         {% endif %}
       </div>
     </div>

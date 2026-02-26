@@ -17,11 +17,11 @@
     <div id="contact-display">
       <div class="row align-items-center">
         <div class="col-md-6 d-flex align-items-center gap-3">
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: #e8e8e8; color: #555; font-size: 1.2rem; font-weight: 600; display: flex; align-items: center; justify-content: center;">
+          <div class="initials-circle initials-circle-lg">
             {{ candidate.full_name|default:"—"|make_list|first|upper }}
           </div>
           <div>
-            <h4 class="mb-1" style="font-weight: 600; color: var(--text-primary);">{{ candidate.full_name }}</h4>
+            <h4 class="mb-1 fw-semibold">{{ candidate.full_name }}</h4>
             <div class="d-flex gap-2 align-items-center mt-1">
               <div class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ candidate.get_source_display }}</div>
               {% if candidate.campaign_name %}
@@ -82,10 +82,10 @@
             {{ contact_form.whatsapp_number }}
           </div>
           <div class="col-md-1 d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-fill d-flex justify-content-center align-items-center p-0" style="height: 34px;">
+            <button type="submit" class="btn btn-primary flex-fill d-flex justify-content-center align-items-center p-0" style="height: 36px;">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </button>
-            <button type="button" class="btn btn-secondary flex-fill d-flex justify-content-center align-items-center p-0" style="height: 34px;" id="btn-cancel-edit">
+            <button type="button" class="btn btn-secondary flex-fill d-flex justify-content-center align-items-center p-0" style="height: 36px;" id="btn-cancel-edit">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
@@ -120,19 +120,19 @@
             {% for app in applications %}
             <tr>
               <td>
-                <div style="font-weight: 500; color: var(--text-primary);">{{ app.position.title }}</div>
+                <div class="fw-medium">{{ app.position.title }}</div>
               </td>
               <td>{% include "applications/_status_badge.html" with status=app.status %}</td>
               <td class="text-center">
                 {% if app.score is not None %}
-                <span style="font-weight: 600; color: {% if app.qualified %}#059669{% else %}#dc2626{% endif %};">{{ app.score }}</span>
+                <span class="fw-semibold" style="color: {% if app.qualified %}#059669{% else %}#dc2626{% endif %};">{{ app.score }}</span>
                 {% else %}
-                <span style="color: var(--text-muted);">—</span>
+                <span class="text-muted-custom">&mdash;</span>
                 {% endif %}
               </td>
-              <td style="font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums;">{{ app.updated_at|timesince }} ago</td>
+              <td class="text-xs text-muted-custom tabular-nums">{{ app.updated_at|timesince }} ago</td>
               <td class="text-end">
-                <a href="{% url 'applications:detail' app.pk %}" class="btn btn-ghost">View</a>
+                <a href="{% url 'applications:detail' app.pk %}" class="btn btn-secondary btn-sm">View</a>
               </td>
             </tr>
             {% endfor %}
@@ -141,7 +141,7 @@
       </div>
       {% else %}
       <div class="card-body text-center py-5">
-        <div style="font-size: 0.75rem; color: var(--text-tertiary);">No applications yet.</div>
+        <div class="text-sm text-tertiary">No applications yet.</div>
       </div>
       {% endif %}
     </div>
@@ -155,8 +155,8 @@
       <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
         {% for qa in form_answers_list %}
         <div class="list-group-item py-2 px-3 border-0 border-bottom" style="border-color: var(--border-light) !important;">
-          <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">{{ qa.question }}</div>
-          <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: 500;">{{ qa.answer }}</div>
+          <div class="text-xs text-tertiary fw-semibold mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">{{ qa.question }}</div>
+          <div class="text-sm fw-medium">{{ qa.answer }}</div>
         </div>
         {% endfor %}
       </div>
@@ -174,47 +174,47 @@
         <h2 class="card-header-title">Candidate Info</h2>
       </div>
       <div class="card-body p-0">
-        <table class="table mb-0">
+        <table class="table meta-table mb-0">
           <tbody>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">ID</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">#{{ candidate.pk }}</td>
+              <td>ID</td>
+              <td class="tabular-nums">#{{ candidate.pk }}</td>
             </tr>
             {% if candidate.meta_lead_id %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Meta Lead ID</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-family: monospace;">{{ candidate.meta_lead_id }}</td>
+              <td>Meta Lead ID</td>
+              <td style="font-family: monospace;">{{ candidate.meta_lead_id }}</td>
             </tr>
             {% endif %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Source</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.get_source_display }}</td>
+              <td>Source</td>
+              <td>{{ candidate.get_source_display }}</td>
             </tr>
             {% if candidate.campaign_name %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Campaign</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.campaign_name }}</td>
+              <td>Campaign</td>
+              <td>{{ candidate.campaign_name }}</td>
             </tr>
             {% endif %}
             {% if candidate.platform %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Platform</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.platform|upper }}</td>
+              <td>Platform</td>
+              <td>{{ candidate.platform|upper }}</td>
             </tr>
             {% endif %}
             {% if candidate.meta_created_time %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Submitted</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ candidate.meta_created_time|date:"d M Y H:i" }}</td>
+              <td>Submitted</td>
+              <td class="tabular-nums">{{ candidate.meta_created_time|date:"d M Y H:i" }}</td>
             </tr>
             {% endif %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Created</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ candidate.created_at|date:"d M Y H:i" }}</td>
+              <td>Created</td>
+              <td class="tabular-nums">{{ candidate.created_at|date:"d M Y H:i" }}</td>
             </tr>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Updated</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ candidate.updated_at|date:"d M Y H:i" }}</td>
+              <td>Updated</td>
+              <td class="tabular-nums">{{ candidate.updated_at|date:"d M Y H:i" }}</td>
             </tr>
           </tbody>
         </table>

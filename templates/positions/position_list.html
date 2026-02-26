@@ -29,7 +29,7 @@
         {% for pos in positions %}
         <tr>
           <td>
-            <div style="font-weight: 500; color: var(--text-primary);">{{ pos.title }}</div>
+            <div class="fw-medium">{{ pos.title }}</div>
           </td>
           <td>
             {% if pos.status == "open" %}
@@ -43,20 +43,18 @@
           <td class="text-center">
             <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ pos.open_applications_count }}</span>
           </td>
-          <td style="font-size: 0.72rem; color: var(--text-muted);">{{ pos.created_at|date:"M j, Y" }}</td>
+          <td class="text-xs text-muted-custom">{{ pos.created_at|date:"M j, Y" }}</td>
           <td class="text-end">
-            <a href="{% url 'applications:list' %}?position={{ pos.pk }}"
-               class="btn btn-ghost">Applications</a>
-            <a href="{% url 'positions:edit' pos.pk %}"
-               class="btn btn-ghost">Edit</a>
+            <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="btn btn-secondary btn-sm">Applications</a>
+            <a href="{% url 'positions:edit' pos.pk %}" class="btn btn-secondary btn-sm">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="5" class="text-center py-5">
-            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No positions yet</div>
-            <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create your first position to get started.</div>
+            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary mb-3"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            <div class="empty-state-title">No positions yet</div>
+            <div class="empty-state-desc">Create your first position to get started.</div>
             <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
           </td>
         </tr>

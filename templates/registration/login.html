@@ -26,15 +26,15 @@
     }
     .login-card {
       width: 100%;
-      max-width: 360px;
+      max-width: 400px;
       border: 1px solid var(--border-default);
       border-radius: var(--radius-lg);
       box-shadow: 0 4px 24px rgba(0,0,0,0.04);
       background: var(--bg-card);
     }
     .brand-logo {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background: var(--bg-sidebar);
       color: #ffffff;
       border-radius: var(--radius-md);
@@ -42,7 +42,7 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       margin: 0 auto 1.5rem auto;
     }
   </style>
@@ -51,11 +51,11 @@
   <div class="login-card">
     <div class="card-body p-4 p-sm-5">
       <div class="brand-logo">RF</div>
-      <h4 class="text-center mb-1" style="font-weight: 600; color: var(--text-primary); font-size: 1.1rem;">RecruitFlow</h4>
-      <p class="text-center mb-4" style="color: var(--text-tertiary); font-size: 0.8rem;">Sign in to your account</p>
+      <h4 class="text-center mb-1" style="font-weight: 600; font-size: 1.2rem;">RecruitFlow</h4>
+      <p class="text-center text-tertiary text-base mb-4">Sign in to your account</p>
 
       {% if form.errors %}
-      <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" style="padding: 0.75rem; font-size: 0.75rem;">
+      <div class="alert alert-danger d-flex align-items-center gap-2 mb-4 text-sm" style="padding: 0.75rem;">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
         <div>Invalid email or password.</div>
       </div>

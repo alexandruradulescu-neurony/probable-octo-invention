@@ -18,10 +18,9 @@
   <link href="{% static 'css/styles.css' %}" rel="stylesheet">
   
   <style>
-    /* Sidebar Specific Styles */
     .sidebar .brand-logo {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       background: #ffffff;
       color: #111113;
       border-radius: 6px;
@@ -29,46 +28,46 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
     }
-    
+
     .sidebar .brand-text {
       color: #ffffff;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 1rem;
       letter-spacing: -0.01em;
     }
-    
+
     .sidebar-search {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 6px;
-      padding: 0.4rem 0.6rem;
+      padding: 0.45rem 0.65rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: rgba(255,255,255,0.4);
-      font-size: 0.75rem;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.85rem;
       cursor: pointer;
       transition: background 0.2s;
     }
-    
+
     .sidebar-search:hover {
       background: rgba(255,255,255,0.08);
     }
-    
+
     .sidebar-search kbd {
       background: rgba(255,255,255,0.1);
       color: rgba(255,255,255,0.6);
       border-radius: 3px;
-      padding: 0.1rem 0.3rem;
-      font-size: 0.65rem;
+      padding: 0.1rem 0.35rem;
+      font-size: 0.7rem;
       font-family: inherit;
     }
-    
+
     .sidebar-section-label {
-      color: rgba(255,255,255,0.28);
-      font-size: 0.6rem;
+      color: rgba(255,255,255,0.32);
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       font-weight: 600;
@@ -76,47 +75,47 @@
       margin-top: 1.5rem;
       margin-bottom: 0.5rem;
     }
-    
+
     .sidebar .nav-link {
-      color: rgba(255,255,255,0.55);
-      padding: 0.48rem 0.6rem;
+      color: rgba(255,255,255,0.6);
+      padding: 0.5rem 0.65rem;
       border-radius: 6px;
       margin: 2px 0;
-      font-size: 0.82rem;
+      font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 0.6rem;
       transition: all 0.15s ease;
     }
-    
+
     .sidebar .nav-link svg {
       width: 16px;
       height: 16px;
       opacity: 0.75;
     }
-    
+
     .sidebar .nav-link:hover {
       background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.85);
+      color: rgba(255,255,255,0.9);
     }
-    
+
     .sidebar .nav-link.active {
       background: rgba(255,255,255,0.09);
       color: #ffffff;
       font-weight: 500;
     }
-    
+
     .sidebar .nav-link.active svg {
       opacity: 1;
     }
-    
+
     .sidebar-badge {
       margin-left: auto;
-      font-size: 0.65rem;
-      color: rgba(255,255,255,0.35);
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.4);
       font-variant-numeric: tabular-nums;
     }
-    
+
     .sidebar-user {
       border-top: 1px solid rgba(255,255,255,0.05);
       padding: 1rem;
@@ -124,80 +123,79 @@
       align-items: center;
       gap: 0.75rem;
     }
-    
+
     .sidebar-user-avatar {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.55);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       font-weight: 600;
     }
-    
+
     .sidebar-user-info {
       flex: 1;
       min-width: 0;
     }
-    
+
     .sidebar-user-name {
       color: #ffffff;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    
+
     .sidebar-user-role {
-      color: rgba(255,255,255,0.4);
-      font-size: 0.65rem;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.75rem;
     }
-    
+
     .sidebar-logout {
-      color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.35);
       background: transparent;
       border: none;
-      padding: 0.25rem;
+      padding: 0.3rem;
       border-radius: 4px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    
+
     .sidebar-logout:hover {
       color: #ffffff;
       background: rgba(255,255,255,0.08);
     }
-    
-    /* Topbar Specific Styles */
+
     .topbar-title {
-      font-size: 0.92rem;
+      font-size: 1.05rem;
       font-weight: 600;
       color: var(--text-primary);
       margin: 0;
-      line-spacing: -0.01em;
+      letter-spacing: -0.01em;
     }
-    
+
     .topbar-subtitle {
-      font-size: 0.68rem;
+      font-size: 0.8rem;
       color: var(--text-tertiary);
       margin-top: 0.1rem;
     }
-    
+
     .topbar-actions {
       display: flex;
       align-items: center;
       gap: 0.75rem;
     }
-    
+
     .btn-notification {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border: 1px solid #e5e5e5;
       border-radius: 6px;
       background: #ffffff;
@@ -208,16 +206,16 @@
       position: relative;
       cursor: pointer;
     }
-    
+
     .btn-notification:hover {
       background: #fafafa;
       color: var(--text-primary);
     }
-    
+
     .notification-dot {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 7px;
+      right: 7px;
       width: 6px;
       height: 6px;
       background: var(--accent-negative);

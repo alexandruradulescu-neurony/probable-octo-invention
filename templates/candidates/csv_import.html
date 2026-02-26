@@ -16,32 +16,32 @@
 <div class="card mb-4" style="max-width: 800px; margin: 0 auto;">
   <div class="card-header d-flex align-items-center gap-2">
     <svg width="16" height="16" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-    <h2 class="card-header-title m-0">Import Complete {% if position %}<span style="color: var(--text-tertiary); font-weight: 400;">— {{ position.title }}</span>{% endif %}</h2>
+    <h2 class="card-header-title m-0">Import Complete {% if position %}<span class="text-tertiary" style="font-weight: 400;">— {{ position.title }}</span>{% endif %}</h2>
   </div>
   <div class="card-body">
     <div class="row g-3 text-center mb-4">
       <div class="col-sm-6 col-lg-3">
         <div style="padding: 1rem; border-radius: 6px; background: #ecfdf5; border: 1px solid rgba(5, 150, 105, 0.1);">
-          <div style="font-size: 1.5rem; font-weight: 700; color: #059669; letter-spacing: -0.02em;">{{ summary.created }}</div>
-          <div style="font-size: 0.65rem; color: #065f46; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">New Candidates</div>
+          <div style="font-size: 1.75rem; font-weight: 700; color: #059669; letter-spacing: -0.02em;">{{ summary.created }}</div>
+          <div class="text-xs" style="color: #065f46; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">New Candidates</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div style="padding: 1rem; border-radius: 6px; background: #eff6ff; border: 1px solid rgba(37, 99, 235, 0.1);">
-          <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb; letter-spacing: -0.02em;">{{ summary.updated }}</div>
-          <div style="font-size: 0.65rem; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Updated Existing</div>
+          <div style="font-size: 1.75rem; font-weight: 700; color: #2563eb; letter-spacing: -0.02em;">{{ summary.updated }}</div>
+          <div class="text-xs" style="color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Updated Existing</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div style="padding: 1rem; border-radius: 6px; background: #f3f0ff; border: 1px solid rgba(124, 58, 237, 0.1);">
-          <div style="font-size: 1.5rem; font-weight: 700; color: #7c3aed; letter-spacing: -0.02em;">{{ summary.applications_created }}</div>
-          <div style="font-size: 0.65rem; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Apps Created</div>
+          <div style="font-size: 1.75rem; font-weight: 700; color: #7c3aed; letter-spacing: -0.02em;">{{ summary.applications_created }}</div>
+          <div class="text-xs" style="color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Apps Created</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
         <div style="padding: 1rem; border-radius: 6px; background: #f8f8f8; border: 1px solid var(--border-default);">
-          <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-secondary); letter-spacing: -0.02em;">{{ summary.applications_skipped }}</div>
-          <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Duplicates Skipped</div>
+          <div style="font-size: 1.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: -0.02em;">{{ summary.applications_skipped }}</div>
+          <div class="text-xs text-tertiary" style="text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Duplicates Skipped</div>
         </div>
       </div>
     </div>
@@ -50,17 +50,17 @@
     <div class="alert alert-warning mb-4" style="background: #fefce8; border: 1px solid #fef08a; color: #854d0e;">
       <div class="d-flex align-items-center gap-2 mb-2">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-        <strong style="font-size: 0.8rem;">Potential Duplicates Detected ({{ summary.potential_duplicates|length }})</strong>
+        <strong class="text-sm">Potential Duplicates Detected ({{ summary.potential_duplicates|length }})</strong>
       </div>
-      <p style="font-size: 0.72rem; margin-bottom: 0.75rem;">These candidates were newly created but share a phone or email with an existing candidate (different Meta Lead ID). Please review.</p>
+      <p class="text-sm mb-3">These candidates were newly created but share a phone or email with an existing candidate (different Meta Lead ID). Please review.</p>
       
       <div class="table-responsive" style="background: white; border-radius: 4px; border: 1px solid #fef08a;">
-        <table class="table mb-0" style="font-size: 0.7rem;">
+        <table class="table mb-0">
           <thead style="background: #fefce8;">
             <tr>
-              <th style="border-bottom: 1px solid #fef08a; color: #854d0e; font-weight: 600;">New Candidate</th>
-              <th style="border-bottom: 1px solid #fef08a; color: #854d0e; font-weight: 600;">Matches</th>
-              <th style="border-bottom: 1px solid #fef08a; color: #854d0e; font-weight: 600;">Match Reason</th>
+              <th style="border-bottom: 1px solid #fef08a; color: #854d0e;">New Candidate</th>
+              <th style="border-bottom: 1px solid #fef08a; color: #854d0e;">Matches</th>
+              <th style="border-bottom: 1px solid #fef08a; color: #854d0e;">Match Reason</th>
             </tr>
           </thead>
           <tbody>
@@ -68,11 +68,11 @@
             <tr>
               <td style="border-bottom: 1px solid #fef08a;">
                 <a href="{% url 'candidates:detail' dup.new_candidate_id %}" style="color: #ca8a04; font-weight: 500;">#{{ dup.new_candidate_id }}</a>
-                <span style="color: #a16207; font-family: monospace; font-size: 0.65rem; margin-left: 0.25rem;">{{ dup.new_meta_lead_id|truncatechars:25 }}</span>
+                <span class="text-xs" style="color: #a16207; font-family: monospace; margin-left: 0.25rem;">{{ dup.new_meta_lead_id|truncatechars:25 }}</span>
               </td>
               <td style="border-bottom: 1px solid #fef08a;">
                 <a href="{% url 'candidates:detail' dup.matching_candidate_id %}" style="color: #ca8a04; font-weight: 500;">#{{ dup.matching_candidate_id }}</a>
-                <span style="color: #a16207; font-family: monospace; font-size: 0.65rem; margin-left: 0.25rem;">{{ dup.matching_meta_lead_id|truncatechars:25 }}</span>
+                <span class="text-xs" style="color: #a16207; font-family: monospace; margin-left: 0.25rem;">{{ dup.matching_meta_lead_id|truncatechars:25 }}</span>
               </td>
               <td style="border-bottom: 1px solid #fef08a; color: #854d0e;">{{ dup.match_reason }}</td>
             </tr>
@@ -87,9 +87,9 @@
     <div class="alert alert-danger mb-4" style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b;">
       <div class="d-flex align-items-center gap-2 mb-2">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-        <strong style="font-size: 0.8rem;">Row Errors ({{ summary.errors|length }})</strong>
+        <strong class="text-sm">Row Errors ({{ summary.errors|length }})</strong>
       </div>
-      <ul class="mb-0 ps-3" style="font-size: 0.72rem;">
+      <ul class="mb-0 ps-3 text-sm">
         {% for err in summary.errors %}
         <li>{{ err }}</li>
         {% endfor %}
@@ -121,19 +121,19 @@
 <div class="card mb-4" style="max-width: 1000px; margin: 0 auto;">
   <div class="card-header d-flex align-items-center gap-2">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    <h2 class="card-header-title m-0">Preview <span style="color: var(--text-tertiary); font-weight: 400;">— {{ position.title }}</span></h2>
+    <h2 class="card-header-title m-0">Preview <span class="text-tertiary" style="font-weight: 400;">— {{ position.title }}</span></h2>
   </div>
   <div class="card-body p-0">
-    <div class="p-3 border-bottom" style="background: #fafafa; border-color: var(--border-light) !important;">
-      <div style="font-size: 0.75rem; color: var(--text-secondary);">
-        <strong style="color: var(--text-primary);">{{ total_rows }}</strong> rows parsed.
+    <div class="p-3 border-bottom text-sm" style="background: #fafafa; border-color: var(--border-light) !important;">
+      <div>
+        <strong>{{ total_rows }}</strong> rows parsed.
         {% if total_rows > showing_rows %}
-        Showing first <strong style="color: var(--text-primary);">{{ showing_rows }}</strong>.
+        Showing first <strong>{{ showing_rows }}</strong>.
         {% endif %}
       </div>
       {% if dynamic_columns %}
-      <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-        <strong style="color: var(--text-secondary);">{{ dynamic_columns|length }}</strong> form question columns detected:
+      <div class="text-xs text-tertiary mt-1">
+        <strong class="text-secondary">{{ dynamic_columns|length }}</strong> form question columns detected:
         <span style="font-family: monospace; background: #ebebeb; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{{ dynamic_columns|join:", " }}</span>
       </div>
       {% endif %}
@@ -154,16 +154,16 @@
         <tbody>
           {% for row in preview_rows %}
           <tr>
-            <td class="text-center" style="font-size: 0.65rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;">{{ forloop.counter }}</td>
-            <td style="font-size: 0.72rem; font-weight: 500; color: var(--text-primary);">{{ row.name|default:"—" }}</td>
-            <td style="font-size: 0.72rem; color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{ row.phone|default:"—" }}</td>
-            <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ row.email|default:"—" }}</td>
-            <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ row.campaign|default:"—" }}</td>
+            <td class="text-center text-xs text-tertiary tabular-nums">{{ forloop.counter }}</td>
+            <td class="fw-medium">{{ row.name|default:"—" }}</td>
+            <td class="text-secondary tabular-nums">{{ row.phone|default:"—" }}</td>
+            <td class="text-secondary">{{ row.email|default:"—" }}</td>
+            <td class="text-secondary">{{ row.campaign|default:"—" }}</td>
             <td class="text-center">
               {% if row.form_answers_count %}
               <span class="badge" style="background: #f0f0f0; color: var(--text-primary);">{{ row.form_answers_count }}</span>
               {% else %}
-              <span style="font-size: 0.72rem; color: var(--text-muted);">0</span>
+              <span class="text-muted-custom">0</span>
               {% endif %}
             </td>
           </tr>
@@ -200,13 +200,13 @@
       </div>
       <div class="card-body p-4">
         <div class="mb-4 p-3" style="background: #fafafa; border: 1px solid var(--border-light); border-radius: 6px;">
-          <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">How it works</div>
-          <ol style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0; padding-left: 1.2rem; line-height: 1.5;">
-            <li style="margin-bottom: 0.25rem;">Select the target <strong>Position</strong> — all imported candidates will be linked to it.</li>
-            <li style="margin-bottom: 0.25rem;">Upload the CSV file exported from <strong>Meta Ads Manager &rarr; Lead Ads</strong>.</li>
+          <div class="text-sm fw-semibold mb-2" style="text-transform: uppercase; letter-spacing: 0.05em;">How it works</div>
+          <ol class="text-sm text-secondary mb-0" style="padding-left: 1.2rem; line-height: 1.6;">
+            <li class="mb-1">Select the target <strong>Position</strong> — all imported candidates will be linked to it.</li>
+            <li class="mb-1">Upload the CSV file exported from <strong>Meta Ads Manager &rarr; Lead Ads</strong>.</li>
             <li>Review the parsed preview, then confirm the import.</li>
           </ol>
-          <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-default); font-size: 0.65rem; color: var(--text-tertiary);">
+          <div class="text-xs text-tertiary mt-3 pt-3" style="border-top: 1px solid var(--border-default);">
             Expected format: UTF-16 LE encoded, tab-delimited. Standard Meta export.
           </div>
         </div>
@@ -215,7 +215,7 @@
           {% csrf_token %}
 
           {% if form.non_field_errors %}
-          <div class="alert alert-danger mb-4 d-flex align-items-start gap-2" style="padding: 0.75rem; font-size: 0.75rem;">
+          <div class="alert alert-danger mb-4 d-flex align-items-start gap-2 text-sm" style="padding: 0.75rem;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
             <div>
               {% for error in form.non_field_errors %}
@@ -226,21 +226,21 @@
           {% endif %}
 
           <div class="mb-4">
-            <label for="id_position" class="form-label" style="font-size: 0.75rem; color: var(--text-primary); text-transform: none; letter-spacing: 0;">Target Position</label>
+            <label for="id_position" class="form-label" style="text-transform: none; letter-spacing: 0;">Target Position</label>
             {{ form.position }}
             {% if form.position.errors %}
-            <div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.position.errors.0 }}</div>
+            <div class="error-text">{{ form.position.errors.0 }}</div>
             {% endif %}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">{{ form.position.help_text }}</div>
+            <div class="help-text">{{ form.position.help_text }}</div>
           </div>
 
           <div class="mb-4">
-            <label for="id_csv_file" class="form-label" style="font-size: 0.75rem; color: var(--text-primary); text-transform: none; letter-spacing: 0;">CSV File</label>
+            <label for="id_csv_file" class="form-label" style="text-transform: none; letter-spacing: 0;">CSV File</label>
             {{ form.csv_file }}
             {% if form.csv_file.errors %}
-            <div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.csv_file.errors.0 }}</div>
+            <div class="error-text">{{ form.csv_file.errors.0 }}</div>
             {% endif %}
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">{{ form.csv_file.help_text }}</div>
+            <div class="help-text">{{ form.csv_file.help_text }}</div>
           </div>
 
           <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2" style="padding: 0.6rem;">

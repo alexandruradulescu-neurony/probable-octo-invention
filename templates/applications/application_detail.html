@@ -28,8 +28,8 @@
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-md-7">
-            <h4 class="mb-1" style="font-weight: 600; color: var(--text-primary);">{{ candidate.full_name }}</h4>
-            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">{{ position.title }}</div>
+            <h4 class="mb-1 fw-semibold">{{ candidate.full_name }}</h4>
+            <div class="text-sm text-secondary mb-3">{{ position.title }}</div>
             <div class="d-flex gap-2 flex-wrap align-items-center">
               {% include "applications/_status_badge.html" with status=application.status %}
               
@@ -48,18 +48,18 @@
           </div>
           <div class="col-md-5 mt-3 mt-md-0 border-start ps-4" style="border-color: var(--border-light) !important;">
             <div class="d-flex flex-column gap-2">
-              <div class="d-flex align-items-center gap-2" style="font-size: 0.75rem;">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                <a href="tel:{{ candidate.phone }}" class="text-decoration-none" style="color: var(--text-primary);">{{ candidate.phone }}</a>
+              <div class="d-flex align-items-center gap-2 text-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <a href="tel:{{ candidate.phone }}" class="text-decoration-none">{{ candidate.phone }}</a>
               </div>
-              <div class="d-flex align-items-center gap-2" style="font-size: 0.75rem;">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary);"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                <a href="mailto:{{ candidate.email }}" class="text-decoration-none" style="color: var(--text-primary);">{{ candidate.email }}</a>
+              <div class="d-flex align-items-center gap-2 text-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <a href="mailto:{{ candidate.email }}" class="text-decoration-none">{{ candidate.email }}</a>
               </div>
               {% if candidate.whatsapp_number %}
-              <div class="d-flex align-items-center gap-2" style="font-size: 0.75rem;">
+              <div class="d-flex align-items-center gap-2 text-sm">
                 <svg width="14" height="14" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank" class="text-decoration-none" style="color: var(--text-primary);">{{ candidate.whatsapp_number }}</a>
+                <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank" class="text-decoration-none">{{ candidate.whatsapp_number }}</a>
               </div>
               {% endif %}
             </div>
@@ -79,7 +79,7 @@
         <div class="list-group-item py-3 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="d-flex align-items-center gap-2">
-              <span style="font-weight: 600; font-size: 0.75rem;">Attempt #{{ call.attempt_number }}</span>
+              <span class="fw-semibold text-sm">Attempt #{{ call.attempt_number }}</span>
               {% if call.status == "completed" %}
                 <div class="badge status-offered"><span class="badge-dot"></span> Completed</div>
               {% elif call.status == "initiated" or call.status == "in_progress" %}
@@ -88,27 +88,27 @@
                 <div class="badge status-rejected"><span class="badge-dot"></span> {{ call.get_status_display }}</div>
               {% endif %}
             </div>
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;">
+            <div class="text-xs text-tertiary tabular-nums">
               {{ call.initiated_at|date:"M j, Y H:i" }}
               {% if call.duration_seconds %}&middot; {{ call.duration_seconds }}s{% endif %}
             </div>
           </div>
           
           {% if call.summary_title %}
-          <div style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">{{ call.summary_title }}</div>
+          <div class="text-sm text-secondary fw-medium">{{ call.summary_title }}</div>
           {% endif %}
           
           {% if call.summary %}
-          <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.5;">{{ call.summary }}</div>
+          <div class="text-sm text-secondary mt-1" style="line-height: 1.5;">{{ call.summary }}</div>
           {% endif %}
           
           {% if call.transcript %}
           <div class="mt-3">
-            <a class="btn btn-ghost p-0" style="font-size: 0.7rem; color: var(--text-primary); text-decoration: underline;" data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
+            <a class="text-xs fw-medium text-decoration-underline" data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
               View Transcript
             </a>
             <div class="collapse mt-2" id="transcript-{{ call.pk }}">
-              <div class="p-3" style="background: #fafafa; border: 1px solid var(--border-light); border-radius: 6px; font-size: 0.7rem; white-space: pre-line; max-height: 300px; overflow-y: auto; color: var(--text-secondary);">{{ call.transcript }}</div>
+              <div class="p-3 text-sm text-secondary" style="background: #fafafa; border: 1px solid var(--border-light); border-radius: 6px; white-space: pre-line; max-height: 300px; overflow-y: auto;">{{ call.transcript }}</div>
             </div>
           </div>
           {% endif %}
@@ -117,7 +117,7 @@
       </div>
       {% else %}
       <div class="card-body text-center py-5">
-        <div style="font-size: 0.75rem; color: var(--text-tertiary);">No calls have been made yet.</div>
+        <div class="text-sm text-tertiary">No calls have been made yet.</div>
       </div>
       {% endif %}
     </div>
@@ -142,21 +142,21 @@
               {% elif ev.outcome == "needs_human" %}
                 <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
               {% endif %}
-              <span style="font-size: 0.7rem; font-weight: 600; color: var(--text-primary);">Score: {{ ev.score }}/100</span>
+              <span class="text-sm fw-semibold">Score: {{ ev.score }}/100</span>
             </div>
-            <div style="font-size: 0.65rem; color: var(--text-tertiary); font-variant-numeric: tabular-nums;">{{ ev.evaluated_at|date:"M j, Y H:i" }}</div>
+            <div class="text-xs text-tertiary tabular-nums">{{ ev.evaluated_at|date:"M j, Y H:i" }}</div>
           </div>
           
-          <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.5;">{{ ev.reasoning }}</div>
+          <div class="text-sm text-secondary" style="line-height: 1.5;">{{ ev.reasoning }}</div>
           
           {% if ev.callback_requested and ev.callback_notes %}
-          <div class="mt-2 p-2" style="background: var(--status-review-bg); border-radius: 4px; font-size: 0.7rem; color: var(--status-review-text);">
+          <div class="mt-2 p-2 text-sm" style="background: var(--status-review-bg); border-radius: 4px; color: var(--status-review-text);">
             <strong>Callback:</strong> {{ ev.callback_notes }}
           </div>
           {% endif %}
           
           {% if ev.needs_human and ev.needs_human_notes %}
-          <div class="mt-2 p-2" style="background: var(--status-rejected-bg); border-radius: 4px; font-size: 0.7rem; color: var(--status-rejected-text);">
+          <div class="mt-2 p-2 text-sm" style="background: var(--status-rejected-bg); border-radius: 4px; color: var(--status-rejected-text);">
             <strong>Escalation:</strong> {{ ev.needs_human_notes }}
           </div>
           {% endif %}
@@ -165,7 +165,7 @@
       </div>
       {% else %}
       <div class="card-body text-center py-5">
-        <div style="font-size: 0.75rem; color: var(--text-tertiary);">No evaluations completed.</div>
+        <div class="text-sm text-tertiary">No evaluations completed.</div>
       </div>
       {% endif %}
     </div>
@@ -191,18 +191,18 @@
             <tr>
               <td>
                 {% if msg.channel == "email" %}
-                  <div class="d-flex align-items-center gap-1" style="font-size: 0.7rem; color: var(--text-secondary);">
+                  <div class="d-flex align-items-center gap-1 text-sm text-secondary">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     Email
                   </div>
                 {% else %}
-                  <div class="d-flex align-items-center gap-1" style="font-size: 0.7rem; color: #059669;">
+                  <div class="d-flex align-items-center gap-1 text-sm" style="color: #059669;">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                     WhatsApp
                   </div>
                 {% endif %}
               </td>
-              <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ msg.get_message_type_display }}</td>
+              <td class="text-sm text-secondary">{{ msg.get_message_type_display }}</td>
               <td>
                 {% if msg.status == "sent" or msg.status == "delivered" %}
                   <div class="badge status-offered"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
@@ -212,7 +212,7 @@
                   <div class="badge status-screening"><span class="badge-dot"></span> {{ msg.get_status_display }}</div>
                 {% endif %}
               </td>
-              <td style="font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums;">{{ msg.sent_at|date:"M j, Y H:i"|default:"—" }}</td>
+              <td class="text-xs text-muted-custom tabular-nums">{{ msg.sent_at|date:"M j, Y H:i"|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -220,7 +220,7 @@
       </div>
       {% else %}
       <div class="card-body text-center py-4">
-        <div style="font-size: 0.75rem; color: var(--text-tertiary);">No messages sent yet.</div>
+        <div class="text-sm text-tertiary">No messages sent yet.</div>
       </div>
       {% endif %}
     </div>
@@ -230,14 +230,14 @@
   <!-- Right column: Metadata & Actions -->
   <div class="col-lg-4">
 
-    <!-- Actions block directly in the column, styled minimally -->
+    <!-- Actions block -->
     <div class="mb-4">
-      <h6 style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); margin-bottom: 0.75rem; font-weight: 600;">Take Action</h6>
+      <h6 class="text-xs fw-semibold text-tertiary mb-3" style="text-transform: uppercase; letter-spacing: 0.05em;">Take Action</h6>
       
       <!-- Status Override -->
       <form method="post" action="{% url 'applications:override_status' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
         {% csrf_token %}
-        <label class="form-label" style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 0.5rem; text-transform: none; letter-spacing: 0;">Change Status</label>
+        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Change Status</label>
         <div class="d-flex flex-column gap-2">
           {{ status_override_form.new_status }}
           {{ status_override_form.reason }}
@@ -248,7 +248,7 @@
       <!-- Add Note -->
       <form method="post" action="{% url 'applications:add_note' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
         {% csrf_token %}
-        <label class="form-label" style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 0.5rem; text-transform: none; letter-spacing: 0;">Internal Note</label>
+        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Internal Note</label>
         {{ add_note_form.note }}
         <button type="submit" class="btn btn-secondary w-100 mt-2">Save Note</button>
       </form>
@@ -256,7 +256,7 @@
       <!-- Schedule Callback -->
       <form method="post" action="{% url 'applications:schedule_callback' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
         {% csrf_token %}
-        <label class="form-label" style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 0.5rem; text-transform: none; letter-spacing: 0;">Schedule Callback</label>
+        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Schedule Callback</label>
         <div class="d-flex flex-column gap-2">
           {{ schedule_callback_form.callback_at }}
           {{ schedule_callback_form.note }}
@@ -267,7 +267,7 @@
       <!-- Trigger Follow-up -->
       <form method="post" action="{% url 'applications:trigger_followup' application.pk %}" class="mb-3">
         {% csrf_token %}
-        <button type="submit" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2" style="background: white;">
+        <button type="submit" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           Trigger Follow-up
         </button>
@@ -285,11 +285,11 @@
           {% for cv in cv_uploads %}
           <div class="p-2 border rounded d-flex align-items-center justify-content-between" style="border-color: var(--border-light) !important; background: #fafafa;">
             <div>
-              <div style="font-size: 0.75rem; font-weight: 500; color: var(--text-primary);">{{ cv.file_name }}</div>
-              <div style="font-size: 0.65rem; color: var(--text-tertiary);">{{ cv.received_at|date:"M j, Y" }} &middot; {{ cv.get_source_display }}</div>
+              <div class="text-sm fw-medium">{{ cv.file_name }}</div>
+              <div class="text-xs text-tertiary">{{ cv.received_at|date:"M j, Y" }} &middot; {{ cv.get_source_display }}</div>
             </div>
             {% if cv.needs_review %}
-            <div class="badge status-screening" style="font-size: 0.6rem; padding: 0.2rem 0.4rem;">Review</div>
+            <div class="badge status-screening">Review</div>
             {% endif %}
           </div>
           {% endfor %}
@@ -298,7 +298,7 @@
         
         <form method="post" action="{% url 'applications:upload_cv' application.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
-          <label class="form-label" style="font-size: 0.7rem; color: var(--text-primary); margin-bottom: 0.5rem; text-transform: none; letter-spacing: 0;">Upload New CV</label>
+          <label class="form-label" style="text-transform: none; letter-spacing: 0;">Upload New CV</label>
           {{ manual_cv_upload_form.cv_file }}
           <button type="submit" class="btn btn-secondary w-100 mt-2">Upload</button>
         </form>
@@ -311,30 +311,30 @@
         <h2 class="card-header-title">Application Info</h2>
       </div>
       <div class="card-body p-0">
-        <table class="table mb-0">
+        <table class="table meta-table mb-0">
           <tbody>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">ID</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">#{{ application.pk }}</td>
+              <td>ID</td>
+              <td class="tabular-nums">#{{ application.pk }}</td>
             </tr>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Created</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ application.created_at|date:"M j, Y H:i" }}</td>
+              <td>Created</td>
+              <td class="tabular-nums">{{ application.created_at|date:"M j, Y H:i" }}</td>
             </tr>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Updated</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ application.updated_at|date:"M j, Y H:i" }}</td>
+              <td>Updated</td>
+              <td class="tabular-nums">{{ application.updated_at|date:"M j, Y H:i" }}</td>
             </tr>
             {% if application.callback_scheduled_at %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Callback At</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td>
+              <td>Callback At</td>
+              <td class="tabular-nums">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td>
             </tr>
             {% endif %}
             {% if application.cv_received_at %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">CV Received</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light); font-variant-numeric: tabular-nums;">{{ application.cv_received_at|date:"M j, Y H:i" }}</td>
+              <td>CV Received</td>
+              <td class="tabular-nums">{{ application.cv_received_at|date:"M j, Y H:i" }}</td>
             </tr>
             {% endif %}
           </tbody>
@@ -348,22 +348,22 @@
         <h2 class="card-header-title">Source Data</h2>
       </div>
       <div class="card-body p-0">
-        <table class="table mb-0">
+        <table class="table meta-table mb-0">
           <tbody>
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Source</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.get_source_display }}</td>
+              <td>Source</td>
+              <td>{{ candidate.get_source_display }}</td>
             </tr>
             {% if candidate.campaign_name %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Campaign</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.campaign_name }}</td>
+              <td>Campaign</td>
+              <td>{{ candidate.campaign_name }}</td>
             </tr>
             {% endif %}
             {% if candidate.platform %}
             <tr>
-              <td style="font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">Platform</td>
-              <td style="font-size: 0.72rem; color: var(--text-primary); border-bottom: 1px solid var(--border-light);">{{ candidate.platform|upper }}</td>
+              <td>Platform</td>
+              <td>{{ candidate.platform|upper }}</td>
             </tr>
             {% endif %}
           </tbody>
@@ -380,8 +380,8 @@
       <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
         {% for qa in form_answers_list %}
         <div class="list-group-item py-2 px-3 border-0 border-bottom" style="border-color: var(--border-light) !important;">
-          <div style="font-size: 0.65rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">{{ qa.question }}</div>
-          <div style="font-size: 0.75rem; color: var(--text-primary); font-weight: 500;">{{ qa.answer }}</div>
+          <div class="text-xs text-tertiary fw-semibold mb-1" style="text-transform: uppercase; letter-spacing: 0.05em;">{{ qa.question }}</div>
+          <div class="text-sm fw-medium">{{ qa.answer }}</div>
         </div>
         {% endfor %}
       </div>
@@ -402,21 +402,21 @@
             <div style="width: 9px; height: 9px; border-radius: 50%; background: #ffffff; border: 2px solid var(--text-muted); margin-top: 4px;"></div>
             <div class="flex-grow-1" style="min-width: 0;">
               <div class="d-flex justify-content-between align-items-baseline">
-                <div style="font-size: 0.72rem; color: var(--text-primary); font-weight: 500;">
+                <div class="text-sm fw-medium">
                   {% if sc.from_status != sc.to_status %}
                     Status changed to <span style="text-decoration: underline;">{{ sc.get_to_status_display }}</span>
                   {% else %}
                     Note added
                   {% endif %}
                 </div>
-                <div style="font-size: 0.6rem; color: var(--text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums;">
+                <div class="text-xs text-tertiary tabular-nums" style="white-space: nowrap;">
                   {{ sc.changed_at|date:"M j, H:i" }}
                 </div>
               </div>
               {% if sc.note %}
-                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; line-height: 1.4; background: #fafafa; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-light);">{{ sc.note }}</div>
+                <div class="text-sm text-secondary mt-1 p-2" style="line-height: 1.4; background: #fafafa; border-radius: 4px; border: 1px solid var(--border-light);">{{ sc.note }}</div>
               {% endif %}
-              <div style="font-size: 0.6rem; color: var(--text-tertiary); margin-top: 0.2rem;">
+              <div class="text-xs text-tertiary mt-1">
                 {% if sc.changed_by %}by {{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% else %}by System{% endif %}
               </div>
             </div>
@@ -424,7 +424,7 @@
           {% endfor %}
         </div>
         {% else %}
-        <div class="text-center" style="font-size: 0.7rem; color: var(--text-tertiary);">No timeline entries yet.</div>
+        <div class="text-center text-sm text-tertiary">No timeline entries yet.</div>
         {% endif %}
       </div>
     </div>

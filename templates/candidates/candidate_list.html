@@ -69,28 +69,28 @@
           <td>
             <a href="{% url 'candidates:detail' c.pk %}" class="text-decoration-none">
               <div class="d-flex align-items-center gap-2">
-                <div style="width: 26px; height: 26px; border-radius: 50%; background: #e8e8e8; color: #555; font-size: 0.52rem; font-weight: 600; display: flex; align-items: center; justify-content: center;">
+                <div class="initials-circle">
                   {{ c.full_name|default:"—"|make_list|first|upper }}
                 </div>
                 <div>
-                  <div style="font-weight: 500; color: var(--text-primary);">{{ c.full_name|default:"—" }}</div>
-                  <div style="font-size: 0.6rem; color: var(--text-muted);">{{ c.email|default:"—" }}</div>
+                  <div class="fw-medium">{{ c.full_name|default:"—" }}</div>
+                  <div class="text-xs text-muted-custom">{{ c.email|default:"—" }}</div>
                 </div>
               </div>
             </a>
           </td>
-          <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ c.phone|default:"—" }}</td>
+          <td class="text-sm text-secondary">{{ c.phone|default:"—" }}</td>
           <td class="text-center">
             <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ c.application_count }}</span>
           </td>
           <td>
-            <span class="badge" style="background: #f0f0f0; color: var(--text-secondary); border-radius: 3px;">
+            <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">
               {{ c.get_source_display }}
             </span>
           </td>
-          <td style="font-size: 0.72rem; color: var(--text-muted);">{{ c.created_at|date:"d M Y" }}</td>
+          <td class="text-xs text-muted-custom">{{ c.created_at|date:"d M Y" }}</td>
           <td class="text-end">
-            <a href="{% url 'candidates:detail' c.pk %}" class="btn btn-ghost">View</a>
+            <a href="{% url 'candidates:detail' c.pk %}" class="btn btn-secondary btn-sm">View</a>
           </td>
         </tr>
         {% endfor %}
@@ -101,7 +101,7 @@
   <!-- Pagination -->
   {% if is_paginated %}
   <div class="card-body border-top d-flex justify-content-between align-items-center py-2" style="border-color: var(--border-light) !important;">
-    <div style="font-size: 0.72rem; color: var(--text-tertiary);">
+    <div class="text-sm text-tertiary">
       Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
     </div>
     <div class="d-flex gap-2">
@@ -122,9 +122,9 @@
 
   {% else %}
   <div class="card-body text-center py-5">
-    <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-    <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No candidates found</div>
-    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Try adjusting your filters or import a new CSV.</div>
+    <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary mb-3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    <div class="empty-state-title">No candidates found</div>
+    <div class="empty-state-desc">Try adjusting your filters or import a new CSV.</div>
     <a href="{% url 'candidates:csv_import' %}" class="btn btn-secondary">Import CSV</a>
   </div>
   {% endif %}

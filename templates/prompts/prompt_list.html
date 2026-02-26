@@ -29,35 +29,35 @@
         {% for tpl in templates %}
         <tr {% if tpl.is_active %}style="background: #fafafa;"{% endif %}>
           <td>
-            <div style="font-weight: 500; color: var(--text-primary);">{{ tpl.name }}</div>
+            <div class="fw-medium">{{ tpl.name }}</div>
           </td>
-          <td class="text-center" style="font-size: 0.72rem; color: var(--text-secondary); font-variant-numeric: tabular-nums;">
+          <td class="text-center text-sm text-secondary tabular-nums">
             v{{ tpl.version }}
           </td>
           <td class="text-center">
             {% if tpl.is_active %}
               <div class="badge status-offered"><span class="badge-dot"></span> Active</div>
             {% else %}
-              <span style="color: var(--text-muted);">—</span>
+              <span class="text-muted-custom">&mdash;</span>
             {% endif %}
           </td>
-          <td style="font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums;">{{ tpl.updated_at|date:"M j, Y H:i" }}</td>
+          <td class="text-xs text-muted-custom tabular-nums">{{ tpl.updated_at|date:"M j, Y H:i" }}</td>
           <td class="text-end">
             <form method="post" action="{% url 'prompts:toggle_active' tpl.pk %}" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-ghost" style="{% if tpl.is_active %}color: var(--text-secondary);{% else %}color: #059669;{% endif %}">
+              <button type="submit" class="btn btn-secondary btn-sm" style="{% if tpl.is_active %}color: var(--text-secondary);{% else %}color: #059669;{% endif %}">
                 {% if tpl.is_active %}Deactivate{% else %}Activate{% endif %}
               </button>
             </form>
-            <a href="{% url 'prompts:edit' tpl.pk %}" class="btn btn-ghost">Edit</a>
+            <a href="{% url 'prompts:edit' tpl.pk %}" class="btn btn-secondary btn-sm">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
           <td colspan="5" class="text-center py-5">
-            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No prompt templates yet</div>
-            <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create your first template to get started.</div>
+            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary mb-3"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <div class="empty-state-title">No prompt templates yet</div>
+            <div class="empty-state-desc">Create your first template to get started.</div>
             <a href="{% url 'prompts:create' %}" class="btn btn-secondary">Create Template</a>
           </td>
         </tr>
