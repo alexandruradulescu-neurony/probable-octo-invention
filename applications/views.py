@@ -170,6 +170,30 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
+def _queue_applications_for_calling(pks: list, user, note: str = "Queued for calling") -> tuple[int, int]:
+    """
+    Transition all PENDING_CALL applications in `pks` to CALL_QUEUED.
+
+    Returns:
+        (queued, skipped) counts.
+    """
+    apps = list(
+        Application.objects.filter(
+            pk__in=pks,
+            status=Application.Status.PENDING_CALL,
+        )
+    )
+    for app in apps:
+        app.change_status(
+            Application.Status.CALL_QUEUED,
+            changed_by=user,
+            note=note,
+        )
+    queued = len(apps)
+    skipped = len(pks) - queued
+    return queued, skipped
+
+
 class TriggerCallsView(LoginRequiredMixin, View):
     """
     POST /applications/trigger-calls/
@@ -185,33 +209,16 @@ class TriggerCallsView(LoginRequiredMixin, View):
             django_messages.warning(request, "No applications selected.")
             return redirect("applications:list")
 
-        apps = list(
-            Application.objects.filter(
-                pk__in=pks,
-                status=Application.Status.PENDING_CALL,
-            )
+        queued, skipped = _queue_applications_for_calling(
+            pks, request.user, note="Bulk trigger: queued for calling"
         )
-        count = 0
-        for app in apps:
-            app.change_status(
-                Application.Status.CALL_QUEUED,
-                changed_by=request.user,
-                note="Bulk trigger: queued for calling",
-            )
-            count += 1
-
-        skipped = len(pks) - count
-        if count:
-            django_messages.success(
-                request,
-                f"{count} application(s) queued for calling.",
-            )
+        if queued:
+            django_messages.success(request, f"{queued} application(s) queued for calling.")
         if skipped:
             django_messages.warning(
                 request,
                 f"{skipped} application(s) skipped (not in Pending Call status).",
             )
-
         return redirect("applications:list")
 
 
@@ -287,16 +294,9 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                     django_messages.error(request, "Selected position not found.")
 
         elif action == "trigger_calls":
-            eligible = list(qs.filter(status=Application.Status.PENDING_CALL))
-            queued = 0
-            for app in eligible:
-                app.change_status(
-                    Application.Status.CALL_QUEUED,
-                    changed_by=request.user,
-                    note="Bulk action: queued for calling",
-                )
-                queued += 1
-            skipped = count - queued
+            queued, skipped = _queue_applications_for_calling(
+                pks, request.user, note="Bulk action: queued for calling"
+            )
             if queued:
                 django_messages.success(request, f"{queued} application(s) queued for calling.")
             if skipped:
@@ -367,16 +367,27 @@ class ScheduleCallbackView(LoginRequiredMixin, View):
 class TriggerFollowupView(LoginRequiredMixin, View):
     """POST /applications/<pk>/trigger-followup/"""
 
+    _TRIGGERABLE = {
+        Application.Status.AWAITING_CV:   Message.MessageType.CV_FOLLOWUP_1,
+        Application.Status.CV_FOLLOWUP_1: Message.MessageType.CV_FOLLOWUP_2,
+        Application.Status.CV_FOLLOWUP_2: Message.MessageType.CV_FOLLOWUP_2,
+    }
+
     def post(self, request, pk):
         app = get_object_or_404(
             Application.objects.select_related("candidate", "position"), pk=pk
         )
+
+        if app.status not in self._TRIGGERABLE:
+            django_messages.error(
+                request,
+                f"Cannot trigger follow-up from '{app.get_status_display()}' status.",
+            )
+            return redirect("applications:detail", pk=pk)
+
+        msg_type = self._TRIGGERABLE[app.status]
+
         from messaging.services import send_followup
-
-        msg_type = Message.MessageType.CV_FOLLOWUP_1
-        if app.status == Application.Status.CV_FOLLOWUP_1:
-            msg_type = Message.MessageType.CV_FOLLOWUP_2
-
         try:
             send_followup(app, msg_type)
             django_messages.success(request, "Follow-up sent.")

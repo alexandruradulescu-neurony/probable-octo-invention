@@ -45,6 +45,10 @@ logger = logging.getLogger(__name__)
 # than this threshold without the webhook delivering a completion event.
 STUCK_CALL_THRESHOLD_MINUTES = 15
 
+# Batch calls never receive a polled conversation_id; escalate to CALL_FAILED after this
+# extended window so the application can re-enter the retry flow.
+BATCH_ORPHAN_THRESHOLD_MINUTES = 60
+
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io"
 
 # Endpoints tried in spec-order when polling for a stuck call's state.
@@ -262,6 +266,47 @@ def sync_stuck_calls() -> None:
         processed += 1
 
     logger.info("sync_stuck_calls: processed %s stuck call(s)", processed)
+
+    # ── Orphaned batch calls: INITIATED with no conversation_id after extended threshold ──
+    # Batch calls start with eleven_labs_conversation_id=NULL; if the webhook never fires
+    # and the conversation_id is never bound, they cannot be polled.  Escalate to CALL_FAILED
+    # after BATCH_ORPHAN_THRESHOLD_MINUTES so the application re-enters the retry flow.
+    orphan_threshold = timezone.now() - timedelta(minutes=BATCH_ORPHAN_THRESHOLD_MINUTES)
+    orphan_calls = list(
+        Call.objects
+        .filter(
+            status=Call.Status.INITIATED,
+            initiated_at__lt=orphan_threshold,
+            eleven_labs_conversation_id__isnull=True,
+            eleven_labs_batch_id__isnull=False,
+        )
+        .select_related("application__candidate", "application__position")
+    )
+    orphaned = 0
+    for call in orphan_calls:
+        try:
+            with transaction.atomic():
+                call.status = Call.Status.FAILED
+                call.ended_at = timezone.now()
+                call.save(update_fields=["status", "ended_at"])
+                set_call_failed(
+                    call.application,
+                    note="Batch call orphaned — webhook never fired, conversation_id unbound",
+                )
+            orphaned += 1
+            logger.warning(
+                "sync_stuck_calls: orphaned batch call escalated to FAILED: "
+                "call=%s batch_id=%s application=%s",
+                call.pk, call.eleven_labs_batch_id, call.application_id,
+            )
+        except Exception as exc:
+            logger.error(
+                "sync_stuck_calls: failed to escalate orphaned call=%s: %s",
+                call.pk, exc, exc_info=True,
+            )
+
+    if orphaned:
+        logger.info("sync_stuck_calls: escalated %s orphaned batch call(s)", orphaned)
 
 
 def _poll_elevenlabs_call(conversation_id: str, api_key: str) -> dict | None:

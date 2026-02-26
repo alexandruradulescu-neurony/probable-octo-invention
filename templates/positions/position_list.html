@@ -13,6 +13,8 @@
 {% block content %}
 <form method="post" action="{% url 'positions:bulk_delete' %}" id="bulk-form">
 {% csrf_token %}
+{# Server-side confirmation gate — view only checks this when positions are submitted for deletion #}
+<input type="hidden" name="confirm_delete" value="yes">
 
 <div id="bulk-bar" class="bulk-action-bar mb-3" style="display:none;">
   <span class="bulk-count-label"><strong id="bulk-count">0</strong> selected</span>

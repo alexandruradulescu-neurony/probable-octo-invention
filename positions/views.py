@@ -56,6 +56,13 @@ class BulkDeletePositionsView(LoginRequiredMixin, View):
         if not pks:
             messages.warning(request, "No positions selected.")
             return redirect("positions:list")
+        confirm = request.POST.get("confirm_delete", "").strip().lower()
+        if confirm != "yes":
+            messages.error(
+                request,
+                "Delete not confirmed. Please check the confirmation checkbox before deleting.",
+            )
+            return redirect("positions:list")
         count, _ = Position.objects.filter(pk__in=pks).delete()
         messages.success(request, f"Deleted {count} record(s) (positions and related applications).")
         return redirect("positions:list")
