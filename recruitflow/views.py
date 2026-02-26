@@ -99,6 +99,33 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     """
     template_name = "dashboard.html"
 
+    PENDING_STATUSES = {
+        Application.Status.PENDING_CALL,
+        Application.Status.CALL_QUEUED,
+    }
+    IN_PROGRESS_STATUSES = {
+        Application.Status.CALL_IN_PROGRESS,
+        Application.Status.CALL_COMPLETED,
+        Application.Status.SCORING,
+        Application.Status.QUALIFIED,
+        Application.Status.NOT_QUALIFIED,
+        Application.Status.CALLBACK_SCHEDULED,
+        Application.Status.NEEDS_HUMAN,
+        Application.Status.CALL_FAILED,
+    }
+    AWAITING_CV_STATUSES = {
+        Application.Status.AWAITING_CV,
+        Application.Status.CV_FOLLOWUP_1,
+        Application.Status.CV_FOLLOWUP_2,
+        Application.Status.CV_OVERDUE,
+        Application.Status.AWAITING_CV_REJECTED,
+    }
+    COMPLETED_STATUSES = {
+        Application.Status.CV_RECEIVED,
+        Application.Status.CV_RECEIVED_REJECTED,
+        Application.Status.CLOSED,
+    }
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         now = timezone.now()
@@ -114,38 +141,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     # ── Position summary cards ─────────────────────────────────────────────────
 
-    @staticmethod
-    def _position_summaries() -> list[dict]:
+    @classmethod
+    def _position_summaries(cls) -> list[dict]:
         """
         Per-position candidate breakdown by status group.
         Groups: pending calls, in progress, awaiting CV, completed/closed.
         """
-        pending_statuses = {
-            Application.Status.PENDING_CALL,
-            Application.Status.CALL_QUEUED,
-        }
-        in_progress_statuses = {
-            Application.Status.CALL_IN_PROGRESS,
-            Application.Status.CALL_COMPLETED,
-            Application.Status.SCORING,
-            Application.Status.QUALIFIED,
-            Application.Status.NOT_QUALIFIED,
-            Application.Status.CALLBACK_SCHEDULED,
-            Application.Status.NEEDS_HUMAN,
-            Application.Status.CALL_FAILED,
-        }
-        awaiting_cv_statuses = {
-            Application.Status.AWAITING_CV,
-            Application.Status.CV_FOLLOWUP_1,
-            Application.Status.CV_FOLLOWUP_2,
-            Application.Status.CV_OVERDUE,
-            Application.Status.AWAITING_CV_REJECTED,
-        }
-        completed_statuses = {
-            Application.Status.CV_RECEIVED,
-            Application.Status.CV_RECEIVED_REJECTED,
-            Application.Status.CLOSED,
-        }
+        pending_statuses = cls.PENDING_STATUSES
+        in_progress_statuses = cls.IN_PROGRESS_STATUSES
+        awaiting_cv_statuses = cls.AWAITING_CV_STATUSES
+        completed_statuses = cls.COMPLETED_STATUSES
 
         positions = (
             Position.objects
