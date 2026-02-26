@@ -8,6 +8,9 @@ from applications.models import Application
 from applications.transitions import set_cv_received
 from cvs.models import CVUpload
 
+logger = logging.getLogger(__name__)
+
+
 def _purge_candidate_cvs(candidate) -> None:
     """
     Delete every CVUpload record for the candidate and their physical files.
@@ -24,8 +27,6 @@ def _purge_candidate_cvs(candidate) -> None:
                     default_storage.delete(path)
             except Exception as exc:
                 logger.warning("Could not delete old CV file %s: %s", path, exc)
-
-logger = logging.getLogger(__name__)
 
 _CV_AWAITING_STATUSES = frozenset({
     Application.Status.AWAITING_CV,

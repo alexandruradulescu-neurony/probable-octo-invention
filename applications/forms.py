@@ -6,6 +6,7 @@ notes, callback scheduling, follow-up trigger, and manual CV upload.
 """
 
 from django import forms
+from django.core.validators import FileExtensionValidator
 
 from applications.models import Application
 
@@ -56,8 +57,9 @@ class ScheduleCallbackForm(forms.Form):
 class ManualCVUploadForm(forms.Form):
     """Manually upload a CV file for this application."""
     cv_file = forms.FileField(
+        validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
         widget=forms.ClearableFileInput(attrs={
             "class": "form-control form-control-sm",
-            "accept": ".pdf,.doc,.docx",
+            "accept": ".pdf",
         }),
     )

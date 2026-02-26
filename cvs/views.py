@@ -19,6 +19,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
@@ -64,6 +65,8 @@ class CVDeleteView(LoginRequiredMixin, View):
         )
 
         next_url = request.POST.get("next") or "/"
+        if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            next_url = "/"
         return redirect(next_url)
 
 

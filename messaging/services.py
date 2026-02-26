@@ -134,7 +134,7 @@ class GmailService:
 
     def _reset_service(self) -> None:
         """Clear cached service to force credential rebuild on next access."""
-        GmailService._service = None
+        self.__dict__.pop("_service", None)
 
     def send_email(self, to: str, subject: str, body: str) -> str | None:
         """
