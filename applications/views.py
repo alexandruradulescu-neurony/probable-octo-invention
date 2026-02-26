@@ -29,6 +29,7 @@ from cvs.models import CVUpload
 from evaluations.models import LLMEvaluation
 from messaging.models import Message
 from positions.models import Position
+from recruitflow.text_utils import humanize_form_question
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         if form_answers and isinstance(form_answers, dict):
             ctx["form_answers_list"] = [
                 {
-                    "question": key.replace("_", " ").strip().capitalize(),
+                    "question": humanize_form_question(key),
                     "answer": value,
                 }
                 for key, value in form_answers.items()

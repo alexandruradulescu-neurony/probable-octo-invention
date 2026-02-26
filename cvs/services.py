@@ -41,6 +41,7 @@ from candidates.models import Candidate
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
+from recruitflow.text_utils import build_full_name, strip_json_fence
 
 logger = logging.getLogger(__name__)
 
@@ -72,10 +73,6 @@ class CVExtractionError(Exception):
 # ─────────────────────────────────────────────────────────────────────────────
 # Public function 1: Claude Haiku contact extraction
 # ─────────────────────────────────────────────────────────────────────────────
-
-# JSON fence stripper
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
-
 
 def extract_cv_data_via_haiku(text_content: str) -> dict:
     """
@@ -136,11 +133,7 @@ def extract_cv_data_via_haiku(text_content: str) -> dict:
     if not message.content:
         raise CVExtractionError("Anthropic returned an empty response for CV extraction.")
 
-    raw = message.content[0].text.strip()
-
-    fence_match = _JSON_FENCE_RE.search(raw)
-    if fence_match:
-        raw = fence_match.group(1).strip()
+    raw = strip_json_fence(message.content[0].text)
 
     try:
         data = json.loads(raw)
@@ -393,7 +386,7 @@ def _fuzzy_match_name(name: str, candidates) -> Candidate | None:
     best_ratio = FUZZY_NAME_THRESHOLD - 0.001  # must beat threshold, not just equal
 
     for candidate in candidates:
-        full = f"{candidate.first_name} {candidate.last_name}".strip().lower()
+        full = build_full_name(candidate.first_name, candidate.last_name).lower()
         ratio = SequenceMatcher(None, name_lower, full).ratio()
         if ratio > best_ratio:
             best_ratio = ratio

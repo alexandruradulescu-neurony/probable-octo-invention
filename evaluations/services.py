@@ -10,7 +10,6 @@ Responsibilities:
 
 import json
 import logging
-import re
 
 import anthropic
 from django.conf import settings
@@ -27,6 +26,7 @@ from applications.transitions import (
 )
 from calls.utils import format_form_answers
 from evaluations.models import LLMEvaluation
+from recruitflow.text_utils import strip_json_fence
 
 logger = logging.getLogger(__name__)
 
@@ -374,9 +374,6 @@ class ClaudeService:
 
 # ── Parsing helpers ────────────────────────────────────────────────────────────
 
-_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
-
-
 def _parse_claude_json(raw: str) -> dict:
     """
     Parse a JSON object from Claude's response text.
@@ -385,12 +382,7 @@ def _parse_claude_json(raw: str) -> dict:
     Raises:
         ClaudeServiceError if the text cannot be parsed as JSON.
     """
-    text = raw.strip()
-
-    # Strip optional markdown fences
-    fence_match = _JSON_FENCE_RE.search(text)
-    if fence_match:
-        text = fence_match.group(1).strip()
+    text = strip_json_fence(raw)
 
     try:
         result = json.loads(text)

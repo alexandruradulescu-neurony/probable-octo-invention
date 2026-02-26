@@ -19,6 +19,7 @@ from django.utils import timezone
 from applications.models import Application
 from applications.transitions import set_call_failed, set_scoring
 from calls.models import Call
+from recruitflow.text_utils import humanize_form_question
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ def format_form_answers(form_answers: dict | None) -> str:
 
     lines = []
     for key, value in form_answers.items():
-        question = key.replace("_", " ").strip().capitalize()
+        question = humanize_form_question(key)
         lines.append(f"Q: {question}\nA: {value}")
 
     return "\n\n".join(lines)

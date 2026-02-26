@@ -20,6 +20,7 @@ from candidates.forms import CandidateContactForm, CandidateNoteForm, CSVImportF
 from candidates.models import Candidate
 from candidates.services import import_meta_csv, parse_meta_csv_preview
 from positions.models import Position
+from recruitflow.text_utils import build_full_name, humanize_form_question
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ class CandidateDetailView(LoginRequiredMixin, DetailView):
         if form_answers and isinstance(form_answers, dict):
             ctx["form_answers_list"] = [
                 {
-                    "question": key.replace("_", " ").strip().capitalize(),
+                    "question": humanize_form_question(key),
                     "answer": value,
                 }
                 for key, value in form_answers.items()
@@ -135,7 +136,7 @@ class CandidateUpdateContactView(LoginRequiredMixin, View):
         form = CandidateContactForm(request.POST, instance=candidate)
         if form.is_valid():
             cand = form.save(commit=False)
-            cand.full_name = f"{cand.first_name} {cand.last_name}".strip()
+            cand.full_name = build_full_name(cand.first_name, cand.last_name)
             cand.save(update_fields=[
                 "first_name", "last_name", "full_name",
                 "phone", "email", "whatsapp_number", "updated_at",

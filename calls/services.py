@@ -29,6 +29,7 @@ from applications.models import Application
 from applications.transitions import set_call_in_progress
 from calls.models import Call
 from calls.utils import format_form_answers
+from recruitflow.text_utils import build_full_name
 
 logger = logging.getLogger(__name__)
 
@@ -377,7 +378,7 @@ def _build_placeholder_context(candidate, position) -> dict:
     Spec § 9 — Prompt Templating.
     """
     return {
-        "candidate_name": f"{candidate.first_name} {candidate.last_name}".strip(),
+        "candidate_name": build_full_name(candidate.first_name, candidate.last_name),
         "candidate_first_name": candidate.first_name or "",
         "candidate_email": candidate.email or "",
         "position_title": position.title or "",
