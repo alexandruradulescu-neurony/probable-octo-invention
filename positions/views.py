@@ -9,6 +9,7 @@ import json
 import logging
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -16,6 +17,8 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
+
+from recruitflow.context_processors import SIDEBAR_CACHE_KEY
 
 from evaluations.services import ClaudeService, ClaudeServiceError
 from positions.forms import PositionForm
@@ -64,6 +67,7 @@ class BulkDeletePositionsView(LoginRequiredMixin, View):
             )
             return redirect("positions:list")
         count, _ = Position.objects.filter(pk__in=pks).delete()
+        cache.delete(SIDEBAR_CACHE_KEY)
         messages.success(request, f"Deleted {count} record(s) (positions and related applications).")
         return redirect("positions:list")
 

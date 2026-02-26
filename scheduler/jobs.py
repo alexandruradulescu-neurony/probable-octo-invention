@@ -35,7 +35,8 @@ from calls.services import ElevenLabsError, ElevenLabsService
 from calls.utils import apply_call_result
 from evaluations.services import trigger_evaluation
 from messaging.models import CandidateReply, Message
-from messaging.services import send_followup
+from messaging.services import save_candidate_reply, send_followup
+from positions.models import Position
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,10 @@ def process_call_queue() -> None:
     # ── Queue 1: batch — collect all eligible queued applications ─────────────
     queued = list(
         Application.objects
-        .filter(status=Application.Status.CALL_QUEUED)
+        .filter(
+            status=Application.Status.CALL_QUEUED,
+            position__status=Position.Status.OPEN,
+        )
         .select_related("candidate", "position")
     )
 
@@ -148,6 +152,7 @@ def process_call_queue() -> None:
         .filter(
             status=Application.Status.CALLBACK_SCHEDULED,
             callback_scheduled_at__lte=now,
+            position__status=Position.Status.OPEN,
         )
         .select_related("candidate", "position")
     )
@@ -613,52 +618,6 @@ def poll_cv_inbox() -> None:
     _run_poll_cv_inbox()
 
 
-def _save_email_reply(
-    sender: str,
-    body: str,
-    subject: str = "",
-    external_id: str | None = None,
-) -> None:
-    """
-    Persist an inbound email as a CandidateReply.
-    Imported lazily to avoid circular-import issues with the scheduler module.
-    """
-    from applications.models import Application as App
-    from candidates.services import lookup_candidate_by_email
-
-    try:
-        candidate = lookup_candidate_by_email(sender)
-        application = None
-        if candidate:
-            application = (
-                App.objects
-                .filter(candidate=candidate)
-                .exclude(status=App.Status.CLOSED)
-                .order_by("-updated_at")
-                .first()
-            )
-
-        CandidateReply.objects.create(
-            candidate=candidate,
-            application=application,
-            channel=CandidateReply.Channel.EMAIL,
-            sender=sender,
-            subject=subject,
-            body=body,
-            external_id=external_id,
-        )
-        logger.info(
-            "CandidateReply saved: channel=email sender=%s candidate=%s application=%s",
-            sender,
-            candidate.pk if candidate else None,
-            application.pk if application else None,
-        )
-    except Exception as exc:
-        logger.error(
-            "Failed to save email CandidateReply for sender=%s: %s", sender, exc, exc_info=True
-        )
-
-
 def _run_poll_cv_inbox() -> dict:
     """
     Core Gmail CV-inbox polling logic — runs unconditionally (no poll_enabled guard).
@@ -734,7 +693,13 @@ def _run_poll_cv_inbox() -> dict:
 
             # If the email body has text alongside the CV, save it as a reply.
             if body_snippet:
-                _save_email_reply(sender, body_snippet, subject, external_id=msg["id"])
+                save_candidate_reply(
+                    sender=sender,
+                    channel="email",
+                    body=body_snippet,
+                    subject=subject,
+                    external_id=msg["id"],
+                )
 
             # Move to processed label (which also marks as read), or just mark as read.
             if processed_label_id:
@@ -750,7 +715,13 @@ def _run_poll_cv_inbox() -> dict:
             # No attachment — if there is a text body, record it as a candidate reply.
             skipped += 1
             if body_snippet:
-                _save_email_reply(sender, body_snippet, subject, external_id=msg["id"])
+                save_candidate_reply(
+                    sender=sender,
+                    channel="email",
+                    body=body_snippet,
+                    subject=subject,
+                    external_id=msg["id"],
+                )
             gmail.mark_as_read(msg["id"])
             logger.debug(
                 "poll_cv_inbox: no attachment in msg=%s from=%s subject=%r — marked as read",

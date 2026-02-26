@@ -30,6 +30,7 @@ from candidates.services import lookup_candidate_by_email, lookup_candidate_by_p
 from cvs.services import process_inbound_cv as cv_process_inbound
 from evaluations.services import trigger_evaluation
 from messaging.models import CandidateReply
+from messaging.services import save_candidate_reply
 
 logger = logging.getLogger(__name__)
 
@@ -470,7 +471,7 @@ def _handle_whapi_message(msg: dict) -> None:
 
         # Persist any caption text accompanying the document as a CandidateReply.
         if text:
-            _save_candidate_reply(
+            save_candidate_reply(
                 sender=sender,
                 channel="whatsapp",
                 body=text,
@@ -480,7 +481,7 @@ def _handle_whapi_message(msg: dict) -> None:
     elif msg_type == "text":
         body = _extract_whapi_text(msg, msg_type)
         if body:
-            _save_candidate_reply(
+            save_candidate_reply(
                 sender=sender,
                 channel="whatsapp",
                 body=body,
@@ -488,59 +489,6 @@ def _handle_whapi_message(msg: dict) -> None:
             )
         else:
             logger.debug("Whapi inbound empty text from sender=%s — skipping", sender)
-
-
-def _save_candidate_reply(
-    sender: str,
-    channel: str,
-    body: str,
-    subject: str = "",
-    external_id: str | None = None,
-) -> None:
-    """
-    Create a CandidateReply for an inbound message from a candidate.
-
-    Attempts to resolve the sender to a Candidate and their most recent
-    open Application.  Both FKs are optional — an unmatched sender still
-    produces a record so the recruiter can review it.
-    """
-    from applications.models import Application as App
-
-    try:
-        if "@" in sender:
-            candidate = lookup_candidate_by_email(sender)
-        else:
-            candidate = lookup_candidate_by_phone(sender)
-
-        application = None
-        if candidate:
-            application = (
-                App.objects
-                .filter(candidate=candidate)
-                .exclude(status=App.Status.CLOSED)
-                .order_by("-updated_at")
-                .first()
-            )
-
-        CandidateReply.objects.create(
-            candidate=candidate,
-            application=application,
-            channel=channel,
-            sender=sender,
-            subject=subject,
-            body=body,
-            external_id=external_id,
-        )
-        logger.info(
-            "CandidateReply saved: channel=%s sender=%s candidate=%s application=%s",
-            channel, sender,
-            candidate.pk if candidate else None,
-            application.pk if application else None,
-        )
-    except Exception as exc:
-        logger.error(
-            "Failed to save CandidateReply for sender=%s: %s", sender, exc, exc_info=True
-        )
 
 
 def _download_whapi_media(url: str) -> bytes | None:

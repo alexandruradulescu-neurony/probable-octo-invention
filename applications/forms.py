@@ -63,6 +63,8 @@ class ScheduleCallbackForm(forms.Form):
 
 class ManualCVUploadForm(forms.Form):
     """Manually upload a CV file for this application."""
+    MAX_CV_SIZE_MB = 10
+
     cv_file = forms.FileField(
         validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
         widget=forms.ClearableFileInput(attrs={
@@ -70,3 +72,12 @@ class ManualCVUploadForm(forms.Form):
             "accept": ".pdf",
         }),
     )
+
+    def clean_cv_file(self):
+        f = self.cleaned_data.get("cv_file")
+        if f and f.size > self.MAX_CV_SIZE_MB * 1024 * 1024:
+            raise forms.ValidationError(
+                f"CV file is too large ({f.size // (1024 * 1024)} MB). "
+                f"Maximum allowed size is {self.MAX_CV_SIZE_MB} MB."
+            )
+        return f

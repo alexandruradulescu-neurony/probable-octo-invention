@@ -562,3 +562,72 @@ def send_followup(application: Application, message_type: str) -> list[Message]:
         application.pk, message_type, [m.pk for m in created],
     )
     return created
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Inbound reply persistence (shared between webhook and scheduler)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def save_candidate_reply(
+    *,
+    sender: str,
+    channel: str,
+    body: str,
+    subject: str = "",
+    external_id: str | None = None,
+) -> None:
+    """
+    Persist an inbound message (email or WhatsApp) as a CandidateReply.
+
+    Resolves the sender to a Candidate and their most recent open Application.
+    Both FKs are optional — an unmatched sender still produces a record.
+
+    Args:
+        sender:      Raw phone number (WhatsApp) or email address (email).
+        channel:     "email" or "whatsapp" — must match CandidateReply.Channel choices.
+        body:        Plain-text message body.
+        subject:     Email subject line (ignored for WhatsApp).
+        external_id: Message-platform-specific ID for deduplication.
+    """
+    from applications.models import Application as App
+    from candidates.services import lookup_candidate_by_email, lookup_candidate_by_phone
+    from messaging.models import CandidateReply
+
+    _logger = logging.getLogger(__name__)
+
+    try:
+        if "@" in sender:
+            candidate = lookup_candidate_by_email(sender)
+        else:
+            candidate = lookup_candidate_by_phone(sender)
+
+        application = None
+        if candidate:
+            application = (
+                App.objects
+                .filter(candidate=candidate)
+                .exclude(status=App.Status.CLOSED)
+                .order_by("-updated_at")
+                .first()
+            )
+
+        CandidateReply.objects.create(
+            candidate=candidate,
+            application=application,
+            channel=channel,
+            sender=sender,
+            subject=subject,
+            body=body,
+            external_id=external_id,
+        )
+        _logger.info(
+            "CandidateReply saved: channel=%s sender=%s candidate=%s application=%s",
+            channel,
+            sender,
+            candidate.pk if candidate else None,
+            application.pk if application else None,
+        )
+    except Exception as exc:
+        _logger.error(
+            "Failed to save CandidateReply for sender=%s: %s", sender, exc, exc_info=True
+        )
