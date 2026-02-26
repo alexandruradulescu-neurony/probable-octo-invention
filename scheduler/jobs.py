@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 import requests
 from django.conf import settings
 from django.db import transaction
+from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 from django_apscheduler.util import close_old_connections
 
@@ -83,21 +84,19 @@ def process_call_queue() -> None:
     service = ElevenLabsService()
 
     # ── Queue 1: batch — collect all eligible queued applications ─────────────
-    queued = (
+    queued = list(
         Application.objects
         .filter(status=Application.Status.CALL_QUEUED)
         .select_related("candidate", "position")
     )
 
-    eligible_for_batch = [
-        app for app in queued
-        if _is_within_calling_hours(app.position, current_hour)
-    ]
-
+    eligible_for_batch = []
     for app in queued:
-        if app not in eligible_for_batch:
+        if _is_within_calling_hours(app.position, current_hour):
+            eligible_for_batch.append(app)
+        else:
             logger.debug(
-                "Skipping application=%s — outside calling hours (hour=%s, window=%s–%s)",
+                "Skipping application=%s — outside calling hours (hour=%s, window=%s-%s)",
                 app.pk, current_hour,
                 app.position.calling_hour_start,
                 app.position.calling_hour_end,
@@ -207,7 +206,7 @@ def sync_stuck_calls() -> None:
     """
     threshold_time = timezone.now() - timedelta(minutes=STUCK_CALL_THRESHOLD_MINUTES)
 
-    stuck_calls = (
+    stuck_calls = list(
         Call.objects
         .filter(
             status__in=[Call.Status.INITIATED, Call.Status.IN_PROGRESS],
@@ -221,7 +220,7 @@ def sync_stuck_calls() -> None:
         )
     )
 
-    if not stuck_calls.exists():
+    if not stuck_calls:
         return
 
     api_key = settings.ELEVENLABS_API_KEY
@@ -344,6 +343,13 @@ def check_cv_followups() -> None:
     """
     now = timezone.now()
 
+    latest_sent_msg = (
+        Message.objects
+        .filter(application=OuterRef("pk"), status=Message.Status.SENT)
+        .order_by("-sent_at")
+        .values("sent_at")[:1]
+    )
+
     pending_followup_apps = (
         Application.objects
         .filter(
@@ -352,15 +358,15 @@ def check_cv_followups() -> None:
             cv_received_at__isnull=True,
         )
         .select_related("candidate", "position")
+        .annotate(_last_sent_at=Subquery(latest_sent_msg))
     )
 
     advanced = 0
     for app in pending_followup_apps:
         interval_hours = app.position.follow_up_interval_hours
-        last_sent_at = _get_last_sent_message_time(app)
+        last_sent_at = app._last_sent_at
 
         if last_sent_at is None:
-            # Fallback: use when the application last changed status
             last_sent_at = app.updated_at
 
         due_at = last_sent_at + timedelta(hours=interval_hours)
@@ -386,21 +392,6 @@ def check_cv_followups() -> None:
 
     if advanced:
         logger.info("check_cv_followups: advanced %s application(s)", advanced)
-
-
-def _get_last_sent_message_time(application):
-    """
-    Return the sent_at of the most recent successfully sent Message for this
-    application, or None if no sent message exists.
-    """
-    last_msg = (
-        Message.objects
-        .filter(application=application, status=Message.Status.SENT)
-        .order_by("-sent_at")
-        .values("sent_at")
-        .first()
-    )
-    return last_msg["sent_at"] if last_msg else None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

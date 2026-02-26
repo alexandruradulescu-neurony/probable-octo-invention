@@ -159,6 +159,7 @@ APSCHEDULER_TIMEZONE = env("APSCHEDULER_TIMEZONE", default="UTC")
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 ANTHROPIC_MODEL = env("ANTHROPIC_MODEL", default="claude-sonnet-4-20250514")
 ANTHROPIC_FAST_MODEL = env("ANTHROPIC_FAST_MODEL", default="claude-3-5-haiku-20241022")
+ANTHROPIC_MAX_TOKENS = env.int("ANTHROPIC_MAX_TOKENS", default=4096)
 
 # ─── Third-Party: ElevenLabs ───────────────────────────────────────────────────
 

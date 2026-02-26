@@ -23,9 +23,11 @@ import logging
 import requests
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Count
 
-from calls.models import Call
 from applications.models import Application
+from calls.models import Call
+from calls.utils import format_form_answers
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +176,9 @@ class ElevenLabsService:
                 f"Candidate #{candidate.pk} has no phone number."
             )
 
-        attempt_number = application.calls.count() + 1
+        attempt_number = (
+            Call.objects.filter(application=application).count() + 1
+        )
 
         context = _build_placeholder_context(candidate, position)
         system_prompt = _apply_placeholders(position.system_prompt or "", context)
@@ -257,7 +261,7 @@ class ElevenLabsService:
         records and advances each application to CALL_IN_PROGRESS.
         """
         recipients = []
-        skipped = []
+        skipped_pks: set[int] = set()
 
         for app in applications:
             candidate = app.candidate
@@ -268,7 +272,7 @@ class ElevenLabsService:
                     "Skipping application=%s in batch — candidate has no phone number",
                     app.pk,
                 )
-                skipped.append(app)
+                skipped_pks.add(app.pk)
                 continue
 
             context = _build_placeholder_context(candidate, position)
@@ -307,12 +311,20 @@ class ElevenLabsService:
 
         logger.info("ElevenLabs batch submitted: batch_id=%s", batch_id)
 
-        eligible_apps = [a for a in applications if a not in skipped]
+        eligible_apps = [a for a in applications if a.pk not in skipped_pks]
+
+        call_counts = dict(
+            Call.objects
+            .filter(application_id__in=[a.pk for a in eligible_apps])
+            .values("application_id")
+            .annotate(cnt=Count("id"))
+            .values_list("application_id", "cnt")
+        )
 
         created_calls: list = []
         with transaction.atomic():
             for app in eligible_apps:
-                attempt_number = app.calls.count() + 1
+                attempt_number = call_counts.get(app.pk, 0) + 1
                 call = Call.objects.create(
                     application=app,
                     attempt_number=attempt_number,
@@ -368,7 +380,7 @@ def _build_placeholder_context(candidate, position) -> dict:
         "candidate_email": candidate.email or "",
         "position_title": position.title or "",
         "position_description": position.description or "",
-        "form_answers": _format_form_answers(candidate.form_answers),
+        "form_answers": format_form_answers(candidate.form_answers),
     }
 
 
@@ -382,24 +394,3 @@ def _apply_placeholders(template: str, context: dict) -> str:
     return template
 
 
-def _format_form_answers(form_answers: dict | None) -> str:
-    """
-    Render a form_answers dict as a human-readable Q&A block for injection
-    into the ElevenLabs system prompt.
-
-    Example output:
-        Q: Do you have a driver's license?
-        A: Yes
-
-        Q: Available for night shifts?
-        A: No
-    """
-    if not form_answers:
-        return "No pre-screening answers available."
-
-    lines = []
-    for key, value in form_answers.items():
-        question = key.replace("_", " ").strip().capitalize()
-        lines.append(f"Q: {question}\nA: {value}")
-
-    return "\n\n".join(lines)

@@ -136,8 +136,6 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
         application = call.application
 
         if is_completed:
-            application.status = Application.Status.CALL_COMPLETED
-            application.save(update_fields=["status", "updated_at"])
             application.status = Application.Status.SCORING
             application.save(update_fields=["status", "updated_at"])
 
@@ -146,3 +144,28 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
             application.save(update_fields=["status", "updated_at"])
 
     return call_status, is_completed
+
+
+def format_form_answers(form_answers: dict | None) -> str:
+    """
+    Render a form_answers dict as a human-readable Q&A block.
+
+    Used by both the ElevenLabs prompt templating (calls/services.py) and the
+    Claude evaluation prompt (evaluations/services.py).
+
+    Example output:
+        Q: Do you have a driver's license?
+        A: Yes
+
+        Q: Available for night shifts?
+        A: No
+    """
+    if not form_answers:
+        return "No pre-screening answers available."
+
+    lines = []
+    for key, value in form_answers.items():
+        question = key.replace("_", " ").strip().capitalize()
+        lines.append(f"Q: {question}\nA: {value}")
+
+    return "\n\n".join(lines)

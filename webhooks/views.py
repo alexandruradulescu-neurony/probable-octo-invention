@@ -15,6 +15,7 @@ import hmac
 import json
 import logging
 import time
+from urllib.parse import urlparse
 
 import requests as http_requests
 from django.conf import settings
@@ -90,9 +91,12 @@ def elevenlabs_webhook(request):
         )
         if validation_error:
             return _reject(validation_error)
+    elif not settings.DEBUG:
+        logger.error("ELEVENLABS_WEBHOOK_SECRET is not configured in production.")
+        return JsonResponse({"error": "server_misconfigured"}, status=500)
     else:
         logger.warning(
-            "ELEVENLABS_WEBHOOK_SECRET is not set — skipping signature validation."
+            "ELEVENLABS_WEBHOOK_SECRET is not set — skipping signature validation (DEBUG mode)."
         )
 
     # ── 2. Parse body ──────────────────────────────────────────────────────────
@@ -322,9 +326,12 @@ def whapi_webhook(request):
     if secret:
         if not _validate_whapi_token(request, secret):
             return _reject("Invalid or missing Whapi token")
+    elif not settings.DEBUG:
+        logger.error("WHAPI_WEBHOOK_SECRET is not configured in production.")
+        return JsonResponse({"error": "server_misconfigured"}, status=500)
     else:
         logger.warning(
-            "WHAPI_WEBHOOK_SECRET is not set — skipping token validation."
+            "WHAPI_WEBHOOK_SECRET is not set — skipping token validation (DEBUG mode)."
         )
 
     # ── 2. Parse body ──────────────────────────────────────────────────────────
@@ -422,6 +429,10 @@ def _handle_whapi_message(msg: dict) -> None:
 
 def _download_whapi_media(url: str) -> bytes | None:
     """Download a media file from Whapi. Returns raw bytes or None on failure."""
+    if urlparse(url).scheme != "https":
+        logger.warning("Rejected non-HTTPS Whapi media URL: %s", url[:100])
+        return None
+
     try:
         resp = http_requests.get(url, timeout=30)
         resp.raise_for_status()
