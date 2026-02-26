@@ -3,44 +3,49 @@
 {% block page_title %}{% if object %}Edit Position{% else %}New Position{% endif %}{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'positions:list' %}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left"></i> Back to Positions
+<a href="{% url 'positions:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+  Back to Positions
 </a>
 {% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
+<form method="post" novalidate style="max-width: 960px; margin: 0 auto;">
   {% csrf_token %}
 
   {% if form.errors %}
-  <div class="alert alert-danger">
-    <strong>Please correct the errors below.</strong>
-    {% if form.non_field_errors %}
-    <ul class="mb-0 mt-1">
-      {% for error in form.non_field_errors %}
-      <li>{{ error }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+  <div class="alert alert-danger mb-4 d-flex align-items-start gap-2">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <div>
+      <div style="font-weight: 600; margin-bottom: 0.25rem;">Please correct the errors below.</div>
+      {% if form.non_field_errors %}
+      <ul class="mb-0 ps-3" style="font-size: 0.75rem;">
+        {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 
   <div class="row g-4">
-
     <!-- Left column: core fields -->
     <div class="col-lg-7">
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">Position Details</div>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">Position Details</h2>
+        </div>
         <div class="card-body">
           <div class="mb-3">
             <label for="id_title" class="form-label">Title</label>
             {{ form.title }}
-            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+            {% if form.title.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.title.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-3">
             <label for="id_description" class="form-label">Description</label>
             {{ form.description }}
-            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+            {% if form.description.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.description.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-3">
             <label for="id_status" class="form-label">Status</label>
@@ -49,44 +54,44 @@
           <div class="mb-0">
             <label for="id_campaign_questions" class="form-label">
               Campaign Questions
-              <span class="text-muted fw-normal">(one per line)</span>
+              <span style="color: var(--text-tertiary); font-weight: 400; text-transform: none; letter-spacing: 0;">(one per line)</span>
             </label>
             {{ form.campaign_questions }}
-            {% if form.campaign_questions.errors %}<div class="text-danger small mt-1">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
+            {% if form.campaign_questions.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
           </div>
         </div>
       </div>
 
       <!-- Prompts -->
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white d-flex align-items-center justify-content-between">
-          <span class="fw-semibold">AI Prompts</span>
-          <button type="button" id="btn-generate-prompts"
-                  class="btn btn-sm btn-outline-primary"
-                  title="Auto-generate prompts using Claude">
-            <i class="bi bi-stars"></i> Generate Prompts
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">AI Prompts</h2>
+          <button type="button" id="btn-generate-prompts" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate prompts using Claude">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Generate Prompts
           </button>
         </div>
         <div class="card-body">
-          <div class="alert alert-info small py-2 mb-3">
-            <i class="bi bi-info-circle"></i>
-            The ElevenLabs agent and voice are configured in the ElevenLabs dashboard.
-            These fields only control <strong>what the agent says</strong> for this position.
+          <div class="alert alert-info mb-4 d-flex align-items-start gap-2" style="padding: 0.75rem;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div style="font-size: 0.72rem; line-height: 1.4;">
+              The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.
+            </div>
           </div>
-          <div class="mb-3">
+          <div class="mb-4">
             <label for="id_system_prompt" class="form-label">System Prompt</label>
             {{ form.system_prompt }}
-            <div class="form-text">Personality, instructions, how to ask screening questions.</div>
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Personality, instructions, how to ask screening questions.</div>
           </div>
-          <div class="mb-3">
+          <div class="mb-4">
             <label for="id_first_message" class="form-label">First Message</label>
             {{ form.first_message }}
-            <div class="form-text">Opening line the agent says when the candidate picks up.</div>
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Opening line the agent says when the candidate picks up.</div>
           </div>
           <div class="mb-0">
             <label for="id_qualification_prompt" class="form-label">Qualification Prompt</label>
             {{ form.qualification_prompt }}
-            <div class="form-text">Sent to Claude along with the transcript for scoring.</div>
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Sent to Claude along with the transcript for scoring.</div>
           </div>
         </div>
       </div>
@@ -94,8 +99,10 @@
 
     <!-- Right column: configuration -->
     <div class="col-lg-5">
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">Call Settings</div>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">Call Settings</h2>
+        </div>
         <div class="card-body">
           <div class="row g-3">
             <div class="col-6">
@@ -113,34 +120,35 @@
             <div class="col-6">
               <label for="id_calling_hour_end" class="form-label">Call Until (hour)</label>
               {{ form.calling_hour_end }}
-              {% if form.calling_hour_end.errors %}<div class="text-danger small mt-1">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
+              {% if form.calling_hour_end.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">CV Follow-up Settings</div>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">CV Follow-up Settings</h2>
+        </div>
         <div class="card-body">
           <div class="mb-3">
             <label for="id_follow_up_interval_hours" class="form-label">Follow-up Interval (hours)</label>
             {{ form.follow_up_interval_hours }}
-            <div class="form-text">Qualified candidates only.</div>
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Qualified candidates only.</div>
           </div>
           <div class="mb-0">
             <label for="id_rejected_cv_timeout_days" class="form-label">Rejected CV Timeout (days)</label>
             {{ form.rejected_cv_timeout_days }}
-            <div class="form-text">Days before auto-closing rejected apps with no CV.</div>
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem;">Days before auto-closing rejected apps with no CV.</div>
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-dark w-100">
-        <i class="bi bi-check-lg"></i>
+      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2" style="padding: 0.6rem;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
         {% if object %}Save Changes{% else %}Create Position{% endif %}
       </button>
     </div>
-
   </div>
 </form>
 {% endblock %}
@@ -159,7 +167,7 @@ document.getElementById('btn-generate-prompts').addEventListener('click', functi
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating…';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px; border-width: 1px;"></span> Generating…';
 
   fetch("{% url 'positions:generate_prompts' %}", {
     method: 'POST',
@@ -189,7 +197,7 @@ document.getElementById('btn-generate-prompts').addEventListener('click', functi
   })
   .finally(() => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-stars"></i> Generate Prompts';
+    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right: 4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate Prompts';
   });
 });
 </script>

@@ -3,8 +3,9 @@
 {% block page_title %}{% if object %}Edit Template: {{ object.name }}{% else %}New Prompt Template{% endif %}{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'prompts:list' %}" class="btn btn-sm btn-outline-secondary">
-  <i class="bi bi-arrow-left"></i> Back to Templates
+<a href="{% url 'prompts:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+  Back to Templates
 </a>
 {% endblock %}
 
@@ -17,33 +18,38 @@
       {% csrf_token %}
 
       {% if form.errors %}
-      <div class="alert alert-danger">
-        <strong>Please correct the errors below.</strong>
+      <div class="alert alert-danger mb-4 d-flex align-items-start gap-2">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        <div>
+          <div style="font-weight: 600;">Please correct the errors below.</div>
+        </div>
       </div>
       {% endif %}
 
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold">Template Details</div>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">Template Details</h2>
+        </div>
         <div class="card-body">
-          <div class="mb-3">
+          <div class="mb-4">
             <label for="id_name" class="form-label">Name</label>
             {{ form.name }}
-            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+            {% if form.name.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.name.errors.0 }}</div>{% endif %}
           </div>
           <div class="mb-0">
             <label for="id_meta_prompt" class="form-label">Meta-Prompt</label>
             {{ form.meta_prompt }}
-            <div class="form-text">
-              Available placeholders: <code>{title}</code>, <code>{description}</code>, <code>{campaign_questions}</code>.
-              Claude must return JSON with keys: <code>system_prompt</code>, <code>first_message</code>, <code>qualification_prompt</code>.
+            <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.5rem; line-height: 1.5;">
+              Available placeholders: <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{title}</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{description}</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{campaign_questions}</code>.<br>
+              Claude must return JSON with keys: <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">system_prompt</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">first_message</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">qualification_prompt</code>.
             </div>
-            {% if form.meta_prompt.errors %}<div class="text-danger small mt-1">{{ form.meta_prompt.errors.0 }}</div>{% endif %}
+            {% if form.meta_prompt.errors %}<div style="color: var(--accent-negative); font-size: 0.7rem; margin-top: 0.25rem;">{{ form.meta_prompt.errors.0 }}</div>{% endif %}
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-dark w-100">
-        <i class="bi bi-check-lg"></i>
+      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2" style="padding: 0.6rem;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
         {% if object %}Save Changes (New Version){% else %}Create Template{% endif %}
       </button>
     </form>
@@ -52,47 +58,48 @@
   <!-- Right: Test Generate -->
   <div class="col-lg-5">
     {% if object %}
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-play-circle"></i> Test Generate
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-header-title">Test Generate</h2>
       </div>
       <div class="card-body">
-        <p class="small text-muted mb-3">Preview Claude output using this template without saving. Reads the meta-prompt from the saved version.</p>
+        <p style="font-size: 0.72rem; color: var(--text-tertiary); margin-bottom: 1rem; line-height: 1.4;">Preview Claude output using this template without saving. Reads the meta-prompt from the saved version.</p>
 
-        <div class="mb-2">
-          <label class="form-label small mb-1">Sample Title</label>
-          <input type="text" id="test-title" class="form-control form-control-sm" placeholder="e.g. Truck Driver CDL-A">
-        </div>
-        <div class="mb-2">
-          <label class="form-label small mb-1">Sample Description</label>
-          <textarea id="test-description" class="form-control form-control-sm" rows="2" placeholder="e.g. Regional routes, home weekends…"></textarea>
+        <div class="mb-3">
+          <label class="form-label" style="font-size: 0.65rem;">Sample Title</label>
+          <input type="text" id="test-title" class="form-control" placeholder="e.g. Truck Driver CDL-A">
         </div>
         <div class="mb-3">
-          <label class="form-label small mb-1">Sample Questions</label>
-          <textarea id="test-questions" class="form-control form-control-sm" rows="2" placeholder="One per line…"></textarea>
+          <label class="form-label" style="font-size: 0.65rem;">Sample Description</label>
+          <textarea id="test-description" class="form-control" rows="2" placeholder="e.g. Regional routes, home weekends…"></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="form-label" style="font-size: 0.65rem;">Sample Questions</label>
+          <textarea id="test-questions" class="form-control" rows="2" placeholder="One per line…"></textarea>
         </div>
 
-        <button type="button" id="btn-test-generate" class="btn btn-sm btn-outline-primary w-100">
-          <i class="bi bi-stars"></i> Run Test
+        <button type="button" id="btn-test-generate" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          Run Test
         </button>
 
-        <div id="test-result" class="mt-3" style="display:none">
-          <hr>
-          <div class="mb-2">
-            <label class="form-label small fw-semibold mb-1">System Prompt</label>
-            <pre id="result-system" class="bg-light p-2 rounded small" style="max-height:150px;overflow-y:auto;white-space:pre-wrap"></pre>
+        <div id="test-result" class="mt-4" style="display:none">
+          <hr style="border-color: var(--border-light); margin: 1.5rem 0;">
+          <div class="mb-3">
+            <label class="form-label" style="font-size: 0.65rem;">System Prompt</label>
+            <pre id="result-system" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.7rem; max-height: 150px; overflow-y: auto; white-space: pre-wrap; color: var(--text-secondary); margin: 0; font-family: monospace;"></pre>
           </div>
-          <div class="mb-2">
-            <label class="form-label small fw-semibold mb-1">First Message</label>
-            <pre id="result-first" class="bg-light p-2 rounded small" style="max-height:150px;overflow-y:auto;white-space:pre-wrap"></pre>
+          <div class="mb-3">
+            <label class="form-label" style="font-size: 0.65rem;">First Message</label>
+            <pre id="result-first" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.7rem; max-height: 150px; overflow-y: auto; white-space: pre-wrap; color: var(--text-secondary); margin: 0; font-family: monospace;"></pre>
           </div>
           <div>
-            <label class="form-label small fw-semibold mb-1">Qualification Prompt</label>
-            <pre id="result-qual" class="bg-light p-2 rounded small" style="max-height:150px;overflow-y:auto;white-space:pre-wrap"></pre>
+            <label class="form-label" style="font-size: 0.65rem;">Qualification Prompt</label>
+            <pre id="result-qual" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.7rem; max-height: 150px; overflow-y: auto; white-space: pre-wrap; color: var(--text-secondary); margin: 0; font-family: monospace;"></pre>
           </div>
         </div>
 
-        <div id="test-error" class="alert alert-danger mt-3 small" style="display:none"></div>
+        <div id="test-error" class="alert alert-danger mt-3" style="display:none; font-size: 0.75rem; padding: 0.75rem;"></div>
       </div>
     </div>
     {% endif %}
@@ -110,7 +117,7 @@ document.getElementById('btn-test-generate').addEventListener('click', function(
   if (!title) { alert('Enter a sample title.'); return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running…';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width: 14px; height: 14px; border-width: 1px;"></span> Running…';
   document.getElementById('test-error').style.display = 'none';
   document.getElementById('test-result').style.display = 'none';
 
@@ -144,7 +151,7 @@ document.getElementById('btn-test-generate').addEventListener('click', function(
   })
   .finally(() => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-stars"></i> Run Test';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right: 0.5rem;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Run Test';
   });
 });
 </script>
