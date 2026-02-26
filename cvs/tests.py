@@ -65,7 +65,7 @@ class CVMatchingTests(TestCase):
             channel="email",
             sender="nobody@example.com",
             file_name="cv.txt",
-            file_content=b"no useful content",
+            file_content=b"",
             text_body="No identifiers",
             subject="Unknown",
             raw_payload={"id": "raw1"},

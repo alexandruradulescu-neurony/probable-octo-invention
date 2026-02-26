@@ -1025,3 +1025,44 @@ MEDIA_ROOT=media/
 # ────────────────────────────────────────────
 APSCHEDULER_TIMEZONE=UTC
 
+13. Maintainability and Hardening Notes
+
+13.1 Centralized status transitions
+- Application status transitions are centralized in `applications/transitions.py`.
+- Services and jobs should call transition helpers (e.g. `set_call_in_progress`, `set_scoring`, `set_call_failed`, `set_callback_scheduled`, `set_cv_received`) instead of assigning `application.status` directly.
+- Transition helpers route through `Application.change_status(...)` for consistent audit entries in `StatusChange`.
+
+13.2 CV matching DRY rules
+- Shared CV constants and flow helpers live in:
+  - `cvs/constants.py` (`AWAITING_CV_STATUSES`)
+  - `cvs/helpers.py` (`advance_application_status`, `channel_to_source`)
+- `cvs/views.py` and `cvs/services.py` both consume these shared helpers.
+
+13.3 Shared text and LLM parsing utilities
+- Shared text helpers are defined in `recruitflow/text_utils.py`:
+  - `strip_json_fence(raw)` for markdown-fenced JSON responses
+  - `build_full_name(first_name, last_name)`
+  - `humanize_form_question(key)`
+- LLM and formatting consumers in `cvs/services.py`, `evaluations/services.py`, `calls/services.py`, and UI views must use these helpers.
+
+13.4 Production security and logging defaults
+- `recruitflow/settings.py` includes environment-aware security defaults:
+  - `SECURE_SSL_REDIRECT`
+  - `SESSION_COOKIE_SECURE`
+  - `CSRF_COOKIE_SECURE`
+  - `SECURE_CONTENT_TYPE_NOSNIFF`
+  - `SECURE_HSTS_*` options
+- Structured console logging is configured via `LOGGING` and `LOG_LEVEL`.
+
+13.5 Indexing strategy
+- High-frequency workflow filters are indexed on:
+  - `Application.status`, `Application.qualified`, `Application.callback_scheduled_at`
+  - `Call.status`
+  - `Message.status`
+  - `CVUpload.needs_review`
+  - `UnmatchedInbound.resolved`
+- Migrations:
+  - `applications/migrations/0003_alter_application_callback_scheduled_at_and_more.py`
+  - `calls/migrations/0003_alter_call_status.py`
+  - `messaging/migrations/0002_alter_message_status.py`
+  - `cvs/migrations/0002_alter_cvupload_needs_review_and_more.py`

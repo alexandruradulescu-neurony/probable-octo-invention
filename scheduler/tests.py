@@ -9,7 +9,7 @@ from calls.models import Call
 from candidates.models import Candidate
 from messaging.models import Message
 from positions.models import Position
-from scheduler.jobs import check_cv_followups, process_call_queue
+from scheduler import jobs
 
 
 def _make_position() -> Position:
@@ -45,7 +45,7 @@ class SchedulerJobTests(TestCase):
             Call(application=app, attempt_number=1, status=Call.Status.INITIATED)
         ]
 
-        process_call_queue()
+        jobs.process_call_queue.__wrapped__()
 
         self.assertTrue(mock_batch.called)
 
@@ -69,7 +69,7 @@ class SchedulerJobTests(TestCase):
             sent_at=timezone.now() - timedelta(hours=2),
         )
 
-        check_cv_followups()
+        jobs.check_cv_followups.__wrapped__()
 
         app.refresh_from_db()
         self.assertEqual(app.status, Application.Status.CV_FOLLOWUP_1)
