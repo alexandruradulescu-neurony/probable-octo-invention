@@ -25,6 +25,7 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from applications.models import Application
+from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
 
@@ -171,7 +172,6 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
         file_path = unmatched.file_path or ""
 
         # Find all awaiting-CV applications for this candidate (same as auto-matching)
-        from cvs.constants import AWAITING_CV_STATUSES
         awaiting_apps = list(
             Application.objects
             .filter(candidate=candidate, status__in=list(AWAITING_CV_STATUSES))
@@ -276,15 +276,24 @@ class ReassignCVView(LoginRequiredMixin, View):
 
         now = timezone.now()
 
+        new_candidate = new_application.candidate
+
         with transaction.atomic():
             cv.application = new_application
+            cv.candidate = new_candidate
             cv.match_method = CVUpload.MatchMethod.MANUAL
             cv.needs_review = False
-            cv.save(update_fields=[
-                "application", "match_method", "needs_review",
-            ])
+            cv.save(update_fields=["application", "candidate", "match_method", "needs_review"])
 
-            advance_application_status(new_application)
+            # Multi-application rule: advance ALL of the new candidate's awaiting-CV apps
+            all_awaiting = list(
+                Application.objects.filter(
+                    candidate=new_candidate,
+                    status__in=list(AWAITING_CV_STATUSES),
+                ).select_related("candidate", "position")
+            )
+            for app in all_awaiting:
+                advance_application_status(app)
 
         logger.info(
             "CV %s reassigned to application %s by user %s",

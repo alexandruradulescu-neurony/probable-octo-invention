@@ -13,6 +13,7 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
@@ -152,7 +153,10 @@ class GenerateSectionView(LoginRequiredMixin, View):
         # Auto-save to DB when editing an existing Position
         position_pk = body.get("position_pk")
         if position_pk and str(position_pk).lstrip("-").isdigit() and int(position_pk) > 0:
-            rows = Position.objects.filter(pk=int(position_pk)).update(**{section: value})
+            rows = Position.objects.filter(pk=int(position_pk)).update(
+                **{section: value},
+                updated_at=timezone.now(),
+            )
             if rows:
                 logger.info(
                     "Auto-saved section=%s to position=%s (%d chars)",

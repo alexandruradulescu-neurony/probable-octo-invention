@@ -481,7 +481,18 @@ def close_stale_rejected() -> None:
         .select_related("position")
     )
     for app in cv_overdue:
-        deadline = app.updated_at + timedelta(days=app.position.rejected_cv_timeout_days)
+        transition_time = (
+            StatusChange.objects
+            .filter(
+                application=app,
+                to_status=Application.Status.CV_OVERDUE,
+            )
+            .order_by("-changed_at")
+            .values_list("changed_at", flat=True)
+            .first()
+        )
+        baseline = transition_time or app.updated_at
+        deadline = baseline + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
             to_close.append((app.pk, "CV overdue timeout — closing after all follow-ups exhausted"))
 
@@ -491,10 +502,16 @@ def close_stale_rejected() -> None:
     pk_to_note = {pk: note for pk, note in to_close}
     apps_to_close = list(Application.objects.filter(pk__in=pk_to_note.keys()))
     closed_count = 0
-    with transaction.atomic():
-        for app in apps_to_close:
-            set_closed(app, note=pk_to_note[app.pk])
-            closed_count += 1
+    for app in apps_to_close:
+        try:
+            with transaction.atomic():
+                set_closed(app, note=pk_to_note[app.pk])
+                closed_count += 1
+        except Exception as exc:
+            logger.error(
+                "close_stale_rejected: failed to close application=%s: %s",
+                app.pk, exc, exc_info=True,
+            )
 
     logger.info(
         "close_stale_rejected: closed %s stale rejected application(s)",

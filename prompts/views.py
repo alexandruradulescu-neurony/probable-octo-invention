@@ -10,6 +10,8 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db import transaction as db_transaction
+from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
@@ -58,10 +60,24 @@ class PromptTemplateCreateView(_StaffRequiredMixin, CreateView):
     success_url = reverse_lazy("prompts:list")
 
     def form_valid(self, form):
-        last = PromptTemplate.objects.order_by("-version").first()
-        form.instance.version = (last.version + 1) if last else 1
-        messages.success(self.request, "Prompt template created.")
-        return super().form_valid(form)
+        with db_transaction.atomic():
+            section = form.instance.section
+            if section:
+                max_v = (
+                    PromptTemplate.objects
+                    .select_for_update()
+                    .filter(section=section)
+                    .aggregate(Max("version"))["version__max"]
+                ) or 0
+            else:
+                max_v = (
+                    PromptTemplate.objects
+                    .select_for_update()
+                    .aggregate(Max("version"))["version__max"]
+                ) or 0
+            form.instance.version = max_v + 1
+            messages.success(self.request, "Prompt template created.")
+            return super().form_valid(form)
 
 
 class PromptTemplateUpdateView(_StaffRequiredMixin, UpdateView):

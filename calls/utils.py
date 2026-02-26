@@ -104,6 +104,14 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
         A ``(call_status, is_completed)`` tuple so the caller can decide
         whether to trigger downstream processing (e.g. Claude evaluation).
     """
+    # Guard against duplicate webhook delivery / polling on already-terminal calls
+    if call.status in _TERMINAL_STATUSES:
+        logger.info(
+            "apply_call_result: call=%s already in terminal status=%s — skipping",
+            call.pk, call.status,
+        )
+        return call.status, call.status == Call.Status.COMPLETED
+
     raw_status = (data.get("status") or "").lower()
     call_status = map_elevenlabs_status(raw_status)
     is_completed = call_status == Call.Status.COMPLETED

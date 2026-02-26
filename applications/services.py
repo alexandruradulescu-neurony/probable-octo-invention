@@ -11,23 +11,6 @@ from cvs.models import CVUpload
 logger = logging.getLogger(__name__)
 
 
-def _purge_candidate_cvs(candidate) -> None:
-    """
-    Delete every CVUpload record for the candidate and their physical files.
-    Called before saving a new CV so only one CV exists per candidate at a time.
-    """
-    existing = list(CVUpload.objects.filter(candidate=candidate))
-    paths = {cv.file_path for cv in existing if cv.file_path}
-    CVUpload.objects.filter(candidate=candidate).delete()
-    for path in paths:
-        # Only remove the file if no other candidate still references it.
-        if not CVUpload.objects.filter(file_path=path).exists():
-            try:
-                if default_storage.exists(path):
-                    default_storage.delete(path)
-            except Exception as exc:
-                logger.warning("Could not delete old CV file %s: %s", path, exc)
-
 _CV_AWAITING_STATUSES = frozenset({
     Application.Status.AWAITING_CV,
     Application.Status.CV_FOLLOWUP_1,
@@ -50,9 +33,6 @@ def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=
     incorrectly routed to CV_RECEIVED_REJECTED.
     """
     candidate = application.candidate
-
-    # Enforce one-CV-per-candidate: remove any existing CV before saving the new one.
-    _purge_candidate_cvs(candidate)
 
     unique_name = f"cvs/{uuid.uuid4().hex[:8]}_{uploaded_file.name}"
     saved_path = default_storage.save(unique_name, uploaded_file)
