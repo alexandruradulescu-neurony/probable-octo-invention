@@ -22,19 +22,10 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from applications.models import Application
+from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
 
 logger = logging.getLogger(__name__)
-
-# Application statuses where a CV submission is expected.
-_AWAITING_CV_STATUSES = frozenset({
-    Application.Status.AWAITING_CV,
-    Application.Status.CV_FOLLOWUP_1,
-    Application.Status.CV_FOLLOWUP_2,
-    Application.Status.CV_OVERDUE,
-    Application.Status.AWAITING_CV_REJECTED,
-})
-
 
 class CVInboxView(LoginRequiredMixin, TemplateView):
     """
@@ -90,12 +81,12 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
                 application=application,
                 file_name=unmatched.attachment_name or "unknown",
                 file_path="",
-                source=_channel_to_source(unmatched.channel),
+                source=channel_to_source(unmatched.channel),
                 match_method=CVUpload.MatchMethod.MANUAL,
                 needs_review=False,
             )
 
-            _advance_application_status(application, now)
+            advance_application_status(application, now)
 
             unmatched.resolved = True
             unmatched.resolved_by_application = application
@@ -166,7 +157,7 @@ class ReassignCVView(LoginRequiredMixin, View):
                 "application", "match_method", "needs_review",
             ])
 
-            _advance_application_status(new_application, now)
+            advance_application_status(new_application, now)
 
         logger.info(
             "CV %s reassigned to application %s by user %s",
@@ -176,30 +167,3 @@ class ReassignCVView(LoginRequiredMixin, View):
         return redirect("cvs:inbox")
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _advance_application_status(app: Application, now=None) -> None:
-    """
-    Advance an application to the appropriate CV-received status.
-    Qualified path → CV_RECEIVED; Rejected path → CV_RECEIVED_REJECTED.
-    """
-    now = now or timezone.now()
-
-    if app.status == Application.Status.AWAITING_CV_REJECTED:
-        new_status = Application.Status.CV_RECEIVED_REJECTED
-    elif app.status in _AWAITING_CV_STATUSES:
-        new_status = Application.Status.CV_RECEIVED
-    else:
-        return  # Not in an awaiting-CV state; don't change
-
-    app.status = new_status
-    app.cv_received_at = now
-    app.save(update_fields=["status", "cv_received_at", "updated_at"])
-
-
-def _channel_to_source(channel: str) -> str:
-    """Map UnmatchedInbound channel to CVUpload source."""
-    return {
-        "email": CVUpload.Source.EMAIL_ATTACHMENT,
-        "whatsapp": CVUpload.Source.WHATSAPP_MEDIA,
-    }.get(channel, CVUpload.Source.MANUAL_UPLOAD)

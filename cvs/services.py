@@ -35,27 +35,17 @@ import anthropic
 import pdfplumber
 from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
 
 from applications.models import Application
 from candidates.models import Candidate
+from cvs.constants import AWAITING_CV_STATUSES
+from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
 
 logger = logging.getLogger(__name__)
 
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-
-# Application statuses that are waiting for a CV submission.
-# Used to scope the candidate pool for fuzzy matching (P4, P5) and to determine
-# which applications receive a CVUpload on a successful match.
-AWAITING_CV_STATUSES = frozenset({
-    Application.Status.AWAITING_CV,
-    Application.Status.CV_FOLLOWUP_1,
-    Application.Status.CV_FOLLOWUP_2,
-    Application.Status.CV_OVERDUE,
-    Application.Status.AWAITING_CV_REJECTED,
-})
 
 # Minimum SequenceMatcher ratio to accept a fuzzy name match.
 FUZZY_NAME_THRESHOLD = 0.80
@@ -209,7 +199,7 @@ def process_inbound_cv(
           cv_upload_pks   list[int]  — PKs of created CVUpload records
           unmatched_pk    int | None — PK of UnmatchedInbound if no match
     """
-    source = _channel_to_source(channel)
+    source = channel_to_source(channel)
     sender = (sender or "").strip()
 
     # ── Priority 1: Exact email match ──────────────────────────────────────────
@@ -515,7 +505,7 @@ def _process_candidate_match(
             )
             cv_upload_pks.append(cv.pk)
             app_pks.append(app.pk)
-            _advance_application_status(app)
+            advance_application_status(app)
 
     confidence = "medium" if needs_review else "high"
     return {
@@ -526,30 +516,6 @@ def _process_candidate_match(
         "cv_upload_pks": cv_upload_pks,
         "unmatched_pk": None,
     }
-
-
-def _advance_application_status(app: Application) -> None:
-    """
-    Advance an Application to the appropriate CV-received status and record
-    the receipt timestamp.
-
-    Qualified path (AWAITING_CV, CV_FOLLOWUP_*, CV_OVERDUE) → CV_RECEIVED
-    Rejected path  (AWAITING_CV_REJECTED)                   → CV_RECEIVED_REJECTED
-    """
-    now = timezone.now()
-    if app.status == Application.Status.AWAITING_CV_REJECTED:
-        new_status = Application.Status.CV_RECEIVED_REJECTED
-    else:
-        new_status = Application.Status.CV_RECEIVED
-
-    app.status = new_status
-    app.cv_received_at = now
-    app.save(update_fields=["status", "cv_received_at", "updated_at"])
-
-    logger.info(
-        "Application %s advanced to %s (cv_received_at=%s)",
-        app.pk, new_status, now,
-    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -678,10 +644,3 @@ def _phones_match(query_digits: str, stored_phone: str) -> bool:
 # Misc helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _channel_to_source(channel: str) -> str:
-    """Map the inbound channel string to the CVUpload.Source choice value."""
-    mapping = {
-        "email": CVUpload.Source.EMAIL_ATTACHMENT,
-        "whatsapp": CVUpload.Source.WHATSAPP_MEDIA,
-    }
-    return mapping.get(channel.lower(), CVUpload.Source.MANUAL_UPLOAD)
