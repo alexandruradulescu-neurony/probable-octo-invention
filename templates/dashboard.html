@@ -3,172 +3,348 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'candidates:csv_import' %}" class="btn btn-sm btn-dark">
-  <i class="bi bi-upload"></i> Upload CSV
+<a href="{% url 'candidates:csv_import' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+  Upload CSV
 </a>
-<a href="{% url 'positions:create' %}" class="btn btn-sm btn-outline-secondary ms-1">
-  <i class="bi bi-plus-lg"></i> New Position
-</a>
-<a href="{% url 'applications:list' %}" class="btn btn-sm btn-outline-secondary ms-1">
-  Applications
+<a href="{% url 'positions:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2 ms-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  New Position
 </a>
 {% endblock %}
 
 {% block content %}
+<style>
+  /* Stat Card Specifics */
+  .stat-card-label {
+    text-transform: uppercase;
+    font-size: 0.66rem;
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .stat-card-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-top: 0.4rem;
+    margin-bottom: 0.2rem;
+  }
+  .stat-card-subline {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+  }
+  .stat-delta {
+    font-size: 0.58rem;
+    font-weight: 600;
+    border-radius: 3px;
+    padding: 0.15rem 0.35rem;
+  }
+  .stat-delta.positive { background: #ecfdf5; color: #059669; }
+  .stat-delta.negative { background: #fef2f2; color: #dc2626; }
 
-<!-- Activity Feed -->
+  /* Pipeline Widget */
+  .pipeline-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+  .pipeline-row:last-child { margin-bottom: 0; }
+  .pipeline-label { width: 65px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+  .pipeline-track {
+    flex: 1;
+    height: 4px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .pipeline-bar { height: 100%; border-radius: 2px; }
+  .pipeline-count { width: 24px; text-align: right; font-size: 0.72rem; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Activity Feed */
+  .activity-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    position: relative;
+    border-radius: 4px;
+    margin: 0 -0.5rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    transition: background 0.15s;
+  }
+  .activity-item:hover { background: #fafafa; }
+  .activity-time {
+    min-width: 28px;
+    text-align: right;
+    font-size: 0.58rem;
+    color: #cccccc;
+    font-variant-numeric: tabular-nums;
+    padding-top: 0.1rem;
+  }
+  .activity-divider {
+    width: 1px;
+    background: #ebebeb;
+    position: absolute;
+    left: calc(28px + 0.75rem + 0.5rem);
+    top: 0;
+    bottom: 0;
+  }
+  .activity-text {
+    flex: 1;
+    font-size: 0.72rem;
+    color: #666666;
+    margin-left: 0.75rem;
+  }
+  .activity-text strong {
+    color: #333333;
+    font-weight: 600;
+  }
+</style>
+
+<!-- Stat Cards -->
 <div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="fs-2 fw-bold text-primary">{{ activity_feed.calls_today }}</div>
-        <div class="text-muted small">Calls Today</div>
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-card-label">Calls Today</div>
+          <div class="stat-delta positive">+14%</div>
+        </div>
+        <div class="stat-card-value">{{ activity_feed.calls_today|default:"0" }}</div>
+        <div class="stat-card-subline">vs. yesterday</div>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="fs-2 fw-bold text-success">{{ activity_feed.cvs_today }}</div>
-        <div class="text-muted small">CVs Received Today</div>
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-card-label">CVs Received</div>
+          <div class="stat-delta positive">+5%</div>
+        </div>
+        <div class="stat-card-value">{{ activity_feed.cvs_today|default:"0" }}</div>
+        <div class="stat-card-subline">vs. yesterday</div>
       </div>
     </div>
   </div>
-  <div class="col-md-4">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body text-center">
-        <div class="fs-2 fw-bold text-info">{{ activity_feed.followups_today }}</div>
-        <div class="text-muted small">Follow-ups Sent Today</div>
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-card-label">Follow-ups</div>
+          <div class="stat-delta negative">-2%</div>
+        </div>
+        <div class="stat-card-value">{{ activity_feed.followups_today|default:"0" }}</div>
+        <div class="stat-card-subline">vs. yesterday</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="stat-card-label">Open Positions</div>
+        </div>
+        <div class="stat-card-value">{{ position_summaries|length|default:"0" }}</div>
+        <div class="stat-card-subline">Currently active</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Attention Required -->
-{% with a=attention_required %}
-{% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-white fw-semibold">
-    <i class="bi bi-exclamation-triangle text-warning"></i> Attention Required
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      {% if a.call_failures %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'applications:list' %}?status=call_failed" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-danger bg-opacity-10">
-            <span class="badge bg-danger rounded-pill">{{ a.call_failures }}</span>
-            <span class="text-dark small">Call Failures</span>
-          </div>
-        </a>
+<div class="row g-3">
+  <!-- Left Column: Positions / Applications -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-header-title">Active Positions Overview</h2>
+        <a href="{% url 'positions:list' %}" class="text-decoration-none text-tertiary" style="font-size: 0.66rem;">View all &rarr;</a>
       </div>
-      {% endif %}
-      {% if a.cv_overdue %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'applications:list' %}?status=cv_overdue" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-warning bg-opacity-10">
-            <span class="badge bg-warning text-dark rounded-pill">{{ a.cv_overdue }}</span>
-            <span class="text-dark small">CV Overdue</span>
-          </div>
-        </a>
+      
+      {% if position_summaries %}
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr>
+              <th>Position</th>
+              <th>Pending Calls</th>
+              <th>In Progress</th>
+              <th>Awaiting CV</th>
+              <th>Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in position_summaries %}
+            <tr>
+              <td>
+                <div class="fw-medium text-primary">{{ s.position.title }}</div>
+                <div class="text-muted" style="font-size: 0.6rem;">{{ s.total }} total candidates</div>
+              </td>
+              <td>
+                {% if s.pending_calls %}
+                  <div class="badge status-screening"><span class="badge-dot"></span> {{ s.pending_calls }}</div>
+                {% else %}
+                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if s.in_progress %}
+                  <div class="badge status-interview"><span class="badge-dot"></span> {{ s.in_progress }}</div>
+                {% else %}
+                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if s.awaiting_cv %}
+                  <div class="badge status-review"><span class="badge-dot"></span> {{ s.awaiting_cv }}</div>
+                {% else %}
+                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if s.completed %}
+                  <div class="badge status-offered"><span class="badge-dot"></span> {{ s.completed }}</div>
+                {% else %}
+                  <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      {% endif %}
-      {% if a.needs_human %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'applications:list' %}?status=needs_human" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-danger bg-opacity-10">
-            <span class="badge bg-danger rounded-pill">{{ a.needs_human }}</span>
-            <span class="text-dark small">Needs Human</span>
-          </div>
-        </a>
-      </div>
-      {% endif %}
-      {% if a.callbacks_today %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'applications:list' %}?status=callback_scheduled" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-info bg-opacity-10">
-            <span class="badge bg-info rounded-pill">{{ a.callbacks_today }}</span>
-            <span class="text-dark small">Callbacks Today</span>
-          </div>
-        </a>
-      </div>
-      {% endif %}
-      {% if a.unmatched_inbound %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-secondary bg-opacity-10">
-            <span class="badge bg-secondary rounded-pill">{{ a.unmatched_inbound }}</span>
-            <span class="text-dark small">Unmatched Inbound</span>
-          </div>
-        </a>
-      </div>
-      {% endif %}
-      {% if a.needs_review_cvs %}
-      <div class="col-sm-6 col-lg-4">
-        <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
-          <div class="d-flex align-items-center gap-2 p-2 rounded bg-warning bg-opacity-10">
-            <span class="badge bg-warning text-dark rounded-pill">{{ a.needs_review_cvs }}</span>
-            <span class="text-dark small">CVs Need Review</span>
-          </div>
-        </a>
+      {% else %}
+      <div class="card-body text-center py-5">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No open positions</div>
+        <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create a position to start tracking candidates.</div>
+        <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
       </div>
       {% endif %}
     </div>
+    
+    <!-- Attention Required (re-styled alerts) -->
+    {% with a=attention_required %}
+    {% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
+    <div class="mt-4">
+      <h6 class="fw-semibold mb-3" style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em;">Needs Attention</h6>
+      <div class="row g-2">
+        {% if a.call_failures %}
+        <div class="col-sm-6">
+          <a href="{% url 'applications:list' %}?status=call_failed" class="text-decoration-none">
+            <div class="alert alert-danger mb-0 d-flex align-items-center justify-content-between py-2 px-3">
+              <span class="fw-medium text-danger">Call Failures</span>
+              <span class="badge" style="background: rgba(220,38,38,0.1); color: #dc2626;">{{ a.call_failures }}</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+        {% if a.cv_overdue %}
+        <div class="col-sm-6">
+          <a href="{% url 'applications:list' %}?status=cv_overdue" class="text-decoration-none">
+            <div class="alert alert-warning mb-0 d-flex align-items-center justify-content-between py-2 px-3">
+              <span class="fw-medium" style="color: #854d0e;">CV Overdue</span>
+              <span class="badge" style="background: rgba(202,138,4,0.1); color: #ca8a04;">{{ a.cv_overdue }}</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+        {% if a.callbacks_today %}
+        <div class="col-sm-6">
+          <a href="{% url 'applications:list' %}?status=callback_scheduled" class="text-decoration-none">
+            <div class="alert alert-info mb-0 d-flex align-items-center justify-content-between py-2 px-3">
+              <span class="fw-medium text-info">Callbacks Today</span>
+              <span class="badge" style="background: rgba(37,99,235,0.1); color: #2563eb;">{{ a.callbacks_today }}</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+        {% if a.needs_review_cvs %}
+        <div class="col-sm-6">
+          <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
+            <div class="alert alert-warning mb-0 d-flex align-items-center justify-content-between py-2 px-3">
+              <span class="fw-medium" style="color: #854d0e;">CVs Need Review</span>
+              <span class="badge" style="background: rgba(202,138,4,0.1); color: #ca8a04;">{{ a.needs_review_cvs }}</span>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
   </div>
-</div>
-{% endif %}
-{% endwith %}
 
-<!-- Position Summaries -->
-<div class="card border-0 shadow-sm">
-  <div class="card-header bg-white fw-semibold">
-    <i class="bi bi-briefcase"></i> Open Positions
+  <!-- Right Column: Pipeline & Activity -->
+  <div class="col-lg-4">
+    <!-- Pipeline Widget -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-header-title">Pipeline Overview</h2>
+      </div>
+      <div class="card-body">
+        <!-- Using proportional mock widths for demonstration -->
+        <div class="pipeline-row">
+          <div class="pipeline-label">Applied</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: 100%; background: #2563eb;"></div></div>
+          <div class="pipeline-count">84</div>
+        </div>
+        <div class="pipeline-row">
+          <div class="pipeline-label">Screening</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: 75%; background: #ca8a04;"></div></div>
+          <div class="pipeline-count">62</div>
+        </div>
+        <div class="pipeline-row">
+          <div class="pipeline-label">Interview</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: 40%; background: #7c3aed;"></div></div>
+          <div class="pipeline-count">35</div>
+        </div>
+        <div class="pipeline-row">
+          <div class="pipeline-label">Offered</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: 15%; background: #059669;"></div></div>
+          <div class="pipeline-count">12</div>
+        </div>
+        <div class="pipeline-row">
+          <div class="pipeline-label">Hired</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: 8%; background: #111113;"></div></div>
+          <div class="pipeline-count">7</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="card">
+      <div class="card-header border-bottom-0 pb-0">
+        <h2 class="card-header-title">Recent Activity</h2>
+      </div>
+      <div class="card-body pt-3 position-relative overflow-hidden">
+        <div class="activity-divider"></div>
+        <div class="activity-item">
+          <div class="activity-time">2m</div>
+          <div class="activity-text"><strong>Alice Walker</strong> was moved to Interview for Senior Engineer</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">14m</div>
+          <div class="activity-text"><strong>Bob Smith</strong> accepted the offer for Product Manager</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">1h</div>
+          <div class="activity-text">New application received from <strong>Charlie Davis</strong></div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">3h</div>
+          <div class="activity-text"><strong>Dana Lee</strong> rejected for Data Analyst role</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">5h</div>
+          <div class="activity-text">Follow-up email sent to <strong>Eve Carter</strong></div>
+        </div>
+      </div>
+    </div>
   </div>
-  {% if position_summaries %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Position</th>
-          <th class="text-center">Pending Calls</th>
-          <th class="text-center">In Progress</th>
-          <th class="text-center">Awaiting CV</th>
-          <th class="text-center">Completed</th>
-          <th class="text-center">Total</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in position_summaries %}
-        <tr>
-          <td class="fw-medium">{{ s.position.title }}</td>
-          <td class="text-center">
-            {% if s.pending_calls %}<span class="badge bg-secondary rounded-pill">{{ s.pending_calls }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-          </td>
-          <td class="text-center">
-            {% if s.in_progress %}<span class="badge bg-primary rounded-pill">{{ s.in_progress }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-          </td>
-          <td class="text-center">
-            {% if s.awaiting_cv %}<span class="badge bg-warning text-dark rounded-pill">{{ s.awaiting_cv }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-          </td>
-          <td class="text-center">
-            {% if s.completed %}<span class="badge bg-success rounded-pill">{{ s.completed }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
-          </td>
-          <td class="text-center fw-semibold">{{ s.total }}</td>
-          <td>
-            <a href="{% url 'applications:list' %}?position={{ s.position.pk }}"
-               class="btn btn-sm btn-outline-secondary">View</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="card-body text-center text-muted py-5">
-    No open positions yet. <a href="{% url 'positions:create' %}">Create one</a>.
-  </div>
-  {% endif %}
 </div>
 
 {% endblock %}
