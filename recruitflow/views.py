@@ -12,8 +12,9 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.generic import TemplateView
 
-from applications.models import Application
+from applications.models import Application, StatusChange
 from calls.models import Call
+from candidates.models import Candidate
 from cvs.models import CVUpload, UnmatchedInbound
 from messaging.models import Message
 from positions.models import Position
@@ -27,6 +28,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
       - position_summaries : per-position status breakdown
       - activity_feed      : today's calls, CVs received, follow-ups sent
       - attention_required : items needing recruiter action
+      - pipeline_data      : aggregated status counts across all applications
+      - recent_changes     : latest StatusChange audit trail entries
     """
     template_name = "dashboard.html"
 
@@ -38,6 +41,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx["position_summaries"] = self._position_summaries()
         ctx["activity_feed"] = self._activity_feed(today_start)
         ctx["attention_required"] = self._attention_required(now, today_start)
+        ctx["pipeline_data"] = self._pipeline_data()
+        ctx["recent_changes"] = self._recent_changes()
 
         return ctx
 
@@ -110,6 +115,75 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 ],
             ).count(),
         }
+
+    # ── Pipeline data ──────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _pipeline_data() -> list[dict]:
+        """
+        Aggregate application counts by pipeline stage for the bar chart.
+        Maps the app's actual status choices into meaningful pipeline stages.
+        """
+        pending_statuses = {
+            Application.Status.PENDING_CALL,
+            Application.Status.CALL_QUEUED,
+        }
+        screening_statuses = {
+            Application.Status.CALL_IN_PROGRESS,
+            Application.Status.CALL_COMPLETED,
+            Application.Status.SCORING,
+            Application.Status.CALLBACK_SCHEDULED,
+            Application.Status.CALL_FAILED,
+            Application.Status.NEEDS_HUMAN,
+        }
+        qualified_statuses = {
+            Application.Status.QUALIFIED,
+            Application.Status.NOT_QUALIFIED,
+        }
+        awaiting_cv_statuses = {
+            Application.Status.AWAITING_CV,
+            Application.Status.CV_FOLLOWUP_1,
+            Application.Status.CV_FOLLOWUP_2,
+            Application.Status.CV_OVERDUE,
+            Application.Status.AWAITING_CV_REJECTED,
+        }
+        completed_statuses = {
+            Application.Status.CV_RECEIVED,
+            Application.Status.CV_RECEIVED_REJECTED,
+            Application.Status.CLOSED,
+        }
+
+        stages = [
+            {"label": "Pending", "count": Application.objects.filter(status__in=pending_statuses).count(), "color": "#2563eb"},
+            {"label": "Screening", "count": Application.objects.filter(status__in=screening_statuses).count(), "color": "#ca8a04"},
+            {"label": "Evaluated", "count": Application.objects.filter(status__in=qualified_statuses).count(), "color": "#7c3aed"},
+            {"label": "Awaiting CV", "count": Application.objects.filter(status__in=awaiting_cv_statuses).count(), "color": "#059669"},
+            {"label": "Completed", "count": Application.objects.filter(status__in=completed_statuses).count(), "color": "#111113"},
+        ]
+
+        max_count = max((s["count"] for s in stages), default=1) or 1
+        for s in stages:
+            s["pct"] = round(s["count"] / max_count * 100)
+
+        return stages
+
+    # ── Recent changes (activity feed) ─────────────────────────────────────────
+
+    @staticmethod
+    def _recent_changes() -> list:
+        """
+        Last 10 status changes across all applications, used for the
+        activity feed widget on the dashboard.
+        """
+        return (
+            StatusChange.objects
+            .select_related(
+                "application__candidate",
+                "application__position",
+                "changed_by",
+            )
+            .order_by("-changed_at")[:10]
+        )
 
     # ── Attention required ─────────────────────────────────────────────────────
 

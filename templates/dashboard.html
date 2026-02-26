@@ -18,56 +18,65 @@
   /* Stat Card Specifics */
   .stat-card-label {
     text-transform: uppercase;
-    font-size: 0.66rem;
+    font-size: 0.68rem;
     color: var(--text-tertiary);
     letter-spacing: 0.05em;
     font-weight: 600;
+    margin-bottom: 0.5rem;
   }
   .stat-card-value {
-    font-size: 1.55rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
-    margin-top: 0.4rem;
-    margin-bottom: 0.2rem;
+    line-height: 1;
+    margin-bottom: 0.35rem;
   }
   .stat-card-subline {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
   }
-  .stat-delta {
-    font-size: 0.58rem;
-    font-weight: 600;
-    border-radius: 3px;
-    padding: 0.15rem 0.35rem;
-  }
-  .stat-delta.positive { background: #ecfdf5; color: #059669; }
-  .stat-delta.negative { background: #fef2f2; color: #dc2626; }
 
   /* Pipeline Widget */
   .pipeline-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.75rem;
   }
   .pipeline-row:last-child { margin-bottom: 0; }
-  .pipeline-label { width: 65px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+  .pipeline-label {
+    width: 72px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
   .pipeline-track {
     flex: 1;
-    height: 4px;
-    background: #f0f0f0;
-    border-radius: 2px;
+    height: 6px;
+    background: #eeeeee;
+    border-radius: 3px;
     overflow: hidden;
   }
-  .pipeline-bar { height: 100%; border-radius: 2px; }
-  .pipeline-count { width: 24px; text-align: right; font-size: 0.72rem; color: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pipeline-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .pipeline-count {
+    width: 28px;
+    text-align: right;
+    font-size: 0.78rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
 
   /* Activity Feed */
   .activity-item {
     display: flex;
     gap: 0.75rem;
-    padding: 0.5rem 0;
+    padding: 0.55rem 0;
     position: relative;
     border-radius: 4px;
     margin: 0 -0.5rem;
@@ -75,31 +84,33 @@
     padding-right: 0.5rem;
     transition: background 0.15s;
   }
-  .activity-item:hover { background: #fafafa; }
+  .activity-item:hover { background: #f7f7f8; }
   .activity-time {
-    min-width: 28px;
+    min-width: 38px;
     text-align: right;
-    font-size: 0.58rem;
-    color: #cccccc;
+    font-size: 0.65rem;
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
-    padding-top: 0.1rem;
+    padding-top: 0.15rem;
+    white-space: nowrap;
   }
   .activity-divider {
     width: 1px;
-    background: #ebebeb;
+    background: var(--border-default);
     position: absolute;
-    left: calc(28px + 0.75rem + 0.5rem);
+    left: calc(38px + 0.75rem + 0.5rem);
     top: 0;
     bottom: 0;
   }
   .activity-text {
     flex: 1;
-    font-size: 0.72rem;
-    color: #666666;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
     margin-left: 0.75rem;
+    line-height: 1.4;
   }
   .activity-text strong {
-    color: #333333;
+    color: var(--text-primary);
     font-weight: 600;
   }
 </style>
@@ -109,45 +120,34 @@
   <div class="col-md-3">
     <div class="card h-100">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-card-label">Calls Today</div>
-          <div class="stat-delta positive">+14%</div>
-        </div>
+        <div class="stat-card-label">Calls Today</div>
         <div class="stat-card-value">{{ activity_feed.calls_today|default:"0" }}</div>
-        <div class="stat-card-subline">vs. yesterday</div>
+        <div class="stat-card-subline">Since midnight</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="card h-100">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-card-label">CVs Received</div>
-          <div class="stat-delta positive">+5%</div>
-        </div>
+        <div class="stat-card-label">CVs Received</div>
         <div class="stat-card-value">{{ activity_feed.cvs_today|default:"0" }}</div>
-        <div class="stat-card-subline">vs. yesterday</div>
+        <div class="stat-card-subline">Since midnight</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="card h-100">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-card-label">Follow-ups</div>
-          <div class="stat-delta negative">-2%</div>
-        </div>
+        <div class="stat-card-label">Follow-ups Sent</div>
         <div class="stat-card-value">{{ activity_feed.followups_today|default:"0" }}</div>
-        <div class="stat-card-subline">vs. yesterday</div>
+        <div class="stat-card-subline">Since midnight</div>
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="card h-100">
       <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="stat-card-label">Open Positions</div>
-        </div>
+        <div class="stat-card-label">Open Positions</div>
         <div class="stat-card-value">{{ position_summaries|length|default:"0" }}</div>
         <div class="stat-card-subline">Currently active</div>
       </div>
@@ -286,62 +286,39 @@
         <h2 class="card-header-title">Pipeline Overview</h2>
       </div>
       <div class="card-body">
-        <!-- Using proportional mock widths for demonstration -->
+        {% for stage in pipeline_data %}
         <div class="pipeline-row">
-          <div class="pipeline-label">Applied</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: 100%; background: #2563eb;"></div></div>
-          <div class="pipeline-count">84</div>
+          <div class="pipeline-label">{{ stage.label }}</div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width: {{ stage.pct }}%; background: {{ stage.color }};"></div></div>
+          <div class="pipeline-count">{{ stage.count }}</div>
         </div>
-        <div class="pipeline-row">
-          <div class="pipeline-label">Screening</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: 75%; background: #ca8a04;"></div></div>
-          <div class="pipeline-count">62</div>
-        </div>
-        <div class="pipeline-row">
-          <div class="pipeline-label">Interview</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: 40%; background: #7c3aed;"></div></div>
-          <div class="pipeline-count">35</div>
-        </div>
-        <div class="pipeline-row">
-          <div class="pipeline-label">Offered</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: 15%; background: #059669;"></div></div>
-          <div class="pipeline-count">12</div>
-        </div>
-        <div class="pipeline-row">
-          <div class="pipeline-label">Hired</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: 8%; background: #111113;"></div></div>
-          <div class="pipeline-count">7</div>
-        </div>
+        {% empty %}
+        <div style="font-size: 0.75rem; color: var(--text-tertiary); text-align: center; padding: 1rem 0;">No applications yet.</div>
+        {% endfor %}
       </div>
     </div>
 
     <!-- Activity Feed -->
     <div class="card">
-      <div class="card-header border-bottom-0 pb-0">
+      <div class="card-header">
         <h2 class="card-header-title">Recent Activity</h2>
       </div>
       <div class="card-body pt-3 position-relative overflow-hidden">
+        {% if recent_changes %}
         <div class="activity-divider"></div>
+        {% for sc in recent_changes %}
         <div class="activity-item">
-          <div class="activity-time">2m</div>
-          <div class="activity-text"><strong>Alice Walker</strong> was moved to Interview for Senior Engineer</div>
+          <div class="activity-time">{{ sc.changed_at|timesince:"now" }}</div>
+          <div class="activity-text">
+            <strong>{{ sc.application.candidate.full_name }}</strong>
+            moved to {{ sc.get_to_status_display }}
+            <span style="color: var(--text-tertiary);">for {{ sc.application.position.title }}</span>
+          </div>
         </div>
-        <div class="activity-item">
-          <div class="activity-time">14m</div>
-          <div class="activity-text"><strong>Bob Smith</strong> accepted the offer for Product Manager</div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-time">1h</div>
-          <div class="activity-text">New application received from <strong>Charlie Davis</strong></div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-time">3h</div>
-          <div class="activity-text"><strong>Dana Lee</strong> rejected for Data Analyst role</div>
-        </div>
-        <div class="activity-item">
-          <div class="activity-time">5h</div>
-          <div class="activity-text">Follow-up email sent to <strong>Eve Carter</strong></div>
-        </div>
+        {% endfor %}
+        {% else %}
+        <div style="font-size: 0.75rem; color: var(--text-tertiary); text-align: center; padding: 1rem 0;">No recent activity.</div>
+        {% endif %}
       </div>
     </div>
   </div>
