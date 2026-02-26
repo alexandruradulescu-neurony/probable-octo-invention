@@ -542,10 +542,12 @@ Sends this to Claude API
 Claude returns a structured JSON with three fields: system_prompt, first_message, qualification_prompt
 These are populated into the Position form fields
 Recruiter reviews, edits if needed, then saves
-The meta-prompt instructs Claude to generate:
-system_prompt: conversational AI personality, call flow, how to ask the screening questions naturally, how to handle callbacks and human escalation requests
-first_message: a natural opening line customized for the position (e.g. "Hi {candidate_name}, I'm calling about the Marketing Manager position you applied for...")
-qualification_prompt: specific scoring criteria based on the campaign questions, what constitutes a pass/fail, how to detect callback requests and human escalation needs, expected JSON output format
+The meta-prompt instructs Claude to generate exactly three JSON keys:
+system_prompt: Full ElevenLabs agent instructions — identity (Ana / Recrutopia), tone, conversation structure (opening → role pitch → qualification questions one-by-one → close), and absolute rules (one question per turn, no salary promises, max 5 minutes). Uses call-time placeholders {candidate_first_name} and {position_title} which are substituted at call initiation.
+first_message: A single warm opening sentence spoken when the candidate picks up — personalised with {candidate_first_name} and {position_title}, ending with a soft "Is now a good time?" question.
+qualification_prompt: System instructions for Claude's post-call transcript evaluation — describes the role context, positive qualification criteria, disqualifying answers, and special cases (callback_requested, needs_human). Always ends with the mandatory JSON output schema: {"outcome": "qualified|not_qualified|callback_requested|needs_human", "qualified": bool, "score": 0-100, "reasoning": str, "callback_requested": bool, "callback_notes": str|null, "needs_human": bool, "needs_human_notes": str|null, "callback_at": ISO8601|null}.
+
+Claude output contract: Claude must return a bare JSON object (no markdown fences, no surrounding text) with all three keys present. The ClaudeService.generate_prompts() method validates this and raises ClaudeServiceError if any key is missing.
 Key design decisions:
 Prompts are always editable after generation — auto-generation is a starting point, not a lock
 The meta-prompt is versioned so you can track what changed when results degrade
