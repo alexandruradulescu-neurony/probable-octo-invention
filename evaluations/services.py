@@ -216,6 +216,14 @@ class ClaudeService:
         Raises:
             ClaudeServiceError on API or JSON parsing failure.
         """
+        existing = LLMEvaluation.objects.filter(call=call).first()
+        if existing:
+            logger.info(
+                "Evaluation already exists for call=%s (evaluation=%s) — skipping duplicate",
+                call.pk, existing.pk,
+            )
+            return existing
+
         application = call.application
         position = application.position
         candidate = application.candidate

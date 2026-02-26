@@ -27,7 +27,7 @@ from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 from django_apscheduler.util import close_old_connections
 
-from applications.models import Application
+from applications.models import Application, StatusChange
 from applications.transitions import set_call_failed, set_closed, set_followup_status
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
@@ -418,7 +418,7 @@ def close_stale_rejected() -> None:
     Silently close rejected applications that have reached their end-of-life.
     No message is sent in either case. Spec § 6 — close_stale_rejected.
 
-    Two cases are handled:
+    Three cases are handled:
 
     1. AWAITING_CV_REJECTED (no CV received):
        Close when updated_at + rejected_cv_timeout_days has elapsed.
@@ -427,6 +427,10 @@ def close_stale_rejected() -> None:
     2. CV_RECEIVED_REJECTED (CV was received from a not-qualified candidate):
        Close when cv_received_at + rejected_cv_timeout_days has elapsed.
        The CV is on file; no further action is needed in the pipeline.
+
+    3. CV_OVERDUE (qualified candidate never sent a CV after all follow-ups):
+       Close when updated_at + rejected_cv_timeout_days has elapsed.
+       All follow-up attempts have been exhausted.
     """
     now = timezone.now()
     to_close = []
@@ -441,7 +445,18 @@ def close_stale_rejected() -> None:
         .select_related("position")
     )
     for app in awaiting:
-        deadline = app.updated_at + timedelta(days=app.position.rejected_cv_timeout_days)
+        transition_time = (
+            StatusChange.objects
+            .filter(
+                application=app,
+                to_status=Application.Status.AWAITING_CV_REJECTED,
+            )
+            .order_by("-changed_at")
+            .values_list("changed_at", flat=True)
+            .first()
+        )
+        baseline = transition_time or app.updated_at
+        deadline = baseline + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
             to_close.append((app.pk, "Rejected CV timeout — no CV received"))
 
@@ -458,6 +473,17 @@ def close_stale_rejected() -> None:
         deadline = app.cv_received_at + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
             to_close.append((app.pk, "Rejected CV timeout — CV received, closing"))
+
+    # Case 3: CV overdue — qualified candidate never sent a CV after all follow-ups
+    cv_overdue = (
+        Application.objects
+        .filter(status=Application.Status.CV_OVERDUE)
+        .select_related("position")
+    )
+    for app in cv_overdue:
+        deadline = app.updated_at + timedelta(days=app.position.rejected_cv_timeout_days)
+        if now >= deadline:
+            to_close.append((app.pk, "CV overdue timeout — closing after all follow-ups exhausted"))
 
     if not to_close:
         return

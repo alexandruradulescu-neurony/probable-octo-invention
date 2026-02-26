@@ -23,6 +23,7 @@ from applications.forms import (
 )
 from applications.models import Application, StatusChange
 from applications.services import handle_manual_cv_upload
+from applications.transitions import set_callback_scheduled
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from cvs.models import CVUpload
@@ -177,11 +178,20 @@ class TriggerCallsView(LoginRequiredMixin, View):
             django_messages.warning(request, "No applications selected.")
             return redirect("applications:list")
 
-        apps = Application.objects.filter(
-            pk__in=pks,
-            status=Application.Status.PENDING_CALL,
+        apps = list(
+            Application.objects.filter(
+                pk__in=pks,
+                status=Application.Status.PENDING_CALL,
+            )
         )
-        count = apps.update(status=Application.Status.CALL_QUEUED)
+        count = 0
+        for app in apps:
+            app.change_status(
+                Application.Status.CALL_QUEUED,
+                changed_by=request.user,
+                note="Bulk trigger: queued for calling",
+            )
+            count += 1
 
         skipped = len(pks) - count
         if count:
@@ -239,9 +249,16 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                     django_messages.error(request, "Selected position not found.")
 
         elif action == "trigger_calls":
-            eligible = qs.filter(status=Application.Status.PENDING_CALL)
-            queued   = eligible.update(status=Application.Status.CALL_QUEUED)
-            skipped  = count - queued
+            eligible = list(qs.filter(status=Application.Status.PENDING_CALL))
+            queued = 0
+            for app in eligible:
+                app.change_status(
+                    Application.Status.CALL_QUEUED,
+                    changed_by=request.user,
+                    note="Bulk action: queued for calling",
+                )
+                queued += 1
+            skipped = count - queued
             if queued:
                 django_messages.success(request, f"{queued} application(s) queued for calling.")
             if skipped:
@@ -297,13 +314,11 @@ class ScheduleCallbackView(LoginRequiredMixin, View):
         app = get_object_or_404(Application, pk=pk)
         form = ScheduleCallbackForm(request.POST)
         if form.is_valid():
-            app.callback_scheduled_at = form.cleaned_data["callback_at"]
-            app.save(update_fields=["callback_scheduled_at", "updated_at"])
-            note = form.cleaned_data["note"] or "Callback scheduled"
-            app.change_status(
-                Application.Status.CALLBACK_SCHEDULED,
+            set_callback_scheduled(
+                app,
+                callback_at=form.cleaned_data["callback_at"],
                 changed_by=request.user,
-                note=note,
+                note=form.cleaned_data["note"] or "Callback scheduled",
             )
             django_messages.success(request, "Callback scheduled.")
         else:
@@ -365,11 +380,6 @@ class CallNowView(LoginRequiredMixin, View):
         service = ElevenLabsService()
         try:
             call = service.initiate_outbound_call(app)
-            app.change_status(
-                Application.Status.CALL_IN_PROGRESS,
-                changed_by=request.user,
-                note=f"Immediate call initiated (call #{call.pk})",
-            )
             django_messages.success(
                 request,
                 f"Call initiated to {app.candidate.phone} "

@@ -38,7 +38,7 @@ from django.db import transaction
 
 from applications.models import Application
 from candidates.models import Candidate
-from candidates.services import lookup_candidate_by_email, lookup_candidate_by_phone
+from candidates.services import lookup_candidate_by_email, lookup_candidate_by_phone, _digits_only, _phones_match
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
@@ -379,12 +379,12 @@ def _fuzzy_match_name(name: str, candidates) -> Candidate | None:
     """
     name_lower = name.lower().strip()
     best_candidate = None
-    best_ratio = FUZZY_NAME_THRESHOLD - 0.001  # must beat threshold, not just equal
+    best_ratio = 0.0
 
     for candidate in candidates:
         full = build_full_name(candidate.first_name, candidate.last_name).lower()
         ratio = SequenceMatcher(None, name_lower, full).ratio()
-        if ratio > best_ratio:
+        if ratio >= FUZZY_NAME_THRESHOLD and ratio > best_ratio:
             best_ratio = ratio
             best_candidate = candidate
 
@@ -535,20 +535,18 @@ def _extract_text_from_file(file_name: str, file_content: bytes) -> str:
     """
     Extract plain text from a CV file for P5 content analysis.
 
-    Supports:
-      - PDF  (via pdfplumber, first PDF_MAX_PAGES pages)
-      - Other formats  (UTF-8 decode with error replacement)
+    Only PDF files are supported (via pdfplumber, first PDF_MAX_PAGES pages).
+    Non-PDF files are rejected and return an empty string.
     """
     name_lower = (file_name or "").lower()
 
     if name_lower.endswith(".pdf"):
         return _extract_pdf_text(file_content)
 
-    # Fallback: treat as plain text (e.g. .txt, .docx raw bytes are discardable)
-    try:
-        return file_content.decode("utf-8", errors="replace")[:8000]
-    except Exception:
-        return ""
+    logger.debug(
+        "CV text extraction skipped for non-PDF file: %s", file_name,
+    )
+    return ""
 
 
 def _extract_pdf_text(content: bytes) -> str:
@@ -607,43 +605,6 @@ def _save_unmatched(
         file_path=file_path,
         raw_payload=raw_payload,
     )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Phone normalisation
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _digits_only(phone: str) -> str:
-    """Strip all non-digit characters from a phone string."""
-    return re.sub(r"\D", "", phone or "")
-
-
-def _phones_match(query_digits: str, stored_phone: str) -> bool:
-    """
-    Compare two phone numbers by their digit-only representations.
-    Handles country-code prefix differences by checking if either is a suffix
-    of the other (minimum 7 significant digits required).
-
-    Examples:
-      "+44 7700 900123" vs "07700900123"  → True (suffix match)
-      "7700900123"      vs "+447700900123"→ True (suffix match)
-      "12345"           vs "12345"        → True (exact match)
-    """
-    stored_digits = _digits_only(stored_phone)
-    if not stored_digits or len(query_digits) < 7:
-        return False
-
-    # Exact match
-    if query_digits == stored_digits:
-        return True
-
-    # Suffix match: the shorter number's digits are the tail of the longer
-    short, long_ = (
-        (query_digits, stored_digits)
-        if len(query_digits) <= len(stored_digits)
-        else (stored_digits, query_digits)
-    )
-    return long_.endswith(short) and len(short) >= 7
 
 
 # ─────────────────────────────────────────────────────────────────────────────

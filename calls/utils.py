@@ -139,7 +139,13 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
         application = call.application
 
         if is_completed:
-            set_scoring(application, note="Call completed; moved to scoring")
+            from applications.transitions import transition_status
+            transition_status(
+                application,
+                Application.Status.CALL_COMPLETED,
+                note="Call completed by ElevenLabs",
+            )
+            set_scoring(application, note="Moved to scoring after call completion")
 
         elif call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
             position = application.position
