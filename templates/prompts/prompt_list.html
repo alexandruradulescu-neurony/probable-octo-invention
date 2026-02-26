@@ -28,7 +28,7 @@
       </thead>
       <tbody>
         {% for tpl in templates %}
-        <tr {% if tpl.is_active %}style="background: #fafafa;"{% endif %}>
+        <tr {% if tpl.is_active %}style="background: var(--bg-page);"{% endif %}>
           <td>
             <div class="fw-medium">{{ tpl.name }}</div>
           </td>
@@ -46,7 +46,7 @@
           <td class="text-end">
             <form method="post" action="{% url 'prompts:toggle_active' tpl.pk %}" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-secondary btn-sm" style="{% if tpl.is_active %}color: var(--text-secondary);{% else %}color: #059669;{% endif %}">
+              <button type="submit" class="btn btn-secondary btn-sm" style="{% if tpl.is_active %}color: var(--text-secondary);{% else %}color: var(--accent-positive);{% endif %}">
                 {% if tpl.is_active %}Deactivate{% else %}Activate{% endif %}
               </button>
             </form>

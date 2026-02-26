@@ -16,31 +16,31 @@
 <!-- Step 3: Results -->
 <div class="card mb-4" style="max-width: 800px; margin: 0 auto;">
   <div class="card-header d-flex align-items-center gap-2">
-    <svg width="16" height="16" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--accent-positive);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
     <h2 class="card-header-title m-0">Import Complete {% if position %}<span class="text-tertiary" style="font-weight: 400;">— {{ position.title }}</span>{% endif %}</h2>
   </div>
   <div class="card-body">
     <div class="row g-3 text-center mb-4">
       <div class="col-sm-6 col-lg-3">
-        <div style="padding: 1rem; border-radius: 6px; background: #ecfdf5; border: 1px solid rgba(5, 150, 105, 0.1);">
-          <div style="font-size: 1.75rem; font-weight: 700; color: #059669; letter-spacing: -0.02em;">{{ summary.created }}</div>
-          <div class="text-xs" style="color: #065f46; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">New Candidates</div>
+        <div style="padding: 1rem; border-radius: var(--radius-sm); background: var(--status-offered-bg); border: 1px solid rgba(1, 181, 116, 0.15);">
+          <div style="font-size: 1.75rem; font-weight: 700; color: var(--accent-positive); letter-spacing: -0.02em;">{{ summary.created }}</div>
+          <div class="text-xs" style="color: var(--status-offered-text); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">New Candidates</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div style="padding: 1rem; border-radius: 6px; background: #eff6ff; border: 1px solid rgba(37, 99, 235, 0.1);">
-          <div style="font-size: 1.75rem; font-weight: 700; color: #2563eb; letter-spacing: -0.02em;">{{ summary.updated }}</div>
-          <div class="text-xs" style="color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Updated Existing</div>
+        <div style="padding: 1rem; border-radius: var(--radius-sm); background: var(--status-review-bg); border: 1px solid rgba(57, 101, 255, 0.15);">
+          <div style="font-size: 1.75rem; font-weight: 700; color: var(--accent-primary); letter-spacing: -0.02em;">{{ summary.updated }}</div>
+          <div class="text-xs" style="color: var(--status-review-text); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Updated Existing</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div style="padding: 1rem; border-radius: 6px; background: #f3f0ff; border: 1px solid rgba(124, 58, 237, 0.1);">
-          <div style="font-size: 1.75rem; font-weight: 700; color: #7c3aed; letter-spacing: -0.02em;">{{ summary.applications_created }}</div>
-          <div class="text-xs" style="color: #5b21b6; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Apps Created</div>
+        <div style="padding: 1rem; border-radius: var(--radius-sm); background: var(--accent-primary-pale); border: 1px solid rgba(67, 24, 255, 0.12);">
+          <div style="font-size: 1.75rem; font-weight: 700; color: var(--accent-primary); letter-spacing: -0.02em;">{{ summary.applications_created }}</div>
+          <div class="text-xs" style="color: var(--status-interview-text); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Apps Created</div>
         </div>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div style="padding: 1rem; border-radius: 6px; background: #f8f8f8; border: 1px solid var(--border-default);">
+        <div style="padding: 1rem; border-radius: var(--radius-sm); background: var(--bg-page); border: 1px solid var(--border-default);">
           <div style="font-size: 1.75rem; font-weight: 700; color: var(--text-secondary); letter-spacing: -0.02em;">{{ summary.applications_skipped }}</div>
           <div class="text-xs text-tertiary" style="text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem;">Duplicates Skipped</div>
         </div>
@@ -55,7 +55,7 @@
       </div>
       <p class="text-sm mb-3">These candidates were newly created but share a phone or email with an existing candidate (different Meta Lead ID). Please review.</p>
       
-      <div class="table-responsive" style="background: white; border-radius: 4px; border: 1px solid #fef08a;">
+      <div class="table-responsive" style="background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid rgba(240, 180, 41, 0.3);">
         <table class="table mb-0">
           <thead style="background: #fefce8;">
             <tr>
@@ -125,7 +125,7 @@
     <h2 class="card-header-title m-0">Preview <span class="text-tertiary" style="font-weight: 400;">— {{ position.title }}</span></h2>
   </div>
   <div class="card-body p-0">
-    <div class="p-3 border-bottom text-sm" style="background: #fafafa; border-color: var(--border-light) !important;">
+    <div class="p-3 border-bottom text-sm" style="background: var(--bg-page); border-color: var(--border-light) !important;">
       <div>
         <strong>{{ total_rows }}</strong> rows parsed.
         {% if total_rows > showing_rows %}
@@ -135,7 +135,7 @@
       {% if dynamic_columns %}
       <div class="text-xs text-tertiary mt-1">
         <strong class="text-secondary">{{ dynamic_columns|length }}</strong> form question columns detected:
-        <span style="font-family: monospace; background: #ebebeb; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{{ dynamic_columns|join:", " }}</span>
+        <span class="code-inline">{{ dynamic_columns|join:", " }}</span>
       </div>
       {% endif %}
     </div>
@@ -162,7 +162,7 @@
             <td class="text-secondary">{{ row.campaign|default:"—" }}</td>
             <td class="text-center">
               {% if row.form_answers_count %}
-              <span class="badge" style="background: #f0f0f0; color: var(--text-primary);">{{ row.form_answers_count }}</span>
+              <span class="badge badge-neutral">{{ row.form_answers_count }}</span>
               {% else %}
               <span class="text-muted-custom">0</span>
               {% endif %}
@@ -173,7 +173,7 @@
       </table>
     </div>
 
-    <div class="p-3 border-top bg-white d-flex gap-2 align-items-center justify-content-between" style="border-color: var(--border-light) !important;">
+    <div class="p-3 border-top d-flex gap-2 align-items-center justify-content-between" style="background: var(--bg-card); border-color: var(--border-light) !important;">
       <a href="{% url 'candidates:csv_import' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
         Start Over
@@ -200,7 +200,7 @@
         <h2 class="card-header-title m-0">Upload Meta CSV</h2>
       </div>
       <div class="card-body p-4">
-        <div class="mb-4 p-3" style="background: #fafafa; border: 1px solid var(--border-light); border-radius: 6px;">
+        <div class="mb-4 info-block">
           <div class="text-sm fw-semibold mb-2" style="text-transform: uppercase; letter-spacing: 0.05em;">How it works</div>
           <ol class="text-sm text-secondary mb-0" style="padding-left: 1.2rem; line-height: 1.6;">
             <li class="mb-1">Select the target <strong>Position</strong> — all imported candidates will be linked to it.</li>

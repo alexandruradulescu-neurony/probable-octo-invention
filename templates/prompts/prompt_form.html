@@ -41,8 +41,8 @@
             <label for="id_meta_prompt" class="form-label">Meta-Prompt</label>
             {{ form.meta_prompt }}
             <div class="help-text" style="line-height: 1.5;">
-              Available placeholders: <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{title}</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{description}</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">{campaign_questions}</code>.<br>
-              Claude must return JSON with keys: <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">system_prompt</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">first_message</code>, <code style="background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--text-secondary);">qualification_prompt</code>.
+              Available placeholders: <code class="code-inline">{title}</code>, <code class="code-inline">{description}</code>, <code class="code-inline">{campaign_questions}</code>.<br>
+              Claude must return JSON with keys: <code class="code-inline">system_prompt</code>, <code class="code-inline">first_message</code>, <code class="code-inline">qualification_prompt</code>.
             </div>
             {% if form.meta_prompt.errors %}<div class="error-text">{{ form.meta_prompt.errors.0 }}</div>{% endif %}
           </div>
@@ -88,15 +88,15 @@
           <hr style="border-color: var(--border-light); margin: 1.5rem 0;">
           <div class="mb-3">
             <label class="form-label">System Prompt</label>
-            <pre id="result-system" class="text-sm text-secondary" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); max-height: 150px; overflow-y: auto; white-space: pre-wrap; margin: 0; font-family: monospace;"></pre>
+            <pre id="result-system" class="text-sm text-secondary pre-block"></pre>
           </div>
           <div class="mb-3">
             <label class="form-label">First Message</label>
-            <pre id="result-first" class="text-sm text-secondary" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); max-height: 150px; overflow-y: auto; white-space: pre-wrap; margin: 0; font-family: monospace;"></pre>
+            <pre id="result-first" class="text-sm text-secondary pre-block"></pre>
           </div>
           <div>
             <label class="form-label">Qualification Prompt</label>
-            <pre id="result-qual" class="text-sm text-secondary" style="background: #fafafa; padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-light); max-height: 150px; overflow-y: auto; white-space: pre-wrap; margin: 0; font-family: monospace;"></pre>
+            <pre id="result-qual" class="text-sm text-secondary pre-block"></pre>
           </div>
         </div>
 
