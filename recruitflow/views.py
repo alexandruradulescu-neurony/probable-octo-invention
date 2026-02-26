@@ -154,11 +154,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         }
 
         stages = [
-            {"label": "Pending", "count": Application.objects.filter(status__in=pending_statuses).count(), "color": "#2563eb"},
-            {"label": "Screening", "count": Application.objects.filter(status__in=screening_statuses).count(), "color": "#ca8a04"},
-            {"label": "Evaluated", "count": Application.objects.filter(status__in=qualified_statuses).count(), "color": "#7c3aed"},
-            {"label": "Awaiting CV", "count": Application.objects.filter(status__in=awaiting_cv_statuses).count(), "color": "#059669"},
-            {"label": "Completed", "count": Application.objects.filter(status__in=completed_statuses).count(), "color": "#111113"},
+            {"label": "Pending",     "count": Application.objects.filter(status__in=pending_statuses).count(),     "color": "#A3AED0"},
+            {"label": "Screening",   "count": Application.objects.filter(status__in=screening_statuses).count(),   "color": "#7551FF"},
+            {"label": "Evaluated",   "count": Application.objects.filter(status__in=qualified_statuses).count(),   "color": "#4318FF"},
+            {"label": "Awaiting CV", "count": Application.objects.filter(status__in=awaiting_cv_statuses).count(), "color": "#F0B429"},
+            {"label": "Completed",   "count": Application.objects.filter(status__in=completed_statuses).count(),   "color": "#01B574"},
         ]
 
         max_count = max((s["count"] for s in stages), default=1) or 1
