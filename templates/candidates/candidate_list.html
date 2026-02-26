@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Candidates — RecruitFlow{% endblock %}
+{% block breadcrumb %}Candidates{% endblock %}
 {% block page_title %}Candidates{% endblock %}
 
 {% block topbar_actions %}
@@ -81,12 +82,10 @@
           </td>
           <td class="text-sm text-secondary">{{ c.phone|default:"—" }}</td>
           <td class="text-center">
-            <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ c.application_count }}</span>
+            <span class="badge badge-neutral">{{ c.application_count }}</span>
           </td>
           <td>
-            <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">
-              {{ c.get_source_display }}
-            </span>
+            <span class="badge badge-neutral">{{ c.get_source_display }}</span>
           </td>
           <td class="text-xs text-muted-custom">{{ c.created_at|date:"d M Y" }}</td>
           <td class="text-end">

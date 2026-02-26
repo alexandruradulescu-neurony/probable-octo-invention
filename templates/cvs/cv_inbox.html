@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}CV Inbox — RecruitFlow{% endblock %}
+{% block breadcrumb %}CV Inbox{% endblock %}
 {% block page_title %}CV Inbox{% endblock %}
 
 {% block content %}
@@ -11,20 +12,21 @@
   }
   .nav-tabs .nav-link {
     border: none;
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
     padding: 0.5rem 0;
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 600;
     background: transparent;
     border-bottom: 2px solid transparent;
+    transition: color 0.15s;
   }
   .nav-tabs .nav-link:hover {
     color: var(--text-primary);
     border-color: transparent;
   }
   .nav-tabs .nav-link.active {
-    color: var(--text-primary);
-    border-bottom-color: var(--text-primary);
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
     background: transparent;
   }
 </style>
@@ -35,7 +37,7 @@
     <button class="nav-link active" id="unmatched-tab" data-bs-toggle="tab" data-bs-target="#unmatched-pane" type="button" role="tab">
       Unmatched
       {% if unmatched_items %}
-        <span class="badge" style="background: #fef2f2; color: #dc2626; margin-left: 0.25rem;">{{ unmatched_items|length }}</span>
+        <span class="badge" style="background: var(--status-rejected-bg); color: var(--status-rejected-text); margin-left: 0.25rem;">{{ unmatched_items|length }}</span>
       {% endif %}
     </button>
   </li>
@@ -43,7 +45,7 @@
     <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review-pane" type="button" role="tab">
       Needs Review
       {% if needs_review_items %}
-        <span class="badge" style="background: #fefce8; color: #854d0e; margin-left: 0.25rem;">{{ needs_review_items|length }}</span>
+        <span class="badge" style="background: var(--status-screening-bg); color: var(--status-screening-text); margin-left: 0.25rem;">{{ needs_review_items|length }}</span>
       {% endif %}
     </button>
   </li>
@@ -145,7 +147,7 @@
                   <form method="post" action="{% url 'cvs:confirm_review' %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="cv_upload_id" value="{{ cv.pk }}">
-                    <button type="submit" class="btn btn-sm" style="color: #059669; border: 1px solid #059669; background: transparent;">
+                    <button type="submit" class="btn btn-sm" style="color: var(--status-offered-text); border: 1px solid var(--accent-positive); background: var(--status-offered-bg);">
                       Confirm
                     </button>
                   </form>

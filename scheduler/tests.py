@@ -4,8 +4,9 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.utils import timezone
 
-from applications.models import Application
+from applications.models import Application, StatusChange
 from calls.models import Call
+from calls.services import ElevenLabsError
 from candidates.models import Candidate
 from messaging.models import Message
 from positions.models import Position
@@ -48,6 +49,36 @@ class SchedulerJobTests(TestCase):
         jobs.process_call_queue.__wrapped__()
 
         self.assertTrue(mock_batch.called)
+
+    @patch("scheduler.jobs.ElevenLabsService.initiate_batch_calls", side_effect=ElevenLabsError("boom"))
+    def test_process_call_queue_batch_failure_marks_call_failed_with_audit(self, mock_batch):
+        position = _make_position()
+        app_1 = Application.objects.create(
+            candidate=_make_candidate(),
+            position=position,
+            status=Application.Status.CALL_QUEUED,
+        )
+        app_2 = Application.objects.create(
+            candidate=_make_candidate(),
+            position=position,
+            status=Application.Status.CALL_QUEUED,
+        )
+
+        jobs.process_call_queue.__wrapped__()
+
+        app_1.refresh_from_db()
+        app_2.refresh_from_db()
+        self.assertEqual(app_1.status, Application.Status.CALL_FAILED)
+        self.assertEqual(app_2.status, Application.Status.CALL_FAILED)
+        self.assertEqual(mock_batch.call_count, 1)
+        self.assertEqual(
+            StatusChange.objects.filter(
+                application_id__in=[app_1.pk, app_2.pk],
+                from_status=Application.Status.CALL_QUEUED,
+                to_status=Application.Status.CALL_FAILED,
+            ).count(),
+            2,
+        )
 
     @patch("scheduler.jobs.send_followup")
     def test_check_cv_followups_advances_due_application(self, mock_send_followup):

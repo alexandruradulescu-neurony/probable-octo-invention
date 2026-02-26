@@ -1031,6 +1031,8 @@ APSCHEDULER_TIMEZONE=UTC
 - Application status transitions are centralized in `applications/transitions.py`.
 - Services and jobs should call transition helpers (e.g. `set_call_in_progress`, `set_scoring`, `set_call_failed`, `set_callback_scheduled`, `set_cv_received`) instead of assigning `application.status` directly.
 - Transition helpers route through `Application.change_status(...)` for consistent audit entries in `StatusChange`.
+- For user-initiated operations, pass `changed_by` through transition helpers so `StatusChange.changed_by` remains populated.
+- Multi-step helpers that update side fields before status transition (`set_callback_scheduled`, `set_needs_human`, `set_cv_received`) execute inside one `transaction.atomic()` block to prevent partial state writes.
 
 13.2 CV matching DRY rules
 - Shared CV constants and flow helpers live in:
@@ -1066,3 +1068,8 @@ APSCHEDULER_TIMEZONE=UTC
   - `calls/migrations/0003_alter_call_status.py`
   - `messaging/migrations/0002_alter_message_status.py`
   - `cvs/migrations/0002_alter_cvupload_needs_review_and_more.py`
+
+13.6 Scheduler batch-failure transition mode
+- In `scheduler/jobs.py`, batch submit failures are handled with per-application transition helpers (`set_call_failed`) instead of bulk SQL updates.
+- This preserves one audit `StatusChange` per affected application.
+- The failure path guards writes by first selecting only applications still in `CALL_QUEUED`, reducing unnecessary transition calls during concurrent state changes.

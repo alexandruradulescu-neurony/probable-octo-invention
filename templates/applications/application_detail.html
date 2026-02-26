@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ candidate.full_name }} — {{ position.title }} — RecruitFlow{% endblock %}
-{% block page_title %}Application Detail{% endblock %}
+{% block breadcrumb %}Applications{% endblock %}
+{% block page_title %}{{ candidate.full_name }}{% endblock %}
 
 {% block topbar_actions %}
 <div class="d-flex align-items-center gap-2">
@@ -42,7 +43,7 @@
               {% endif %}
               
               {% if application.score is not None %}
-                <div class="badge" style="background: #f0f0f0; color: var(--text-primary);">Score: {{ application.score }}/100</div>
+                <div class="badge badge-neutral">Score: {{ application.score }}/100</div>
               {% endif %}
             </div>
           </div>
@@ -108,7 +109,7 @@
               View Transcript
             </a>
             <div class="collapse mt-2" id="transcript-{{ call.pk }}">
-              <div class="p-3 text-sm text-secondary" style="background: #fafafa; border: 1px solid var(--border-light); border-radius: 6px; white-space: pre-line; max-height: 300px; overflow-y: auto;">{{ call.transcript }}</div>
+              <div class="p-3 text-sm text-secondary" style="background: var(--bg-page); border: 1px solid var(--border-default); border-radius: var(--radius-md); white-space: pre-line; max-height: 300px; overflow-y: auto;">{{ call.transcript }}</div>
             </div>
           </div>
           {% endif %}
@@ -235,32 +236,38 @@
       <h6 class="text-xs fw-semibold text-tertiary mb-3" style="text-transform: uppercase; letter-spacing: 0.05em;">Take Action</h6>
       
       <!-- Status Override -->
-      <form method="post" action="{% url 'applications:override_status' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
+      <form method="post" action="{% url 'applications:override_status' application.pk %}" class="card mb-3">
         {% csrf_token %}
-        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Change Status</label>
-        <div class="d-flex flex-column gap-2">
-          {{ status_override_form.new_status }}
-          {{ status_override_form.reason }}
-          <button type="submit" class="btn btn-secondary w-100">Update</button>
+        <div class="card-body">
+          <label class="form-label">Change Status</label>
+          <div class="d-flex flex-column gap-2">
+            {{ status_override_form.new_status }}
+            {{ status_override_form.reason }}
+            <button type="submit" class="btn btn-secondary w-100">Update</button>
+          </div>
         </div>
       </form>
 
       <!-- Add Note -->
-      <form method="post" action="{% url 'applications:add_note' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
+      <form method="post" action="{% url 'applications:add_note' application.pk %}" class="card mb-3">
         {% csrf_token %}
-        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Internal Note</label>
-        {{ add_note_form.note }}
-        <button type="submit" class="btn btn-secondary w-100 mt-2">Save Note</button>
+        <div class="card-body">
+          <label class="form-label">Internal Note</label>
+          {{ add_note_form.note }}
+          <button type="submit" class="btn btn-secondary w-100 mt-2">Save Note</button>
+        </div>
       </form>
 
       <!-- Schedule Callback -->
-      <form method="post" action="{% url 'applications:schedule_callback' application.pk %}" class="mb-3 p-3 bg-white border" style="border-radius: 6px; border-color: var(--border-default) !important;">
+      <form method="post" action="{% url 'applications:schedule_callback' application.pk %}" class="card mb-3">
         {% csrf_token %}
-        <label class="form-label" style="text-transform: none; letter-spacing: 0;">Schedule Callback</label>
-        <div class="d-flex flex-column gap-2">
-          {{ schedule_callback_form.callback_at }}
-          {{ schedule_callback_form.note }}
-          <button type="submit" class="btn btn-secondary w-100">Schedule</button>
+        <div class="card-body">
+          <label class="form-label">Schedule Callback</label>
+          <div class="d-flex flex-column gap-2">
+            {{ schedule_callback_form.callback_at }}
+            {{ schedule_callback_form.note }}
+            <button type="submit" class="btn btn-secondary w-100">Schedule</button>
+          </div>
         </div>
       </form>
 
@@ -283,7 +290,7 @@
         {% if cv_uploads %}
         <div class="d-flex flex-column gap-2 mb-3">
           {% for cv in cv_uploads %}
-          <div class="p-2 border rounded d-flex align-items-center justify-content-between" style="border-color: var(--border-light) !important; background: #fafafa;">
+          <div class="p-2 border rounded d-flex align-items-center justify-content-between" style="border-color: var(--border-default) !important; background: var(--bg-page);">
             <div>
               <div class="text-sm fw-medium">{{ cv.file_name }}</div>
               <div class="text-xs text-tertiary">{{ cv.received_at|date:"M j, Y" }} &middot; {{ cv.get_source_display }}</div>
@@ -414,7 +421,7 @@
                 </div>
               </div>
               {% if sc.note %}
-                <div class="text-sm text-secondary mt-1 p-2" style="line-height: 1.4; background: #fafafa; border-radius: 4px; border: 1px solid var(--border-light);">{{ sc.note }}</div>
+                <div class="text-sm text-secondary mt-1 p-2" style="line-height: 1.4; background: var(--bg-page); border-radius: var(--radius-sm); border: 1px solid var(--border-default);">{{ sc.note }}</div>
               {% endif %}
               <div class="text-xs text-tertiary mt-1">
                 {% if sc.changed_by %}by {{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% else %}by System{% endif %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ candidate.full_name }} — RecruitFlow{% endblock %}
-{% block page_title %}Candidate Detail{% endblock %}
+{% block breadcrumb %}Candidates{% endblock %}
+{% block page_title %}{{ candidate.full_name }}{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'candidates:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
@@ -23,9 +24,9 @@
           <div>
             <h4 class="mb-1 fw-semibold">{{ candidate.full_name }}</h4>
             <div class="d-flex gap-2 align-items-center mt-1">
-              <div class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ candidate.get_source_display }}</div>
+              <div class="badge badge-neutral">{{ candidate.get_source_display }}</div>
               {% if candidate.campaign_name %}
-              <div class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ candidate.campaign_name }}</div>
+              <div class="badge badge-neutral">{{ candidate.campaign_name }}</div>
               {% endif %}
             </div>
           </div>
@@ -125,7 +126,7 @@
               <td>{% include "applications/_status_badge.html" with status=app.status %}</td>
               <td class="text-center">
                 {% if app.score is not None %}
-                <span class="fw-semibold" style="color: {% if app.qualified %}#059669{% else %}#dc2626{% endif %};">{{ app.score }}</span>
+                <span class="{% if app.qualified %}score-pass{% else %}score-fail{% endif %}">{{ app.score }}</span>
                 {% else %}
                 <span class="text-muted-custom">&mdash;</span>
                 {% endif %}

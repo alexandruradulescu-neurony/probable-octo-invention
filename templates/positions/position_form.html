@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ object|default:"New Position" }} — RecruitFlow{% endblock %}
+{% block breadcrumb %}Positions{% endblock %}
 {% block page_title %}{% if object %}Edit Position{% else %}New Position{% endif %}{% endblock %}
 
 {% block topbar_actions %}

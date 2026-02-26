@@ -34,6 +34,7 @@ def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=
         set_cv_received(
             application,
             rejected=not bool(application.qualified),
+            changed_by=changed_by,
             note="CV manually uploaded",
         )
 

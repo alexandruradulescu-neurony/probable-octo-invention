@@ -135,7 +135,7 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         ctx["position"] = app.position
         ctx["calls"] = app.calls.all()
         ctx["evaluations"] = app.evaluations.all()
-        ctx["messages"] = app.messages.all()
+        ctx["sent_messages"] = app.messages.all()
         ctx["cv_uploads"] = app.cv_uploads.all()
         ctx["status_changes"] = app.status_changes.all()
 

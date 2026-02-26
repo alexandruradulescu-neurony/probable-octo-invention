@@ -115,9 +115,21 @@ def process_call_queue() -> None:
                 len(eligible_for_batch),
                 exc_info=True,
             )
+            eligible_by_pk = {app.pk: app for app in eligible_for_batch}
+            queued_ids = set(
+                Application.objects
+                .filter(
+                    pk__in=eligible_by_pk.keys(),
+                    status=Application.Status.CALL_QUEUED,
+                )
+                .values_list("pk", flat=True)
+            )
             with transaction.atomic():
-                for application in eligible_for_batch:
-                    set_call_failed(application, note="Batch call submission failed")
+                for app_pk in queued_ids:
+                    set_call_failed(
+                        eligible_by_pk[app_pk],
+                        note="Batch call submission failed",
+                    )
 
     # ── Queue 2: individual — scheduled callbacks whose time has arrived ───────
     callbacks = (

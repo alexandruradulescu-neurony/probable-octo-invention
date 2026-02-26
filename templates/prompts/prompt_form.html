@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ object|default:"New Prompt Template" }} — RecruitFlow{% endblock %}
+{% block breadcrumb %}Configure{% endblock %}
 {% block page_title %}{% if object %}Edit Template: {{ object.name }}{% else %}New Prompt Template{% endif %}{% endblock %}
 
 {% block topbar_actions %}
