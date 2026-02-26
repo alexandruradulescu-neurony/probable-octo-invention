@@ -38,6 +38,7 @@ class Call(models.Model):
         max_length=20,
         choices=Status.choices,
         default=Status.INITIATED,
+        db_index=True,
     )
 
     # Full conversation transcript formatted as "Agent: ...\nUser: ..."

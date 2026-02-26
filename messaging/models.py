@@ -36,6 +36,7 @@ class Message(models.Model):
         max_length=10,
         choices=Status.choices,
         default=Status.PENDING,
+        db_index=True,
     )
 
     # External message ID returned by Gmail API or Whapi

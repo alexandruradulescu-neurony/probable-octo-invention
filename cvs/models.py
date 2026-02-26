@@ -43,7 +43,7 @@ class CVUpload(models.Model):
 
     # True when matched via medium-confidence method (fuzzy_name or cv_content).
     # Flagged for recruiter review in the CV Inbox screen.
-    needs_review = models.BooleanField(default=False)
+    needs_review = models.BooleanField(default=False, db_index=True)
 
     received_at = models.DateTimeField(default=timezone.now)
 
@@ -82,7 +82,7 @@ class UnmatchedInbound(models.Model):
     received_at = models.DateTimeField(default=timezone.now)
 
     # Resolution tracking
-    resolved = models.BooleanField(default=False)
+    resolved = models.BooleanField(default=False, db_index=True)
     resolved_by_application = models.ForeignKey(
         "applications.Application",
         on_delete=models.SET_NULL,

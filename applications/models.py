@@ -56,16 +56,17 @@ class Application(models.Model):
         max_length=30,
         choices=Status.choices,
         default=Status.PENDING_CALL,
+        db_index=True,
     )
 
     # Scoring results (null until Claude evaluation completes)
-    qualified = models.BooleanField(null=True, blank=True)
+    qualified = models.BooleanField(null=True, blank=True, db_index=True)
     score = models.PositiveSmallIntegerField(null=True, blank=True)
     score_notes = models.TextField(null=True, blank=True)
 
     # CV & scheduling timestamps
     cv_received_at = models.DateTimeField(null=True, blank=True)
-    callback_scheduled_at = models.DateTimeField(null=True, blank=True)
+    callback_scheduled_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     # Populated when Claude detects a human-escalation scenario
     needs_human_reason = models.TextField(null=True, blank=True)
