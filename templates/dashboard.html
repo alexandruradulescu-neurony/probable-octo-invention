@@ -349,7 +349,7 @@
         <div class="activity-divider"></div>
         {% for sc in recent_changes %}
         <div class="activity-item">
-          <div class="activity-time">{{ sc.changed_at|timesince:"now" }}</div>
+          <div class="activity-time">{{ sc.changed_at|timesince }}</div>
           <div class="activity-text">
             <strong>{{ sc.application.candidate.full_name }}</strong>
             moved to {{ sc.get_to_status_display }}
