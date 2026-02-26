@@ -3,17 +3,20 @@
 {% block page_title %}Prompt Templates{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'prompts:create' %}" class="btn btn-sm btn-dark">
-  <i class="bi bi-plus-lg"></i> New Template
+<a href="{% url 'prompts:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  New Template
 </a>
 {% endblock %}
 
 {% block content %}
-
-<div class="card border-0 shadow-sm">
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-header-title">All Templates</h2>
+  </div>
   <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
+    <table class="table mb-0">
+      <thead>
         <tr>
           <th>Name</th>
           <th class="text-center">Version</th>
@@ -24,32 +27,38 @@
       </thead>
       <tbody>
         {% for tpl in templates %}
-        <tr class="{% if tpl.is_active %}table-success{% endif %}">
-          <td class="fw-medium">{{ tpl.name }}</td>
-          <td class="text-center">v{{ tpl.version }}</td>
+        <tr {% if tpl.is_active %}style="background: #fafafa;"{% endif %}>
+          <td>
+            <div style="font-weight: 500; color: var(--text-primary);">{{ tpl.name }}</div>
+          </td>
+          <td class="text-center" style="font-size: 0.72rem; color: var(--text-secondary); font-variant-numeric: tabular-nums;">
+            v{{ tpl.version }}
+          </td>
           <td class="text-center">
             {% if tpl.is_active %}
-              <span class="badge bg-success">Active</span>
+              <div class="badge status-offered"><span class="badge-dot"></span> Active</div>
             {% else %}
-              <span class="text-muted">—</span>
+              <span style="color: var(--text-muted);">—</span>
             {% endif %}
           </td>
-          <td class="text-muted small">{{ tpl.updated_at|date:"M j, Y H:i" }}</td>
+          <td style="font-size: 0.72rem; color: var(--text-muted); font-variant-numeric: tabular-nums;">{{ tpl.updated_at|date:"M j, Y H:i" }}</td>
           <td class="text-end">
             <form method="post" action="{% url 'prompts:toggle_active' tpl.pk %}" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-sm {% if tpl.is_active %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+              <button type="submit" class="btn btn-ghost" style="{% if tpl.is_active %}color: var(--text-secondary);{% else %}color: #059669;{% endif %}">
                 {% if tpl.is_active %}Deactivate{% else %}Activate{% endif %}
               </button>
             </form>
-            <a href="{% url 'prompts:edit' tpl.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+            <a href="{% url 'prompts:edit' tpl.pk %}" class="btn btn-ghost">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5" class="text-center text-muted py-4">
-            No prompt templates yet.
-            <a href="{% url 'prompts:create' %}">Create one</a>.
+          <td colspan="5" class="text-center py-5">
+            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No prompt templates yet</div>
+            <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create your first template to get started.</div>
+            <a href="{% url 'prompts:create' %}" class="btn btn-secondary">Create Template</a>
           </td>
         </tr>
         {% endfor %}
@@ -57,5 +66,4 @@
     </table>
   </div>
 </div>
-
 {% endblock %}
