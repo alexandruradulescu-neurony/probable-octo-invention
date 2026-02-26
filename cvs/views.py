@@ -125,18 +125,26 @@ class CVInboxView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["unmatched_items"] = (
+        unmatched_qs = (
             UnmatchedInbound.objects
             .filter(resolved=False)
             .order_by("-received_at")
         )
+        unmatched_total = unmatched_qs.count()
+        ctx["unmatched_items"] = unmatched_qs[:100]
+        ctx["unmatched_total"] = unmatched_total
+        ctx["unmatched_capped"] = unmatched_total > 100
 
-        ctx["needs_review_items"] = (
+        review_qs = (
             CVUpload.objects
             .filter(needs_review=True)
-            .select_related("application__candidate", "application__position")
+            .select_related("application__candidate", "application__position", "candidate")
             .order_by("-received_at")
         )
+        review_total = review_qs.count()
+        ctx["needs_review_items"] = review_qs[:100]
+        ctx["needs_review_total"] = review_total
+        ctx["needs_review_capped"] = review_total > 100
 
         return ctx
 

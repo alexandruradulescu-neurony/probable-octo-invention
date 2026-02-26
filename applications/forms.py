@@ -7,6 +7,7 @@ notes, callback scheduling, follow-up trigger, and manual CV upload.
 
 from django import forms
 from django.core.validators import FileExtensionValidator
+from django.utils import timezone
 
 from applications.models import Application
 
@@ -52,6 +53,12 @@ class ScheduleCallbackForm(forms.Form):
             "placeholder": "Callback reason…",
         }),
     )
+
+    def clean_callback_at(self):
+        dt = self.cleaned_data.get("callback_at")
+        if dt and dt <= timezone.now():
+            raise forms.ValidationError("Callback time must be in the future.")
+        return dt
 
 
 class ManualCVUploadForm(forms.Form):

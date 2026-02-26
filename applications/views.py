@@ -28,7 +28,7 @@ from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from cvs.models import CVUpload
 from evaluations.models import LLMEvaluation
-from messaging.models import Message
+from messaging.models import CandidateReply, Message
 from positions.models import Position
 from recruitflow.text_utils import humanize_form_question
 
@@ -127,6 +127,10 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
                     "status_changes",
                     queryset=StatusChange.objects.select_related("changed_by").order_by("-changed_at"),
                 ),
+                Prefetch(
+                    "candidate_replies",
+                    queryset=CandidateReply.objects.order_by("-received_at"),
+                ),
             )
         )
 
@@ -137,7 +141,7 @@ class ApplicationDetailView(LoginRequiredMixin, DetailView):
         ctx["position"] = app.position
         ctx["calls"] = app.calls.all()
         ctx["sent_messages"] = app.messages.all()
-        ctx["candidate_replies"] = app.candidate_replies.order_by("-received_at")
+        ctx["candidate_replies"] = app.candidate_replies.all()
         ctx["cv_uploads"] = app.cv_uploads.all()
         ctx["status_changes"] = app.status_changes.all()
 
@@ -230,6 +234,13 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
         count = qs.count()
 
         if action == "delete":
+            confirm = request.POST.get("confirm_delete", "").strip().lower()
+            if confirm != "yes":
+                django_messages.error(
+                    request,
+                    "Delete not confirmed. Please check the confirmation checkbox before deleting.",
+                )
+                return redirect("applications:list")
             qs.delete()
             django_messages.success(request, f"Deleted {count} application(s).")
 
@@ -384,10 +395,25 @@ class CallNowView(LoginRequiredMixin, View):
     bypassing the scheduler queue. Useful for testing and one-off calls.
     """
 
+    CALLABLE_STATUSES = frozenset({
+        Application.Status.PENDING_CALL,
+        Application.Status.CALL_QUEUED,
+        Application.Status.CALL_FAILED,
+        Application.Status.CALLBACK_SCHEDULED,
+    })
+
     def post(self, request, pk):
         app = get_object_or_404(
             Application.objects.select_related("candidate", "position"), pk=pk
         )
+
+        if app.status not in self.CALLABLE_STATUSES:
+            django_messages.error(
+                request,
+                f"Cannot initiate call: application is in '{app.get_status_display()}' status. "
+                "Only Pending Call, Call Queued, Call Failed, or Callback Scheduled applications can be called.",
+            )
+            return redirect("applications:detail", pk=pk)
 
         service = ElevenLabsService()
         try:

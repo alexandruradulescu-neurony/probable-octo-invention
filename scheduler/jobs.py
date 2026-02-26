@@ -29,6 +29,7 @@ from django_apscheduler.util import close_old_connections
 
 from applications.models import Application, StatusChange
 from applications.transitions import set_call_failed, set_closed, set_followup_status
+from cvs.constants import AWAITING_CV_STATUSES
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from calls.utils import apply_call_result
@@ -376,6 +377,18 @@ def check_cv_followups() -> None:
     for app in pending_followup_apps:
         interval_hours = app.position.follow_up_interval_hours
         last_sent_at = app._last_sent_at
+
+        if last_sent_at is None:
+            last_sent_at = (
+                StatusChange.objects
+                .filter(
+                    application=app,
+                    to_status__in=list(AWAITING_CV_STATUSES),
+                )
+                .order_by("-changed_at")
+                .values_list("changed_at", flat=True)
+                .first()
+            )
 
         if last_sent_at is None:
             last_sent_at = app.updated_at
