@@ -1136,6 +1136,17 @@ body {
 .letter-spacing-1 { letter-spacing: 0.05em; }
 .hover-underline:hover { text-decoration: underline !important; }
 
+/* ── Contact / meta links (no underline at rest, accent on hover) ── */
+.contact-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.contact-link:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
 @keyframes rf-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
