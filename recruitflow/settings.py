@@ -42,6 +42,25 @@ CSRF_TRUSTED_ORIGINS = [o.strip() for o in env.list("CSRF_TRUSTED_ORIGINS", defa
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# ─── Security hardening ────────────────────────────────────────────────────────
+
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=not DEBUG)
+SECURE_HSTS_SECONDS = env.int(
+    "SECURE_HSTS_SECONDS",
+    default=31536000 if not DEBUG else 0,
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    default=not DEBUG,
+)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=not DEBUG)
+
 # ─── Application Definition ────────────────────────────────────────────────────
 
 DJANGO_APPS = [
@@ -184,3 +203,43 @@ GMAIL_INBOX_LABEL = env("GMAIL_INBOX_LABEL", default="CVs")
 GMAIL_PROCESSED_LABEL = env("GMAIL_PROCESSED_LABEL", default="CVs-Processed")
 GMAIL_POLL_ENABLED = env.bool("GMAIL_POLL_ENABLED", default=True)
 GMAIL_POLL_MINUTES = env.int("GMAIL_POLL_MINUTES", default=15)
+
+# ─── Logging ───────────────────────────────────────────────────────────────────
+
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+            "level": LOG_LEVEL,
+        },
+    },
+    "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "applications": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "calls": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "candidates": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "cvs": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "evaluations": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "messaging": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "scheduler": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "webhooks": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
