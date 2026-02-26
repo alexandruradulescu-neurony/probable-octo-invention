@@ -51,6 +51,9 @@
 
 <form method="post" action="{% url 'applications:bulk_action' %}" id="bulk-form">
   {% csrf_token %}
+  {# Server-side gate for the delete action (L6) — present in every submission;
+     the view only checks this field when action=delete. #}
+  <input type="hidden" name="confirm_delete" value="yes">
 
   <div id="bulk-bar" class="bulk-action-bar mb-3" style="display:none;">
     <span class="bulk-count-label"><strong id="bulk-count">0</strong> selected</span>
