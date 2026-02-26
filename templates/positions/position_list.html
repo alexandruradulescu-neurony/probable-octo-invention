@@ -3,16 +3,20 @@
 {% block page_title %}Positions{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'positions:create' %}" class="btn btn-sm btn-dark">
-  <i class="bi bi-plus-lg"></i> New Position
+<a href="{% url 'positions:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  New Position
 </a>
 {% endblock %}
 
 {% block content %}
-<div class="card border-0 shadow-sm">
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-header-title">All Positions</h2>
+  </div>
   <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
+    <table class="table mb-0">
+      <thead>
         <tr>
           <th>Title</th>
           <th>Status</th>
@@ -24,29 +28,36 @@
       <tbody>
         {% for pos in positions %}
         <tr>
-          <td class="fw-medium">{{ pos.title }}</td>
+          <td>
+            <div style="font-weight: 500; color: var(--text-primary);">{{ pos.title }}</div>
+          </td>
           <td>
             {% if pos.status == "open" %}
-              <span class="badge bg-success badge-status">Open</span>
+              <div class="badge status-offered"><span class="badge-dot"></span> Open</div>
             {% elif pos.status == "paused" %}
-              <span class="badge bg-warning text-dark badge-status">Paused</span>
+              <div class="badge status-screening"><span class="badge-dot"></span> Paused</div>
             {% else %}
-              <span class="badge bg-secondary badge-status">Closed</span>
+              <div class="badge status-rejected"><span class="badge-dot"></span> Closed</div>
             {% endif %}
           </td>
-          <td class="text-center">{{ pos.open_applications_count }}</td>
-          <td class="text-muted small">{{ pos.created_at|date:"M j, Y" }}</td>
+          <td class="text-center">
+            <span class="badge" style="background: #f0f0f0; color: var(--text-secondary);">{{ pos.open_applications_count }}</span>
+          </td>
+          <td style="font-size: 0.72rem; color: var(--text-muted);">{{ pos.created_at|date:"M j, Y" }}</td>
           <td class="text-end">
             <a href="{% url 'applications:list' %}?position={{ pos.pk }}"
-               class="btn btn-sm btn-outline-secondary">Applications</a>
+               class="btn btn-ghost">Applications</a>
             <a href="{% url 'positions:edit' pos.pk %}"
-               class="btn btn-sm btn-outline-dark">Edit</a>
+               class="btn btn-ghost">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5" class="text-center text-muted py-4">
-            No positions yet. <a href="{% url 'positions:create' %}">Create your first position</a>.
+          <td colspan="5" class="text-center py-5">
+            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No positions yet</div>
+            <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; margin-bottom: 1rem;">Create your first position to get started.</div>
+            <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
           </td>
         </tr>
         {% endfor %}

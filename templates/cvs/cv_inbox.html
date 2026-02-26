@@ -3,38 +3,61 @@
 {% block page_title %}CV Inbox{% endblock %}
 
 {% block content %}
+<style>
+  .nav-tabs {
+    border-bottom: 1px solid var(--border-default);
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+  .nav-tabs .nav-link {
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: transparent;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-tabs .nav-link:hover {
+    color: var(--text-primary);
+    border-color: transparent;
+  }
+  .nav-tabs .nav-link.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--text-primary);
+    background: transparent;
+  }
+</style>
 
 <!-- Tabs -->
-<ul class="nav nav-tabs mb-4" role="tablist">
+<ul class="nav nav-tabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="unmatched-tab" data-bs-toggle="tab"
-            data-bs-target="#unmatched-pane" type="button" role="tab">
+    <button class="nav-link active" id="unmatched-tab" data-bs-toggle="tab" data-bs-target="#unmatched-pane" type="button" role="tab">
       Unmatched
       {% if unmatched_items %}
-        <span class="badge bg-danger rounded-pill ms-1">{{ unmatched_items|length }}</span>
+        <span class="badge" style="background: #fef2f2; color: #dc2626; margin-left: 0.25rem;">{{ unmatched_items|length }}</span>
       {% endif %}
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" id="review-tab" data-bs-toggle="tab"
-            data-bs-target="#review-pane" type="button" role="tab">
+    <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review-pane" type="button" role="tab">
       Needs Review
       {% if needs_review_items %}
-        <span class="badge bg-warning text-dark rounded-pill ms-1">{{ needs_review_items|length }}</span>
+        <span class="badge" style="background: #fefce8; color: #854d0e; margin-left: 0.25rem;">{{ needs_review_items|length }}</span>
       {% endif %}
     </button>
   </li>
 </ul>
 
-<div class="tab-content">
+<div class="tab-content mt-4">
 
-  <!-- ── Tab 1: Unmatched ──────────────────────────────────────────────────── -->
+  <!-- Tab 1: Unmatched -->
   <div class="tab-pane fade show active" id="unmatched-pane" role="tabpanel">
-    <div class="card border-0 shadow-sm">
+    <div class="card">
       {% if unmatched_items %}
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+        <table class="table mb-0">
+          <thead>
             <tr>
               <th>Received</th>
               <th>Channel</th>
@@ -47,16 +70,16 @@
           <tbody>
             {% for item in unmatched_items %}
             <tr>
-              <td class="text-muted small text-nowrap">{{ item.received_at|date:"M j, H:i" }}</td>
+              <td style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">{{ item.received_at|date:"M j, H:i" }}</td>
               <td>
                 {% if item.channel == "email" %}
-                  <span class="badge bg-primary-subtle text-primary badge-status">Email</span>
+                  <div class="badge status-review"><span class="badge-dot"></span> Email</div>
                 {% else %}
-                  <span class="badge bg-success-subtle text-success badge-status">WhatsApp</span>
+                  <div class="badge status-offered"><span class="badge-dot"></span> WhatsApp</div>
                 {% endif %}
               </td>
-              <td class="small">{{ item.sender|truncatechars:35 }}</td>
-              <td class="small text-muted">
+              <td style="font-size: 0.72rem; color: var(--text-primary);">{{ item.sender|truncatechars:35 }}</td>
+              <td style="font-size: 0.72rem; color: var(--text-secondary);">
                 {% if item.subject %}
                   {{ item.subject|truncatechars:50 }}
                 {% elif item.body_snippet %}
@@ -65,15 +88,13 @@
                   —
                 {% endif %}
               </td>
-              <td class="small">{{ item.attachment_name|default:"—" }}</td>
+              <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ item.attachment_name|default:"—" }}</td>
               <td>
-                <form method="post" action="{% url 'cvs:assign_unmatched' %}"
-                      class="d-flex gap-1 align-items-center">
+                <form method="post" action="{% url 'cvs:assign_unmatched' %}" class="d-flex gap-2 align-items-center">
                   {% csrf_token %}
                   <input type="hidden" name="unmatched_id" value="{{ item.pk }}">
-                  <input type="number" name="application_id" placeholder="App ID"
-                         class="form-control form-control-sm" style="width:90px" required>
-                  <button type="submit" class="btn btn-sm btn-outline-dark text-nowrap">Assign</button>
+                  <input type="number" name="application_id" placeholder="App ID" class="form-control" style="width: 80px; padding: 0.25rem 0.5rem; font-size: 0.72rem;" required>
+                  <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;">Assign</button>
                 </form>
               </td>
             </tr>
@@ -82,21 +103,22 @@
         </table>
       </div>
       {% else %}
-      <div class="card-body text-center text-muted py-5">
-        <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
-        No unmatched inbound items. All caught up!
+      <div class="card-body text-center py-5">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: #059669; margin-bottom: 1rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No unmatched inbound items</div>
+        <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem;">All caught up!</div>
       </div>
       {% endif %}
     </div>
   </div>
 
-  <!-- ── Tab 2: Needs Review ───────────────────────────────────────────────── -->
+  <!-- Tab 2: Needs Review -->
   <div class="tab-pane fade" id="review-pane" role="tabpanel">
-    <div class="card border-0 shadow-sm">
+    <div class="card">
       {% if needs_review_items %}
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+        <table class="table mb-0">
+          <thead>
             <tr>
               <th>Received</th>
               <th>Candidate</th>
@@ -109,39 +131,29 @@
           <tbody>
             {% for cv in needs_review_items %}
             <tr>
-              <td class="text-muted small text-nowrap">{{ cv.received_at|date:"M j, H:i" }}</td>
-              <td class="fw-medium small">
-                {{ cv.application.candidate.full_name }}
-              </td>
-              <td class="small">{{ cv.application.position.title }}</td>
+              <td style="font-size: 0.72rem; color: var(--text-muted); white-space: nowrap;">{{ cv.received_at|date:"M j, H:i" }}</td>
               <td>
-                <span class="badge bg-warning-subtle text-warning badge-status">
-                  {{ cv.get_match_method_display }}
-                </span>
+                <div style="font-weight: 500; color: var(--text-primary); font-size: 0.72rem;">{{ cv.application.candidate.full_name }}</div>
               </td>
-              <td class="small">{{ cv.file_name|truncatechars:30 }}</td>
+              <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ cv.application.position.title }}</td>
               <td>
-                <div class="d-flex gap-1 flex-wrap">
-                  <!-- Confirm button -->
+                <div class="badge status-screening"><span class="badge-dot"></span> {{ cv.get_match_method_display }}</div>
+              </td>
+              <td style="font-size: 0.72rem; color: var(--text-secondary);">{{ cv.file_name|truncatechars:30 }}</td>
+              <td>
+                <div class="d-flex gap-2 flex-wrap">
                   <form method="post" action="{% url 'cvs:confirm_review' %}" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="cv_upload_id" value="{{ cv.pk }}">
-                    <button type="submit" class="btn btn-sm btn-outline-success"
-                            title="Confirm this match is correct">
-                      <i class="bi bi-check-lg"></i> Confirm
+                    <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.72rem; color: #059669; border-color: #059669;">
+                      Confirm
                     </button>
                   </form>
-                  <!-- Reassign form -->
-                  <form method="post" action="{% url 'cvs:reassign' %}"
-                        class="d-inline-flex gap-1 align-items-center">
+                  <form method="post" action="{% url 'cvs:reassign' %}" class="d-inline-flex gap-2 align-items-center">
                     {% csrf_token %}
                     <input type="hidden" name="cv_upload_id" value="{{ cv.pk }}">
-                    <input type="number" name="application_id" placeholder="App ID"
-                           class="form-control form-control-sm" style="width:80px" required>
-                    <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap"
-                            title="Move to a different application">
-                      Reassign
-                    </button>
+                    <input type="number" name="application_id" placeholder="App ID" class="form-control" style="width: 70px; padding: 0.25rem 0.5rem; font-size: 0.72rem;" required>
+                    <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.72rem;">Reassign</button>
                   </form>
                 </div>
               </td>
@@ -151,14 +163,14 @@
         </table>
       </div>
       {% else %}
-      <div class="card-body text-center text-muted py-5">
-        <i class="bi bi-check-circle fs-1 d-block mb-2 text-success"></i>
-        No CVs pending review. All caught up!
+      <div class="card-body text-center py-5">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: #059669; margin-bottom: 1rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-primary);">No CVs pending review</div>
+        <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem;">All caught up!</div>
       </div>
       {% endif %}
     </div>
   </div>
 
 </div>
-
 {% endblock %}

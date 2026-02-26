@@ -1,31 +1,31 @@
 {% if status == "pending_call" or status == "call_queued" %}
-  <span class="badge bg-secondary badge-status">{{ status|title }}</span>
+  <div class="badge status-screening"><span class="badge-dot"></span> {{ status|title }}</div>
 {% elif status == "call_in_progress" %}
-  <span class="badge bg-primary badge-status">In Progress</span>
+  <div class="badge status-interview"><span class="badge-dot"></span> In Progress</div>
 {% elif status == "call_completed" or status == "scoring" %}
-  <span class="badge bg-info badge-status">{{ status|title }}</span>
+  <div class="badge status-review"><span class="badge-dot"></span> {{ status|title }}</div>
 {% elif status == "call_failed" %}
-  <span class="badge bg-danger badge-status">Call Failed</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> Call Failed</div>
 {% elif status == "qualified" %}
-  <span class="badge bg-success badge-status">Qualified</span>
+  <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
 {% elif status == "not_qualified" %}
-  <span class="badge bg-danger badge-status">Not Qualified</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> Not Qualified</div>
 {% elif status == "awaiting_cv" or status == "cv_followup_1" or status == "cv_followup_2" %}
-  <span class="badge bg-warning text-dark badge-status">{{ status|title }}</span>
+  <div class="badge status-screening"><span class="badge-dot"></span> {{ status|title }}</div>
 {% elif status == "cv_overdue" %}
-  <span class="badge bg-danger badge-status">CV Overdue</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> CV Overdue</div>
 {% elif status == "cv_received" %}
-  <span class="badge bg-success badge-status">CV Received</span>
+  <div class="badge status-offered"><span class="badge-dot"></span> CV Received</div>
 {% elif status == "awaiting_cv_rejected" %}
-  <span class="badge bg-warning text-dark badge-status">Awaiting CV (Rej)</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> Awaiting CV (Rej)</div>
 {% elif status == "cv_received_rejected" %}
-  <span class="badge bg-dark badge-status">CV Received (Rej)</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> CV Received (Rej)</div>
 {% elif status == "callback_scheduled" %}
-  <span class="badge bg-info badge-status">Callback</span>
+  <div class="badge status-interview"><span class="badge-dot"></span> Callback</div>
 {% elif status == "needs_human" %}
-  <span class="badge bg-danger badge-status">Needs Human</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> Needs Human</div>
 {% elif status == "closed" %}
-  <span class="badge bg-dark badge-status">Closed</span>
+  <div class="badge status-rejected"><span class="badge-dot"></span> Closed</div>
 {% else %}
-  <span class="badge bg-secondary badge-status">{{ status }}</span>
+  <div class="badge status-screening"><span class="badge-dot"></span> {{ status }}</div>
 {% endif %}
