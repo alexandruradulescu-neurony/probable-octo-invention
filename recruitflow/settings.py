@@ -241,7 +241,7 @@ LOGGING = {
         "calls": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "candidates": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "cvs": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
-        "evaluations": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+        "evaluations": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "messaging": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "scheduler": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
         "webhooks": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},

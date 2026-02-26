@@ -274,28 +274,41 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def _attention_required(now, today_start) -> dict:
         """
         Items that require recruiter action.
+
+        The four Application-based counts are collapsed into a single aggregate query.
+        UnmatchedInbound and CVUpload counts remain as separate queries (different models).
         """
         today_end = today_start + timedelta(days=1)
 
+        # Single aggregate replaces 4 separate Application COUNT queries.
+        app_totals = Application.objects.aggregate(
+            call_failures=Count(
+                "id",
+                filter=Q(status=Application.Status.CALL_FAILED),
+            ),
+            cv_overdue=Count(
+                "id",
+                filter=Q(status=Application.Status.CV_OVERDUE),
+            ),
+            needs_human=Count(
+                "id",
+                filter=Q(status=Application.Status.NEEDS_HUMAN),
+            ),
+            callbacks_today=Count(
+                "id",
+                filter=Q(
+                    status=Application.Status.CALLBACK_SCHEDULED,
+                    callback_scheduled_at__gte=today_start,
+                    callback_scheduled_at__lt=today_end,
+                ),
+            ),
+        )
+
         return {
-            "call_failures": Application.objects.filter(
-                status=Application.Status.CALL_FAILED,
-            ).count(),
-            "cv_overdue": Application.objects.filter(
-                status=Application.Status.CV_OVERDUE,
-            ).count(),
-            "needs_human": Application.objects.filter(
-                status=Application.Status.NEEDS_HUMAN,
-            ).count(),
-            "callbacks_today": Application.objects.filter(
-                status=Application.Status.CALLBACK_SCHEDULED,
-                callback_scheduled_at__gte=today_start,
-                callback_scheduled_at__lt=today_end,
-            ).count(),
-            "unmatched_inbound": UnmatchedInbound.objects.filter(
-                resolved=False,
-            ).count(),
-            "needs_review_cvs": CVUpload.objects.filter(
-                needs_review=True,
-            ).count(),
+            "call_failures":    app_totals["call_failures"],
+            "cv_overdue":       app_totals["cv_overdue"],
+            "needs_human":      app_totals["needs_human"],
+            "callbacks_today":  app_totals["callbacks_today"],
+            "unmatched_inbound": UnmatchedInbound.objects.filter(resolved=False).count(),
+            "needs_review_cvs":  CVUpload.objects.filter(needs_review=True).count(),
         }

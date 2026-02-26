@@ -87,8 +87,11 @@ class PromptTemplateUpdateView(_StaffRequiredMixin, UpdateView):
     success_url = reverse_lazy("prompts:list")
 
     def form_valid(self, form):
-        form.instance.version = form.instance.version + 1
-        messages.success(self.request, "Prompt template saved (new version).")
+        if form.has_changed():
+            form.instance.version = form.instance.version + 1
+            messages.success(self.request, "Prompt template saved (new version).")
+        else:
+            messages.info(self.request, "No changes detected — template unchanged.")
         return super().form_valid(form)
 
 
