@@ -92,7 +92,8 @@ class GmailService:
     Requires google-api-python-client + google-auth-oauthlib.
     """
 
-    _service = None
+    def __init__(self):
+        self._service = None
 
     @property
     def service(self):

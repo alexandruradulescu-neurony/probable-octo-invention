@@ -102,6 +102,8 @@ class Application(models.Model):
             changed_by=changed_by,
             note=note,
         )
+        from django.core.cache import cache
+        cache.delete("sidebar_counts")
 
 
 class StatusChange(models.Model):

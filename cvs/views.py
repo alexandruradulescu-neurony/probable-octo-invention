@@ -14,6 +14,7 @@ Two tabs:
 import logging
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.db import transaction
 from django.db.models import Q
@@ -207,6 +208,8 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
                 "resolved", "resolved_by_application", "resolved_at",
             ])
 
+        cache.delete("sidebar_counts")
+
         logger.info(
             "Unmatched %s assigned to candidate %s (%s app(s) advanced) by user %s",
             unmatched.pk, candidate.pk, advanced_count, request.user.pk,
@@ -246,6 +249,7 @@ class ConfirmCVReviewView(LoginRequiredMixin, View):
         cv = get_object_or_404(CVUpload, pk=cv_upload_id, needs_review=True)
         cv.needs_review = False
         cv.save(update_fields=["needs_review"])
+        cache.delete("sidebar_counts")
 
         logger.info(
             "CV %s confirmed by user %s", cv.pk, request.user.pk,

@@ -240,10 +240,22 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
             else:
                 try:
                     pos = Position.objects.get(pk=position_id)
-                    qs.update(position=pos)
+                    moved = 0
+                    for app in qs.select_related("position"):
+                        old_title = app.position.title
+                        app.position = pos
+                        app.save(update_fields=["position", "updated_at"])
+                        StatusChange.objects.create(
+                            application=app,
+                            from_status=app.status,
+                            to_status=app.status,
+                            changed_by=request.user,
+                            note=f"Application moved from position '{old_title}' to '{pos.title}'",
+                        )
+                        moved += 1
                     django_messages.success(
                         request,
-                        f"Moved {count} application(s) to '{pos.title}'.",
+                        f"Moved {moved} application(s) to '{pos.title}'.",
                     )
                 except Position.DoesNotExist:
                     django_messages.error(request, "Selected position not found.")

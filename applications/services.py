@@ -6,18 +6,10 @@ from django.db import transaction
 
 from applications.models import Application
 from applications.transitions import set_cv_received
+from cvs.constants import AWAITING_CV_STATUSES
 from cvs.models import CVUpload
 
 logger = logging.getLogger(__name__)
-
-
-_CV_AWAITING_STATUSES = frozenset({
-    Application.Status.AWAITING_CV,
-    Application.Status.CV_FOLLOWUP_1,
-    Application.Status.CV_FOLLOWUP_2,
-    Application.Status.CV_OVERDUE,
-    Application.Status.AWAITING_CV_REJECTED,
-})
 
 
 def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=None) -> CVUpload:
@@ -42,7 +34,7 @@ def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=
     awaiting_apps = list(
         Application.objects.filter(
             candidate=candidate,
-            status__in=list(_CV_AWAITING_STATUSES),
+            status__in=list(AWAITING_CV_STATUSES),
         )
     )
     # Always include the anchor application even if its status is outside the set
@@ -63,7 +55,7 @@ def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=
             if first_upload is None:
                 first_upload = cv
 
-            if app.status in _CV_AWAITING_STATUSES:
+            if app.status in AWAITING_CV_STATUSES:
                 # Derive rejected path from the application's own status, not
                 # the qualified boolean (which may be None before evaluation).
                 rejected = app.status == Application.Status.AWAITING_CV_REJECTED

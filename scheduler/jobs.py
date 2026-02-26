@@ -458,7 +458,7 @@ def close_stale_rejected() -> None:
         baseline = transition_time or app.updated_at
         deadline = baseline + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
-            to_close.append((app.pk, "Rejected CV timeout — no CV received"))
+            to_close.append((app, "Rejected CV timeout — no CV received"))
 
     # Case 2: CV received but candidate was not qualified — archive after same window
     received = (
@@ -472,7 +472,7 @@ def close_stale_rejected() -> None:
     for app in received:
         deadline = app.cv_received_at + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
-            to_close.append((app.pk, "Rejected CV timeout — CV received, closing"))
+            to_close.append((app, "Rejected CV timeout — CV received, closing"))
 
     # Case 3: CV overdue — qualified candidate never sent a CV after all follow-ups
     cv_overdue = (
@@ -494,18 +494,16 @@ def close_stale_rejected() -> None:
         baseline = transition_time or app.updated_at
         deadline = baseline + timedelta(days=app.position.rejected_cv_timeout_days)
         if now >= deadline:
-            to_close.append((app.pk, "CV overdue timeout — closing after all follow-ups exhausted"))
+            to_close.append((app, "CV overdue timeout — closing after all follow-ups exhausted"))
 
     if not to_close:
         return
 
-    pk_to_note = {pk: note for pk, note in to_close}
-    apps_to_close = list(Application.objects.filter(pk__in=pk_to_note.keys()))
     closed_count = 0
-    for app in apps_to_close:
+    for app, note in to_close:
         try:
             with transaction.atomic():
-                set_closed(app, note=pk_to_note[app.pk])
+                set_closed(app, note=note)
                 closed_count += 1
         except Exception as exc:
             logger.error(

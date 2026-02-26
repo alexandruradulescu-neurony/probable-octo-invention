@@ -101,23 +101,25 @@ class ToggleActiveView(_StaffRequiredMixin, View):
     """
 
     def post(self, request, pk):
-        template = get_object_or_404(PromptTemplate, pk=pk)
-        if not template.is_active:
-            if template.section:
-                # Deactivate competing templates only within the same section.
-                PromptTemplate.objects.filter(
-                    section=template.section, is_active=True
-                ).exclude(pk=pk).update(is_active=False)
+        get_object_or_404(PromptTemplate, pk=pk)  # 404 guard
+        with db_transaction.atomic():
+            template = PromptTemplate.objects.select_for_update().get(pk=pk)
+            if not template.is_active:
+                if template.section:
+                    # Deactivate competing templates only within the same section.
+                    PromptTemplate.objects.filter(
+                        section=template.section, is_active=True
+                    ).exclude(pk=pk).update(is_active=False)
+                else:
+                    # Legacy template without a section — deactivate all others.
+                    PromptTemplate.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
+                template.is_active = True
+                template.save(update_fields=["is_active", "updated_at"])
+                messages.success(request, f"'{template.name}' is now the active template.")
             else:
-                # Legacy template without a section — deactivate all others.
-                PromptTemplate.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
-            template.is_active = True
-            template.save(update_fields=["is_active", "updated_at"])
-            messages.success(request, f"'{template.name}' is now the active template.")
-        else:
-            template.is_active = False
-            template.save(update_fields=["is_active", "updated_at"])
-            messages.info(request, f"'{template.name}' deactivated.")
+                template.is_active = False
+                template.save(update_fields=["is_active", "updated_at"])
+                messages.info(request, f"'{template.name}' deactivated.")
         return redirect("prompts:list")
 
 
