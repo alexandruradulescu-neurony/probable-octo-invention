@@ -12,12 +12,13 @@ Imported by webhooks/views.py, scheduler/jobs.py, and calls/services.py.
 """
 
 import logging
+from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
 
 from applications.models import Application
-from applications.transitions import set_call_failed, set_scoring
+from applications.transitions import set_call_failed, set_callback_scheduled, set_scoring
 from calls.models import Call
 from recruitflow.text_utils import humanize_form_question
 
@@ -141,7 +142,32 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
             set_scoring(application, note="Call completed; moved to scoring")
 
         elif call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
-            set_call_failed(application, note=f"Call ended with status {call_status}")
+            position = application.position
+            if call.attempt_number < position.call_retry_max:
+                retry_at = timezone.now() + timedelta(minutes=position.call_retry_interval_minutes)
+                set_callback_scheduled(
+                    application,
+                    callback_at=retry_at,
+                    note=(
+                        f"Call {call_status} on attempt {call.attempt_number}/"
+                        f"{position.call_retry_max} — retry scheduled in "
+                        f"{position.call_retry_interval_minutes} min"
+                    ),
+                )
+                logger.info(
+                    "Call retry scheduled: application=%s attempt=%s/%s retry_at=%s",
+                    application.pk,
+                    call.attempt_number,
+                    position.call_retry_max,
+                    retry_at,
+                )
+            else:
+                set_call_failed(
+                    application,
+                    note=(
+                        f"Call {call_status} — all {position.call_retry_max} attempt(s) exhausted"
+                    ),
+                )
 
     return call_status, is_completed
 
