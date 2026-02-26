@@ -143,11 +143,15 @@ def lookup_candidate_by_phone(phone: str) -> "Candidate | None":
     Returns None if no match is found.
     """
     digits = _digits_only(phone)
-    if not digits:
+    if not digits or len(digits) < 7:
         return None
-    for candidate in Candidate.objects.filter(phone__isnull=False).only(
-        "id", "phone", "whatsapp_number"
-    ):
+
+    suffix = digits[-10:]
+    candidates = Candidate.objects.filter(
+        Q(phone__endswith=suffix) | Q(whatsapp_number__endswith=suffix)
+    ).only("id", "phone", "whatsapp_number")
+
+    for candidate in candidates:
         if _phones_match(digits, candidate.phone):
             return candidate
         if candidate.whatsapp_number and _phones_match(digits, candidate.whatsapp_number):

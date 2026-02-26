@@ -1,15 +1,24 @@
+from django.core.cache import cache
+
 from applications.models import Application
 from candidates.models import Candidate
 from cvs.models import UnmatchedInbound, CVUpload
 from messaging.models import CandidateReply
 from positions.models import Position
 
+SIDEBAR_CACHE_KEY = "sidebar_counts"
+SIDEBAR_CACHE_TTL = 60
+
 
 def sidebar_counts(request):
     if not request.user.is_authenticated:
         return {}
 
-    return {
+    counts = cache.get(SIDEBAR_CACHE_KEY)
+    if counts is not None:
+        return counts
+
+    counts = {
         "sidebar_position_count": Position.objects.filter(
             status=Position.Status.OPEN
         ).count(),
@@ -30,3 +39,6 @@ def sidebar_counts(request):
         ),
         "sidebar_unread_reply_count": CandidateReply.objects.filter(is_read=False).count(),
     }
+
+    cache.set(SIDEBAR_CACHE_KEY, counts, SIDEBAR_CACHE_TTL)
+    return counts

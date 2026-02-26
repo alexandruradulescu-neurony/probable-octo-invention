@@ -132,6 +132,10 @@ class GmailService:
         creds.refresh(Request())
         return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
+    def _reset_service(self) -> None:
+        """Clear cached service to force credential rebuild on next access."""
+        GmailService._service = None
+
     def send_email(self, to: str, subject: str, body: str) -> str | None:
         """
         Send a plain-text email via Gmail API.
@@ -151,17 +155,28 @@ class GmailService:
 
         raw = base64.urlsafe_b64encode(mime.as_bytes()).decode("ascii")
 
-        try:
-            result = svc.users().messages().send(
-                userId="me",
-                body={"raw": raw},
-            ).execute()
-            msg_id = result.get("id")
-            logger.info("Gmail sent to %s: id=%s", to, msg_id)
-            return msg_id
-        except Exception as exc:
-            logger.error("Gmail send failed to %s: %s", to, exc)
-            return None
+        for attempt in range(2):
+            try:
+                result = svc.users().messages().send(
+                    userId="me",
+                    body={"raw": raw},
+                ).execute()
+                msg_id = result.get("id")
+                logger.info("Gmail sent to %s: id=%s", to, msg_id)
+                return msg_id
+            except Exception as exc:
+                if attempt == 0 and "401" in str(exc):
+                    logger.warning("Gmail auth error, rebuilding service: %s", exc)
+                    self._reset_service()
+                    try:
+                        svc = self.service
+                    except Exception:
+                        logger.error("Gmail service rebuild failed after 401")
+                        return None
+                    continue
+                logger.error("Gmail send failed to %s: %s", to, exc)
+                return None
+        return None
 
     def list_unread_messages(self, label: str | None = None) -> tuple[list[dict], int]:
         """
@@ -183,14 +198,29 @@ class GmailService:
             logger.error("Gmail service init failed: %s", exc)
             return [], 0
 
-        try:
-            query = f"label:{label} is:unread" if label else "is:unread"
-            result = svc.users().messages().list(
-                userId="me", q=query, maxResults=50
-            ).execute()
-            message_ids = [m["id"] for m in result.get("messages", [])]
-        except Exception as exc:
-            logger.error("Gmail list failed: %s", exc)
+        message_ids = None
+        for attempt in range(2):
+            try:
+                query = f"label:{label} is:unread" if label else "is:unread"
+                result = svc.users().messages().list(
+                    userId="me", q=query, maxResults=50
+                ).execute()
+                message_ids = [m["id"] for m in result.get("messages", [])]
+                break
+            except Exception as exc:
+                if attempt == 0 and "401" in str(exc):
+                    logger.warning("Gmail auth error on list, rebuilding service: %s", exc)
+                    self._reset_service()
+                    try:
+                        svc = self.service
+                    except Exception:
+                        logger.error("Gmail service rebuild failed after 401")
+                        return [], 0
+                    continue
+                logger.error("Gmail list failed: %s", exc)
+                return [], 0
+
+        if message_ids is None:
             return [], 0
 
         query_count = len(message_ids)
@@ -392,11 +422,10 @@ def _resolve_message(
         body     = raw_body.format(**ctx)
         raw_subj = _FALLBACK_SUBJECTS.get(message_type, "")
         subject  = raw_subj.format(**ctx)
-        if not tpl:
-            logger.debug(
-                "No active MessageTemplate for %s/%s — using hardcoded fallback",
-                message_type, channel,
-            )
+        logger.debug(
+            "No active MessageTemplate for %s/%s — using hardcoded fallback",
+            message_type, channel,
+        )
 
     return subject, body
 

@@ -62,7 +62,7 @@ class GlobalSearchView(LoginRequiredMixin, View):
                 "type":  "Position",
                 "label": p.title,
                 "sub":   p.get_status_display(),
-                "url":   reverse("positions:detail", args=[p.pk]),
+                "url":   reverse("positions:edit", args=[p.pk]),
             })
 
         # Applications (match by candidate name or position title)
@@ -120,8 +120,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         Per-position candidate breakdown by status group.
         Groups: pending calls, in progress, awaiting CV, completed/closed.
         """
-        positions = Position.objects.filter(status=Position.Status.OPEN)
-
         pending_statuses = {
             Application.Status.PENDING_CALL,
             Application.Status.CALL_QUEUED,
@@ -149,18 +147,41 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             Application.Status.CLOSED,
         }
 
-        summaries = []
-        for pos in positions:
-            apps = Application.objects.filter(position=pos)
-            summaries.append({
+        positions = (
+            Position.objects
+            .filter(status=Position.Status.OPEN)
+            .annotate(
+                pending_calls=Count(
+                    "applications",
+                    filter=Q(applications__status__in=pending_statuses),
+                ),
+                in_progress=Count(
+                    "applications",
+                    filter=Q(applications__status__in=in_progress_statuses),
+                ),
+                awaiting_cv=Count(
+                    "applications",
+                    filter=Q(applications__status__in=awaiting_cv_statuses),
+                ),
+                completed=Count(
+                    "applications",
+                    filter=Q(applications__status__in=completed_statuses),
+                ),
+                total=Count("applications"),
+            )
+        )
+
+        return [
+            {
                 "position": pos,
-                "pending_calls": apps.filter(status__in=pending_statuses).count(),
-                "in_progress": apps.filter(status__in=in_progress_statuses).count(),
-                "awaiting_cv": apps.filter(status__in=awaiting_cv_statuses).count(),
-                "completed": apps.filter(status__in=completed_statuses).count(),
-                "total": apps.count(),
-            })
-        return summaries
+                "pending_calls": pos.pending_calls,
+                "in_progress": pos.in_progress,
+                "awaiting_cv": pos.awaiting_cv,
+                "completed": pos.completed,
+                "total": pos.total,
+            }
+            for pos in positions
+        ]
 
     # ── Activity feed ──────────────────────────────────────────────────────────
 
@@ -184,16 +205,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     # ── Pipeline data ──────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _pipeline_data() -> list[dict]:
+    @classmethod
+    def _pipeline_data(cls) -> list[dict]:
         """
         Aggregate application counts by pipeline stage for the bar chart.
         Maps the app's actual status choices into meaningful pipeline stages.
         """
-        pending_statuses = {
-            Application.Status.PENDING_CALL,
-            Application.Status.CALL_QUEUED,
-        }
+        pending_statuses = cls.PENDING_STATUSES
         screening_statuses = {
             Application.Status.CALL_IN_PROGRESS,
             Application.Status.CALL_COMPLETED,
@@ -206,18 +224,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             Application.Status.QUALIFIED,
             Application.Status.NOT_QUALIFIED,
         }
-        awaiting_cv_statuses = {
-            Application.Status.AWAITING_CV,
-            Application.Status.CV_FOLLOWUP_1,
-            Application.Status.CV_FOLLOWUP_2,
-            Application.Status.CV_OVERDUE,
-            Application.Status.AWAITING_CV_REJECTED,
-        }
-        completed_statuses = {
-            Application.Status.CV_RECEIVED,
-            Application.Status.CV_RECEIVED_REJECTED,
-            Application.Status.CLOSED,
-        }
+        awaiting_cv_statuses = cls.AWAITING_CV_STATUSES
+        completed_statuses = cls.COMPLETED_STATUSES
 
         stages = [
             {"label": "Pending",     "count": Application.objects.filter(status__in=pending_statuses).count(),     "color": "#A3AED0"},
