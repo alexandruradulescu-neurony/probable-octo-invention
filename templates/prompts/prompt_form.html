@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ object|default:"New Prompt Template" }} — RecruitFlow{% endblock %}
 {% block breadcrumb %}Configure{% endblock %}
-{% block page_title %}{% if object %}Edit Template: {{ object.name }}{% else %}New Prompt Template{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit: {{ object.name }}{% else %}New Prompt Template{% endif %}{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'prompts:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
@@ -32,17 +32,29 @@
           <h2 class="card-header-title">Template Details</h2>
         </div>
         <div class="card-body">
+
+          <!-- Section -->
+          <div class="mb-4">
+            <label for="id_section" class="form-label">Section <span class="text-danger">*</span></label>
+            {{ form.section }}
+            <div class="help-text">Which prompt field this template generates for the Position.</div>
+            {% if form.section.errors %}<div class="error-text">{{ form.section.errors.0 }}</div>{% endif %}
+          </div>
+
+          <!-- Name -->
           <div class="mb-4">
             <label for="id_name" class="form-label">Name</label>
             {{ form.name }}
             {% if form.name.errors %}<div class="error-text">{{ form.name.errors.0 }}</div>{% endif %}
           </div>
+
+          <!-- Meta-Prompt -->
           <div class="mb-0">
             <label for="id_meta_prompt" class="form-label">Meta-Prompt</label>
             {{ form.meta_prompt }}
             <div class="help-text" style="line-height: 1.5;">
               Available placeholders: <code class="code-inline">{title}</code>, <code class="code-inline">{description}</code>, <code class="code-inline">{campaign_questions}</code>.<br>
-              Claude must return JSON with keys: <code class="code-inline">system_prompt</code>, <code class="code-inline">first_message</code>, <code class="code-inline">qualification_prompt</code>.
+              Claude will respond with <strong>plain text only</strong> for the selected section — no JSON, no markdown.
             </div>
             {% if form.meta_prompt.errors %}<div class="error-text">{{ form.meta_prompt.errors.0 }}</div>{% endif %}
           </div>
@@ -62,41 +74,49 @@
     <div class="card">
       <div class="card-header">
         <h2 class="card-header-title">Test Generate</h2>
+        {% if object.section %}
+        <span class="badge" style="background: var(--bg-surface-raised); color: var(--text-secondary); border: 1px solid var(--border-light); font-size: 0.7rem; font-weight: 500; padding: 0.25rem 0.5rem;">
+          {{ object.get_section_display }}
+        </span>
+        {% else %}
+        <span class="badge" style="background: rgba(234,179,8,0.15); color: #b45309; border: 1px solid #b45309; font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+          No section set
+        </span>
+        {% endif %}
       </div>
       <div class="card-body">
-        <p class="text-sm text-tertiary mb-3" style="line-height: 1.4;">Preview Claude output using this template without saving. Reads the meta-prompt from the saved version.</p>
+        {% if not object.section %}
+        <div class="alert alert-warning text-sm mb-3" style="padding: 0.75rem;">
+          Set a section on this template before running a test.
+        </div>
+        {% endif %}
+
+        <p class="text-sm text-tertiary mb-3" style="line-height: 1.4;">Preview Claude output for this section without saving anything.</p>
 
         <div class="mb-3">
           <label class="form-label">Sample Title</label>
-          <input type="text" id="test-title" class="form-control" placeholder="e.g. Truck Driver CDL-A">
+          <input type="text" id="test-title" class="form-control" placeholder="e.g. Truck Driver CDL-A" {% if not object.section %}disabled{% endif %}>
         </div>
         <div class="mb-3">
           <label class="form-label">Sample Description</label>
-          <textarea id="test-description" class="form-control" rows="2" placeholder="e.g. Regional routes, home weekends…"></textarea>
+          <textarea id="test-description" class="form-control" rows="2" placeholder="e.g. Regional routes, home weekends…" {% if not object.section %}disabled{% endif %}></textarea>
         </div>
         <div class="mb-4">
           <label class="form-label">Sample Questions</label>
-          <textarea id="test-questions" class="form-control" rows="2" placeholder="One per line…"></textarea>
+          <textarea id="test-questions" class="form-control" rows="2" placeholder="One per line…" {% if not object.section %}disabled{% endif %}></textarea>
         </div>
 
-        <button type="button" id="btn-test-generate" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2">
+        <button type="button" id="btn-test-generate" class="btn btn-secondary w-100 d-flex justify-content-center align-items-center gap-2" {% if not object.section %}disabled{% endif %}>
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
           Run Test
         </button>
 
+        <!-- Result -->
         <div id="test-result" class="mt-4" style="display:none">
           <hr style="border-color: var(--border-light); margin: 1.5rem 0;">
-          <div class="mb-3">
-            <label class="form-label">System Prompt</label>
-            <pre id="result-system" class="text-sm text-secondary pre-block"></pre>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">First Message</label>
-            <pre id="result-first" class="text-sm text-secondary pre-block"></pre>
-          </div>
           <div>
-            <label class="form-label">Qualification Prompt</label>
-            <pre id="result-qual" class="text-sm text-secondary pre-block"></pre>
+            <label class="form-label" id="result-section-label">Result</label>
+            <pre id="result-value" class="text-sm text-secondary" style="white-space: pre-wrap; word-break: break-word; background: var(--bg-page); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.75rem; margin: 0; min-height: 60px;"></pre>
           </div>
         </div>
 
@@ -110,7 +130,7 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if object %}
+{% if object and object.section %}
 <script>
 document.getElementById('btn-test-generate').addEventListener('click', function() {
   const btn = this;
@@ -141,12 +161,11 @@ document.getElementById('btn-test-generate').addEventListener('click', function(
       document.getElementById('test-error').style.display = 'block';
       return;
     }
-    document.getElementById('result-system').textContent = data.system_prompt || '';
-    document.getElementById('result-first').textContent = data.first_message || '';
-    document.getElementById('result-qual').textContent = data.qualification_prompt || '';
+    document.getElementById('result-section-label').textContent = 'Result — ' + (data.section || 'output').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    document.getElementById('result-value').textContent = data.value || '';
     document.getElementById('test-result').style.display = 'block';
   })
-  .catch(err => {
+  .catch(() => {
     document.getElementById('test-error').textContent = 'Network error.';
     document.getElementById('test-error').style.display = 'block';
   })

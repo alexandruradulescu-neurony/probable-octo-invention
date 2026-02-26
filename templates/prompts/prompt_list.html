@@ -6,7 +6,7 @@
 {% block topbar_actions %}
 <a href="{% url 'prompts:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
   <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  New Prompt
+  New Template
 </a>
 {% endblock %}
 
@@ -34,14 +34,37 @@
   </a>
 </div>
 
+<!-- Section coverage status -->
+{% with sections_missing=templates|length %}
+<div class="row g-3 mb-4">
+  {% for section_key, section_label in section_status %}
+  <div class="col-md-4">
+    <div class="card" style="border-color: {% if section_key in active_sections %}var(--accent-positive){% else %}var(--accent-warning){% endif %}; opacity: 0.9;">
+      <div class="card-body d-flex align-items-center gap-3" style="padding: 0.875rem 1rem;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background: {% if section_key in active_sections %}var(--accent-positive){% else %}var(--accent-warning){% endif %}; flex-shrink: 0;"></div>
+        <div>
+          <div class="fw-semibold text-sm">{{ section_label }}</div>
+          <div class="text-xs text-secondary">
+            {% if section_key in active_sections %}Active template configured{% else %}No active template — generation disabled{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endwith %}
+
 <div class="card">
   <div class="card-header">
     <h2 class="card-header-title">AI Prompt Templates</h2>
+    <span class="text-xs text-secondary" style="font-weight: 400;">One active template per section is used when generating prompts.</span>
   </div>
   <div class="table-responsive">
     <table class="table mb-0">
       <thead>
         <tr>
+          <th>Section</th>
           <th>Name</th>
           <th class="text-center">Version</th>
           <th class="text-center">Active</th>
@@ -52,6 +75,17 @@
       <tbody>
         {% for tpl in templates %}
         <tr {% if tpl.is_active %}style="background: var(--bg-page);"{% endif %}>
+          <td>
+            {% if tpl.section %}
+              <span class="badge" style="background: var(--bg-surface-raised); color: var(--text-secondary); border: 1px solid var(--border-light); font-size: 0.7rem; font-weight: 500; padding: 0.25rem 0.5rem;">
+                {{ tpl.get_section_display }}
+              </span>
+            {% else %}
+              <span class="badge" style="background: rgba(var(--accent-warning-rgb, 234, 179, 8), 0.15); color: var(--accent-warning); border: 1px solid var(--accent-warning); font-size: 0.7rem; font-weight: 500; padding: 0.25rem 0.5rem;" title="This legacy template has no section set and will not be used for generation.">
+                ⚠ No section
+              </span>
+            {% endif %}
+          </td>
           <td>
             <div class="fw-medium">{{ tpl.name }}</div>
           </td>
@@ -78,10 +112,10 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5" class="text-center py-5">
+          <td colspan="6" class="text-center py-5">
             <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary mb-3"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
             <div class="empty-state-title">No prompt templates yet</div>
-            <div class="empty-state-desc">Create your first template to get started.</div>
+            <div class="empty-state-desc">Create three templates — one per section — to enable prompt generation.</div>
             <a href="{% url 'prompts:create' %}" class="btn btn-secondary">Create Template</a>
           </td>
         </tr>

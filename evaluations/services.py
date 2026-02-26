@@ -98,33 +98,32 @@ class ClaudeService:
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
-    def generate_prompts(self, position, prompt_template) -> dict:
+    def generate_section(self, position, section_template) -> str:
         """
-        Use Claude to auto-generate the three prompts for a Position.
+        Generate plain text for a single prompt section using Claude.
 
-        The PromptTemplate.meta_prompt is used as the instruction.  The
-        position-specific data is injected via simple placeholder replacement.
-
-        Expected Claude response (JSON):
-          {
-            "system_prompt"        : "...",
-            "first_message"        : "...",
-            "qualification_prompt" : "..."
-          }
+        Each ``section_template`` carries its own meta-prompt targeting one of
+        the three Position fields: system_prompt, first_message, or
+        qualification_prompt.
 
         Args:
-            position        : positions.Position instance
-            prompt_template : prompts.PromptTemplate instance
+            position         : positions.Position instance (or a proxy with .title /
+                               .description / .campaign_questions attributes)
+            section_template : prompts.PromptTemplate instance that has a ``section``
+                               value set
 
         Returns:
-            dict with keys: system_prompt, first_message, qualification_prompt
+            The generated plain-text string for that section (stripped).
 
         Raises:
-            ClaudeServiceError on API failure or unparseable response.
+            ClaudeServiceError on API failure or missing template data.
         """
-        meta_prompt = prompt_template.meta_prompt or ""
+        if not section_template.section:
+            raise ClaudeServiceError(
+                f"PromptTemplate pk={section_template.pk} has no section set."
+            )
 
-        # Inject position details into the meta-prompt
+        meta_prompt = section_template.meta_prompt or ""
         user_message = (
             meta_prompt
             .replace("{title}", position.title or "")
@@ -132,52 +131,53 @@ class ClaudeService:
             .replace("{campaign_questions}", position.campaign_questions or "")
         )
 
+        section_label = section_template.get_section_display()
+
+        system_msg = (
+            "You are an expert recruiter creating AI voice-agent prompts. "
+            f"Generate ONLY the {section_label} text as instructed. "
+            "Respond with the plain text content only — no JSON wrapping, "
+            "no markdown fences, no preamble or commentary."
+        )
+
         logger.info(
-            "Generating prompts for position=%s using template=%s",
+            "Generating section=%s for position=%s using template=%s",
+            section_template.section,
             position.pk,
-            prompt_template.pk,
+            section_template.pk,
         )
         logger.debug(
-            "generate_prompts REQUEST — model=%s max_tokens=%s\n"
+            "generate_section REQUEST — section=%s model=%s max_tokens=%s\n"
             "=== SYSTEM ===\n%s\n"
-            "=== USER (meta-prompt after placeholder substitution) ===\n%s",
+            "=== USER ===\n%s",
+            section_template.section,
             settings.ANTHROPIC_MODEL,
             settings.ANTHROPIC_MAX_TOKENS,
-            "You are an expert recruiter. Respond ONLY with a valid JSON object — no prose, no markdown fences.",
+            system_msg,
             user_message,
         )
 
         raw = self._send_message(
             model=settings.ANTHROPIC_MODEL,
-            system=(
-                "You are an expert recruiter. "
-                "Respond ONLY with a valid JSON object — no prose, no markdown fences."
-            ),
+            system=system_msg,
             user=user_message,
         )
 
+        result = raw.strip()
+
+        logger.info(
+            "Section %s generated successfully for position=%s (%d chars)",
+            section_template.section,
+            position.pk,
+            len(result),
+        )
         logger.debug(
-            "generate_prompts RESPONSE (len=%s chars):\n%s",
-            len(raw),
-            raw,
+            "generate_section RESPONSE — section=%s:\n%s",
+            section_template.section,
+            result,
         )
 
-        data = _parse_claude_json(raw)
-
-        required = {"system_prompt", "first_message", "qualification_prompt"}
-        missing = required - data.keys()
-        if missing:
-            raise ClaudeServiceError(
-                f"Claude response missing required fields: {missing}. "
-                f"Raw response: {raw[:300]}"
-            )
-
-        logger.info("Prompts generated successfully for position=%s", position.pk)
-        return {
-            "system_prompt": data["system_prompt"],
-            "first_message": data["first_message"],
-            "qualification_prompt": data["qualification_prompt"],
-        }
+        return result
 
     def evaluate_call(self, call) -> LLMEvaluation:
         """

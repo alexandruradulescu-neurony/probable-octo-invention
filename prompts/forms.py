@@ -12,18 +12,27 @@ from prompts.models import PromptTemplate
 class PromptTemplateForm(forms.ModelForm):
     class Meta:
         model = PromptTemplate
-        fields = ["name", "meta_prompt"]
+        fields = ["section", "name", "meta_prompt"]
         widgets = {
+            "section": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "meta_prompt": forms.Textarea(attrs={
                 "class": "form-control font-monospace",
                 "rows": 18,
                 "placeholder": (
-                    "Write the meta-prompt sent to Claude.\n\n"
-                    "Available placeholders: {title}, {description}, {campaign_questions}\n\n"
-                    "Claude must return JSON with keys: system_prompt, first_message, qualification_prompt"
+                    "Write the meta-prompt Claude will receive for this section.\n\n"
+                    "Available placeholders:\n"
+                    "  {title}               — position title\n"
+                    "  {description}         — position description\n"
+                    "  {campaign_questions}  — screening questions (one per line)\n\n"
+                    "Claude will respond with plain text for the selected section only."
                 ),
             }),
+        }
+        labels = {
+            "section": "Section",
+            "name": "Template Name",
+            "meta_prompt": "Meta-Prompt",
         }
 
 

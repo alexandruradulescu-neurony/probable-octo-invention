@@ -81,14 +81,29 @@ class PositionUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy("positions:list")
 
 
-class GeneratePromptsView(LoginRequiredMixin, View):
+class GenerateSectionView(LoginRequiredMixin, View):
     """
-    POST /positions/generate-prompts/
+    POST /positions/generate-section/
 
-    AJAX endpoint: accepts position field values in request body,
-    calls ClaudeService.generate_prompts() with the active PromptTemplate,
-    and returns the three generated prompt fields as JSON.
+    AJAX endpoint: generates a single prompt section via Claude.
+
+    Request body (JSON):
+      {
+        "section"           : "system_prompt" | "first_message" | "qualification_prompt",
+        "title"             : "...",
+        "description"       : "...",          (optional)
+        "campaign_questions": "...",          (optional)
+        "position_pk"       : <int>           (optional — if provided, saves field to DB)
+      }
+
+    Response (JSON):
+      { "section": "system_prompt", "value": "..." }
+
+    If ``position_pk`` is a valid integer, the generated value is persisted to
+    the corresponding Position field immediately so the user never loses work.
     """
+
+    VALID_SECTIONS = {"system_prompt", "first_message", "qualification_prompt"}
 
     def post(self, request):
         try:
@@ -96,34 +111,51 @@ class GeneratePromptsView(LoginRequiredMixin, View):
         except (json.JSONDecodeError, ValueError):
             return JsonResponse({"error": "Invalid JSON body."}, status=400)
 
-        title = (body.get("title") or "").strip()
-        description = (body.get("description") or "").strip()
-        campaign_questions = (body.get("campaign_questions") or "").strip()
+        section = (body.get("section") or "").strip()
+        if section not in self.VALID_SECTIONS:
+            return JsonResponse(
+                {"error": f"Unknown section '{section}'. Must be one of: {', '.join(sorted(self.VALID_SECTIONS))}"},
+                status=400,
+            )
 
+        title = (body.get("title") or "").strip()
         if not title:
             return JsonResponse({"error": "Position title is required."}, status=400)
 
-        template = PromptTemplate.objects.filter(is_active=True).first()
+        template = PromptTemplate.objects.filter(section=section, is_active=True).first()
         if not template:
             return JsonResponse(
-                {"error": "No active Prompt Template configured. Create one first."},
+                {
+                    "error": (
+                        f"No active prompt template for section '{section}'. "
+                        "Please create and activate one under Templates → AI Prompts."
+                    )
+                },
                 status=400,
             )
 
         class _PositionProxy:
-            """Lightweight object mirroring Position fields for the service."""
             pass
 
         proxy = _PositionProxy()
-        proxy.pk = body.get("pk", "new")
+        proxy.pk = body.get("position_pk", "new")
         proxy.title = title
-        proxy.description = description
-        proxy.campaign_questions = campaign_questions
+        proxy.description = (body.get("description") or "").strip()
+        proxy.campaign_questions = (body.get("campaign_questions") or "").strip()
 
         try:
-            result = ClaudeService().generate_prompts(proxy, template)
+            value = ClaudeService().generate_section(proxy, template)
         except ClaudeServiceError as exc:
-            logger.error("Generate prompts failed: %s", exc)
+            logger.error("Generate section %s failed: %s", section, exc)
             return JsonResponse({"error": str(exc)}, status=502)
 
-        return JsonResponse(result)
+        # Auto-save to DB when editing an existing Position
+        position_pk = body.get("position_pk")
+        if position_pk and str(position_pk).lstrip("-").isdigit() and int(position_pk) > 0:
+            Position.objects.filter(pk=int(position_pk)).update(**{section: value})
+            logger.info(
+                "Auto-saved section=%s to position=%s (%d chars)",
+                section, position_pk, len(value),
+            )
+
+        return JsonResponse({"section": section, "value": value})

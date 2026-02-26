@@ -63,37 +63,74 @@
         </div>
       </div>
 
-      <!-- Prompts -->
+      <!-- AI Prompts -->
       <div class="card mb-4">
         <div class="card-header">
           <h2 class="card-header-title">AI Prompts</h2>
-          <button type="button" id="btn-generate-prompts" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate prompts using Claude">
+          <button type="button" id="btn-generate-all" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate all three prompts using Claude (3 sequential calls)">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-            Generate Prompts
+            Generate All
           </button>
         </div>
         <div class="card-body">
           <div class="alert alert-info mb-4 d-flex align-items-start gap-2" style="padding: 0.75rem;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             <div class="text-sm" style="line-height: 1.4;">
-              The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.
+              The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.{% if object %} Generated prompts are saved automatically.{% endif %}
             </div>
           </div>
+
+          <!-- System Prompt -->
           <div class="mb-4">
-            <label for="id_system_prompt" class="form-label">System Prompt</label>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label for="id_system_prompt" class="form-label mb-0">System Prompt</label>
+              <button type="button" class="btn-regen" data-section="system_prompt" title="Regenerate System Prompt with Claude">
+                <span class="regen-icon">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </span>
+                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
+                Regenerate
+              </button>
+            </div>
             {{ form.system_prompt }}
             <div class="help-text">Personality, instructions, how to ask screening questions.</div>
+            <div class="regen-error text-xs mt-1" data-section="system_prompt" style="color: var(--accent-danger); display: none;"></div>
           </div>
+
+          <!-- First Message -->
           <div class="mb-4">
-            <label for="id_first_message" class="form-label">First Message</label>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label for="id_first_message" class="form-label mb-0">First Message</label>
+              <button type="button" class="btn-regen" data-section="first_message" title="Regenerate First Message with Claude">
+                <span class="regen-icon">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </span>
+                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
+                Regenerate
+              </button>
+            </div>
             {{ form.first_message }}
             <div class="help-text">Opening line the agent says when the candidate picks up.</div>
+            <div class="regen-error text-xs mt-1" data-section="first_message" style="color: var(--accent-danger); display: none;"></div>
           </div>
+
+          <!-- Qualification Prompt -->
           <div class="mb-0">
-            <label for="id_qualification_prompt" class="form-label">Qualification Prompt</label>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label for="id_qualification_prompt" class="form-label mb-0">Qualification Prompt</label>
+              <button type="button" class="btn-regen" data-section="qualification_prompt" title="Regenerate Qualification Prompt with Claude">
+                <span class="regen-icon">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </span>
+                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
+                Regenerate
+              </button>
+            </div>
             {{ form.qualification_prompt }}
             <div class="help-text">Sent to Claude along with the transcript for scoring.</div>
+            <div class="regen-error text-xs mt-1" data-section="qualification_prompt" style="color: var(--accent-danger); display: none;"></div>
           </div>
+
         </div>
       </div>
     </div>
@@ -155,51 +192,151 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.getElementById('btn-generate-prompts').addEventListener('click', function() {
-  const btn = this;
-  const title = document.getElementById('id_title').value.trim();
-  const description = document.getElementById('id_description').value.trim();
-  const campaignQuestions = document.getElementById('id_campaign_questions').value.trim();
+<style>
+.btn-regen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1.4;
+}
+.btn-regen:hover:not(:disabled) {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: rgba(var(--accent-primary-rgb, 79, 70, 229), 0.05);
+}
+.btn-regen:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-regen.is-loading .regen-icon { display: none; }
+.btn-regen.is-loading .regen-spinner { display: inline-block !important; }
+.prompt-field-wrap.is-generating textarea {
+  opacity: 0.5;
+  pointer-events: none;
+}
+</style>
 
-  if (!title) {
-    alert('Please enter a position title before generating prompts.');
-    return;
+<script>
+(function () {
+  const GENERATE_URL = "{% url 'positions:generate_section' %}";
+  const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const POSITION_PK = "{% if object %}{{ object.pk }}{% else %}0{% endif %}";
+
+  const SECTION_FIELD_MAP = {
+    system_prompt:        'id_system_prompt',
+    first_message:        'id_first_message',
+    qualification_prompt: 'id_qualification_prompt',
+  };
+
+  function getPositionData() {
+    return {
+      title:               (document.getElementById('id_title')?.value || '').trim(),
+      description:         (document.getElementById('id_description')?.value || '').trim(),
+      campaign_questions:  (document.getElementById('id_campaign_questions')?.value || '').trim(),
+      position_pk:         POSITION_PK !== '0' ? parseInt(POSITION_PK, 10) : null,
+    };
   }
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px; border-width: 1px;"></span> Generating…';
+  function setRegenState(btn, loading) {
+    btn.disabled = loading;
+    if (loading) {
+      btn.classList.add('is-loading');
+    } else {
+      btn.classList.remove('is-loading');
+    }
+  }
 
-  fetch("{% url 'positions:generate_prompts' %}", {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-    },
-    body: JSON.stringify({
-      title: title,
-      description: description,
-      campaign_questions: campaignQuestions,
-    }),
-  })
-  .then(resp => resp.json().then(data => ({ ok: resp.ok, data })))
-  .then(({ ok, data }) => {
-    if (!ok) {
-      alert(data.error || 'Failed to generate prompts.');
+  function showFieldError(section, msg) {
+    const el = document.querySelector(`.regen-error[data-section="${section}"]`);
+    if (!el) return;
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  function clearFieldError(section) {
+    showFieldError(section, '');
+  }
+
+  async function generateSection(section) {
+    const posData = getPositionData();
+    if (!posData.title) {
+      alert('Please enter a position title before generating prompts.');
+      return false;
+    }
+
+    const btn = document.querySelector(`.btn-regen[data-section="${section}"]`);
+    const fieldId = SECTION_FIELD_MAP[section];
+    const textarea = document.getElementById(fieldId);
+
+    setRegenState(btn, true);
+    clearFieldError(section);
+    if (textarea) textarea.style.opacity = '0.5';
+
+    try {
+      const resp = await fetch(GENERATE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF,
+        },
+        body: JSON.stringify({ section, ...posData }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        showFieldError(section, data.error || 'Generation failed.');
+        return false;
+      }
+
+      if (textarea) textarea.value = data.value || '';
+      return true;
+
+    } catch (err) {
+      showFieldError(section, 'Network error. Please try again.');
+      return false;
+    } finally {
+      setRegenState(btn, false);
+      if (textarea) textarea.style.opacity = '';
+    }
+  }
+
+  // Individual regenerate buttons
+  document.querySelectorAll('.btn-regen').forEach(btn => {
+    btn.addEventListener('click', () => {
+      generateSection(btn.dataset.section);
+    });
+  });
+
+  // Generate All — 3 sequential calls
+  document.getElementById('btn-generate-all').addEventListener('click', async function () {
+    const btn = this;
+    const title = (document.getElementById('id_title')?.value || '').trim();
+    if (!title) {
+      alert('Please enter a position title before generating prompts.');
       return;
     }
-    document.getElementById('id_system_prompt').value = data.system_prompt || '';
-    document.getElementById('id_first_message').value = data.first_message || '';
-    document.getElementById('id_qualification_prompt').value = data.qualification_prompt || '';
-  })
-  .catch(err => {
-    console.error(err);
-    alert('Network error while generating prompts.');
-  })
-  .finally(() => {
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px; border-width: 1px;"></span> Generating…';
+
+    const sections = ['system_prompt', 'first_message', 'qualification_prompt'];
+    for (const section of sections) {
+      await generateSection(section);
+    }
+
     btn.disabled = false;
-    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right: 4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate Prompts';
+    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right: 4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate All';
   });
-});
+})();
 </script>
 {% endblock %}

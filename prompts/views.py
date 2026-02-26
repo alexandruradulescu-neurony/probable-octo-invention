@@ -29,7 +29,19 @@ class PromptTemplateListView(LoginRequiredMixin, ListView):
     context_object_name = "templates"
 
     def get_queryset(self):
-        return PromptTemplate.objects.order_by("-is_active", "-version")
+        return PromptTemplate.objects.order_by("section", "-is_active", "-version")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["active_sections"] = set(
+            PromptTemplate.objects
+            .filter(is_active=True)
+            .exclude(section__isnull=True)
+            .exclude(section="")
+            .values_list("section", flat=True)
+        )
+        ctx["section_status"] = PromptTemplate.Section.choices
+        return ctx
 
 
 class PromptTemplateCreateView(LoginRequiredMixin, CreateView):
@@ -58,12 +70,24 @@ class PromptTemplateUpdateView(LoginRequiredMixin, UpdateView):
 
 
 class ToggleActiveView(LoginRequiredMixin, View):
-    """POST /prompts/<pk>/toggle-active/"""
+    """
+    POST /prompts/<pk>/toggle-active/
+
+    Activating a template deactivates any other template in the SAME section.
+    A section can have at most one active template at a time.
+    """
 
     def post(self, request, pk):
         template = get_object_or_404(PromptTemplate, pk=pk)
         if not template.is_active:
-            PromptTemplate.objects.filter(is_active=True).update(is_active=False)
+            if template.section:
+                # Deactivate competing templates only within the same section.
+                PromptTemplate.objects.filter(
+                    section=template.section, is_active=True
+                ).exclude(pk=pk).update(is_active=False)
+            else:
+                # Legacy template without a section — deactivate all others.
+                PromptTemplate.objects.filter(is_active=True).exclude(pk=pk).update(is_active=False)
             template.is_active = True
             template.save(update_fields=["is_active", "updated_at"])
             messages.success(request, f"'{template.name}' is now the active template.")
@@ -78,12 +102,19 @@ class TestGenerateView(LoginRequiredMixin, View):
     """
     POST /prompts/<pk>/test-generate/
 
-    AJAX endpoint: run generate_prompts with sample position data
-    against a specific template. Returns JSON output without saving.
+    AJAX endpoint: run generate_section with sample position data against a
+    specific template. Returns { "section": "...", "value": "..." } without
+    saving to DB.
     """
 
     def post(self, request, pk):
         template = get_object_or_404(PromptTemplate, pk=pk)
+
+        if not template.section:
+            return JsonResponse(
+                {"error": "This template has no section set. Please edit it and select a section first."},
+                status=400,
+            )
 
         try:
             body = json.loads(request.body)
@@ -104,8 +135,8 @@ class TestGenerateView(LoginRequiredMixin, View):
         proxy.campaign_questions = (body.get("campaign_questions") or "").strip()
 
         try:
-            result = ClaudeService().generate_prompts(proxy, template)
+            value = ClaudeService().generate_section(proxy, template)
         except ClaudeServiceError as exc:
             return JsonResponse({"error": str(exc)}, status=502)
 
-        return JsonResponse(result)
+        return JsonResponse({"section": template.section, "value": value})

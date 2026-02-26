@@ -30,15 +30,16 @@ Local or S3 (configurable)
 
 3. Django App Structure
 project/
-├── candidates/       # Candidate model, CSV import
-├── positions/        # Position model, prompt auto-generation
+├── candidates/       # Candidate model, CSV import, shared lookup helpers
+├── positions/        # Position model, per-section prompt auto-generation
 ├── applications/     # Application model, status machine
 ├── calls/            # Call model, ElevenLabs integration
 ├── evaluations/      # LLMEvaluation model, Claude integration
-├── messaging/        # Message model, email + WhatsApp outbound
+├── messaging/        # Message, CandidateReply, MessageTemplate models; email + WhatsApp services
 ├── cvs/              # CVUpload model, Gmail inbound processing
 ├── webhooks/         # Inbound webhook views (ElevenLabs, Whapi)
-├── prompts/          # PromptTemplate model, meta-prompt management
+├── prompts/          # PromptTemplate model, per-section meta-prompt management
+├── config/           # Gmail OAuth2 settings, app configuration
 └── scheduler/        # All apscheduler job definitions
 
 4. Entities & Database Schema
@@ -503,9 +504,8 @@ datetime, nullable
 
 
 
-4.9 PromptTemplate (Global Settings)
-The meta-prompt — a prompt-that-generates-prompts. This is the instruction set sent to Claude when the recruiter clicks "Generate Prompts" on a Position. It tells Claude how to create the system_prompt, first_message, and qualification_prompt from the position details and campaign questions.
-Stored as a global setting (one active template at a time), not per position. This way it can be iterated on and improved centrally without touching individual positions.
+4.9 CandidateReply
+An inbound text message received from a candidate via WhatsApp or email. Stored separately from the outbound Message model because inbound messages have no message_type, no delivery status, and no mandatory application FK. Used to populate the recruiter's Messages inbox (conversation view, grouped by sender).
 Field
 Type
 Notes
@@ -513,15 +513,61 @@ id
 int, PK
 
 
+candidate_id
+FK → Candidate, nullable
+Resolved by phone/email matching at ingest time; null if unresolvable
+application_id
+FK → Application, nullable
+Most-recent open application for the matched candidate, if found
+channel
+ENUM
+email, whatsapp
+sender
+str
+Raw phone number or email address of the sender
+subject
+str, blank
+Email subject line (WhatsApp: always empty)
+body
+text
+Message content
+received_at
+datetime, auto
+Indexed
+is_read
+bool, default False
+Indexed; drives the sidebar unread badge
+external_id
+str, nullable
+Whapi message ID or Gmail thread ID
+
+Ingest paths:
+Whapi webhook → POST /webhooks/whapi/ — when an inbound message has type "text" the handler calls _save_candidate_reply(). Also triggered for media messages that include a caption.
+Gmail poll → poll_cv_inbox job — emails without attachments (text-only) and emails with attachments but containing a non-empty body are both saved as CandidateReply alongside (or instead of) the CV processing path.
+
+4.10 PromptTemplate (Per-Section)
+A meta-prompt that instructs Claude to generate exactly one of the three Position prompt fields. Three separate templates are needed — one per section — and each can be independently activated, versioned, and edited.
+
+Previously (v1): a single PromptTemplate generated all three fields at once via a JSON response. This was replaced because it made individual regeneration impossible and parsing JSON was fragile.
+Field
+Type
+Notes
+id
+int, PK
+
+
+section
+ENUM, nullable
+system_prompt, first_message, qualification_prompt. Nullable to preserve legacy records.
 name
 str
-E.g. "Default v1", "Aggressive qualifier"
+E.g. "System Prompt v2", "Conservative qualifier"
 is_active
-bool, default False
-Only one active at a time
+bool, default False, indexed
+One active template per section at a time
 meta_prompt
 text
-The instructions Claude receives. Contains placeholders for {title}, {description}, {campaign_questions}.
+The instructions Claude receives. Placeholders: {title}, {description}, {campaign_questions}.
 version
 int
 Auto-incrementing for audit trail
@@ -534,25 +580,63 @@ datetime
 
 
 
-How auto-generation works:
+How auto-generation works (new flow):
 Recruiter fills in Position: title, description, campaign_questions
-Recruiter clicks "Generate Prompts" button
-Backend takes the active PromptTemplate.meta_prompt, replaces {title}, {description}, {campaign_questions} with the Position's values
-Sends this to Claude API
-Claude returns a structured JSON with three fields: system_prompt, first_message, qualification_prompt
-These are populated into the Position form fields
-Recruiter reviews, edits if needed, then saves
-The meta-prompt instructs Claude to generate exactly three JSON keys:
-system_prompt: Full ElevenLabs agent instructions — identity (Ana / Recrutopia), tone, conversation structure (opening → role pitch → qualification questions one-by-one → close), and absolute rules (one question per turn, no salary promises, max 5 minutes). Uses call-time placeholders {candidate_first_name} and {position_title} which are substituted at call initiation.
-first_message: A single warm opening sentence spoken when the candidate picks up — personalised with {candidate_first_name} and {position_title}, ending with a soft "Is now a good time?" question.
-qualification_prompt: System instructions for Claude's post-call transcript evaluation — describes the role context, positive qualification criteria, disqualifying answers, and special cases (callback_requested, needs_human). Always ends with the mandatory JSON output schema: {"outcome": "qualified|not_qualified|callback_requested|needs_human", "qualified": bool, "score": 0-100, "reasoning": str, "callback_requested": bool, "callback_notes": str|null, "needs_human": bool, "needs_human_notes": str|null, "callback_at": ISO8601|null}.
+Recruiter clicks "Generate All" button (or the individual "Regenerate" button on any prompt field)
+For each of the three sections, the backend:
+  a. Looks up the active PromptTemplate where section = that field's section key
+  b. Substitutes {title}, {description}, {campaign_questions} into the meta_prompt
+  c. Sends to Claude via ClaudeService.generate_section() — system message instructs Claude to return plain text only, no JSON
+  d. Receives plain text — immediately populates the textarea; if editing an existing Position, auto-saves the field to DB
+"Generate All" fires three sequential AJAX calls; each field shows a spinner while its call is in progress. Progress is visible per-field.
+Individual "Regenerate" buttons next to each field allow re-running a single section without affecting the others.
 
-Claude output contract: Claude must return a bare JSON object (no markdown fences, no surrounding text) with all three keys present. The ClaudeService.generate_prompts() method validates this and raises ClaudeServiceError if any key is missing.
+Claude output contract: For generate_section(), Claude returns plain text only (no JSON wrapping, no markdown fences). No parsing is required. The text is stored directly in Position.system_prompt / first_message / qualification_prompt.
+
 Key design decisions:
+One PromptTemplate per section — three active templates total (one per section); activating one automatically deactivates the previous active for that section only
+Each section template is independently versioned; the audit trail is per-section
 Prompts are always editable after generation — auto-generation is a starting point, not a lock
-The meta-prompt is versioned so you can track what changed when results degrade
-Only one PromptTemplate is active at a time, but old versions are kept for reference
-The "Generate Prompts" button can be clicked multiple times (it overwrites the draft, not the saved version)
+The Templates list page shows a per-section status dashboard: green if an active template is configured, yellow if missing (generation disabled for that section)
+
+4.11 MessageTemplate
+Editable body templates for every outbound message type and channel combination. Used by messaging.services as the primary source of message text; falls back to hardcoded defaults if no active template exists for a given combination.
+Field
+Type
+Notes
+id
+int, PK
+
+
+message_type
+ENUM
+cv_request, cv_request_rejected, cv_followup_1, cv_followup_2, rejection
+channel
+ENUM
+email, whatsapp
+subject
+str, blank
+Email subject (ignored for WhatsApp)
+body
+text
+Message body with optional placeholders
+is_active
+bool, default True, indexed
+unique_together
+(message_type, channel)
+One active template per type/channel pair
+created_at
+datetime
+
+
+updated_at
+datetime
+
+
+
+Available body placeholders: {first_name}, {position_title}, {application_pk}.
+Seeded by: python manage.py seed_message_templates (creates 10 default records for all 5 types × 2 channels).
+Management: Templates → Message Templates in the sidebar.
 
 5. CSV Import Specification
 Encoding: UTF-16 LE (with BOM)
@@ -623,7 +707,7 @@ every 24 hrs
 Find awaiting_cv_rejected applications older than Position.rejected_cv_timeout_days with no CV received. Close them.
 poll_cv_inbox
 every 15 min
-Gmail API — scan for unread emails with attachments, smart-match to candidates (see CV Matching), save CVUpload or log as unmatched
+Gmail API — scan for unread emails. Emails with attachments: smart-match to candidates (see CV Matching), save CVUpload or log as unmatched. Emails without attachments (text-only replies): save as CandidateReply for recruiter inbox. Emails with both attachments and a non-empty body: process CV attachment AND save body as CandidateReply.
 
 
 7. Triggered Actions (event-driven, called directly)
@@ -639,10 +723,18 @@ Claude detects callback request
 Set callback_scheduled_at on Application → advance to callback_scheduled
 Claude detects human needed
 Set needs_human_reason on Application → advance to needs_human. Recruiter handles manually.
-Whapi webhook — inbound media message
+Whapi webhook — inbound media message (CV)
 Smart-match sender → save CVUpload → advance Application or log as unmatched
+Whapi webhook — inbound text message
+Save as CandidateReply (resolve to Candidate + Application where possible) → appears in recruiter Messages inbox with unread badge
+Whapi webhook — inbound media message with caption
+Save CVUpload (media) AND save CandidateReply (caption text)
 Gmail poll finds attachment
 Smart-match sender → save CVUpload → advance Application or log as unmatched
+Gmail poll finds text-only email (no attachment)
+Save as CandidateReply → appears in recruiter Messages inbox
+Gmail poll finds email with both attachment and body text
+Process CVUpload AND save body as CandidateReply
 Recruiter manually resolves unmatched
 Assign to Application → create CVUpload → advance status
 Recruiter handles needs_human
@@ -890,8 +982,9 @@ Quick actions: "Upload CSV", "Go to Applications"
 12.3 Positions
 Position List Table of all positions. Columns: title, status badge, open applications count, created date. Actions: create new, edit, view applications for position.
 Position Create / Edit Form fields: title, description, status, campaign questions (screening questions for this role, one per line), system prompt, first message, qualification prompt, call retry max, call retry interval minutes, calling hours start/end (default 10:00–18:00), follow-up interval hours (qualified only), rejected CV timeout days.
-"Generate Prompts" button: After filling in title, description, and campaign questions, the recruiter clicks this button. Claude auto-generates system_prompt, first_message, and qualification_prompt using the active PromptTemplate. Fields are populated in the form for review and editing before saving. The button can be clicked multiple times to regenerate.
-Includes a note reminding the recruiter that the ElevenLabs agent and voice are configured in ElevenLabs directly — these fields only control what the agent says for this specific position. Includes a note reminding the recruiter that the ElevenLabs agent and voice are configured in ElevenLabs directly — these fields only control what the agent says for this specific position.
+"Generate All" button: After filling in title, description, and campaign questions, the recruiter clicks this button. Three sequential Claude calls are fired — one per prompt section — each using the active PromptTemplate for that section. Fields populate one-by-one as each call completes (per-field spinner visible during generation). When editing an existing Position, each field is auto-saved to the database immediately as it arrives. The recruiter reviews and edits before the final form save.
+Individual "Regenerate" buttons: A small regenerate icon button sits next to each of the three prompt field labels (System Prompt, First Message, Qualification Prompt), allowing a single section to be re-generated without affecting the others.
+Includes a note reminding the recruiter that the ElevenLabs agent and voice are configured in ElevenLabs directly — these fields only control what the agent says for this specific position.
 
 12.4 Candidates
 Candidate List Searchable, filterable table. Filters: position, status, source. Columns: name, phone, email, number of applications, created date. Click through to detail.
@@ -916,12 +1009,35 @@ Two tabs:
 Unmatched: Inbound emails and WhatsApp messages with attachments that couldn't be auto-matched. Columns: received at, channel, sender, subject/snippet, attachment name, resolved status. Action per row: "Assign to Application" — recruiter searches/selects the correct application, which creates CVUpload and advances the status.
 Needs Review: CVs that were auto-assigned via medium-confidence matching (fuzzy name or CV content extraction). Columns: received at, candidate name, match method, confidence note, assigned application. Action per row: "Confirm" (removes flag) or "Reassign" (move to correct application).
 
-12.7 Prompt Templates (Admin)
-Management screen for the meta-prompt used to auto-generate Position prompts. Accessible to admin users only.
-List view: All PromptTemplate versions with name, version number, active status, last updated. One row highlighted as active.
-Edit view: Large text area for the meta_prompt field. Preview panel: paste sample position title + description + campaign questions, click "Test Generate" to see what Claude produces without saving to any position. Save creates a new version (old versions kept for reference). Toggle active/inactive.
+12.7 Templates (Admin)
+The Templates section (accessible via sidebar "Templates") is a two-tab hub:
 
-12.8 Screen Build Priority
+Tab 1 — AI Prompts (PromptTemplate management):
+Section coverage dashboard: Three status cards at the top — one per section (System Prompt, First Message, Qualification Prompt). Green = active template configured; Yellow = no active template (generation disabled for that section).
+List: All PromptTemplate records with section badge, name, version, active status, last updated. Records without a section assigned show a warning badge.
+Create / Edit form: Select section (required), enter name, write meta_prompt. Available placeholders: {title}, {description}, {campaign_questions}. Help text notes that Claude will respond with plain text only (not JSON).
+Test Generate panel (edit view only): Enter sample title/description/questions; click "Run Test" to call ClaudeService.generate_section() against the saved template without saving to any position. Result displayed as plain text.
+Activate / Deactivate: Activating a template deactivates any other active template within the same section. Each section maintains its own independent active template.
+Save creates a new version (increments version counter); old versions retained for audit trail.
+
+Tab 2 — Message Templates (MessageTemplate management):
+List: All 10 outbound message templates grouped by message type (cv_request, cv_request_rejected, cv_followup_1, cv_followup_2, rejection) × channel (email, whatsapp). Shows subject (email only), body preview, active status.
+Edit form: Edit subject (email only), body (with placeholder documentation), and active toggle. Available placeholders: {first_name}, {position_title}, {application_pk}.
+Live preview panel: Shows rendered output with sample data as the recruiter types.
+
+12.8 Messages Inbox
+Recruiter inbox for inbound candidate replies (WhatsApp text messages and email replies). Accessible at /messages/ via sidebar "Messages" item with unread badge.
+Conversation-grouped view: Messages are grouped by sender (phone number or email address) into conversations. Each conversation row shows:
+  Sender (linked to Candidate if matched) and channel icons
+  Linked application (if resolved)
+  Last message preview and timestamp
+  Total message count and unread count
+Expand/collapse individual conversations inline to read the full message thread
+Per-conversation actions: "Mark all read" (updates is_read on all messages in the conversation) and "Delete conversation" (removes all CandidateReply records for that sender)
+Per-message "Mark read" toggle
+Sidebar badge: Shows total unread CandidateReply count; notification bell icon in top bar also links to /messages/ with the same badge.
+
+12.9 Screen Build Priority
 Priority
 Screen
 Reason
@@ -961,22 +1077,28 @@ Debugging and ops visibility
 # ────────────────────────────────────────────
 SECRET_KEY=
 DEBUG=True
-ALLOWED_HOSTS=recrutopiaaibot.ngrok.com,localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=https://recrutopiaaibot.ngrok.com
+ALLOWED_HOSTS=your-subdomain.ngrok.app,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://your-subdomain.ngrok.app
+PORT=8010
+SECURE_SSL_REDIRECT=False
+SECURE_HSTS_SECONDS=0
+LOG_LEVEL=INFO
 
 # ────────────────────────────────────────────
 # DATABASE
 # ────────────────────────────────────────────
-DATABASE_URL=postgres://
+DATABASE_URL=postgres://recruitflow_user:yourpassword@localhost:5432/recruitflow_db
 
 # ────────────────────────────────────────────
 # ANTHROPIC (Claude)
 # https://console.anthropic.com
 # ────────────────────────────────────────────
 ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
-ANTHROPIC_FAST_MODEL=claude-3-5-haiku-20241022
-
+ANTHROPIC_MODEL=claude-sonnet-4-6
+ANTHROPIC_FAST_MODEL=claude-haiku-4-5
+# Increase if generate_section() responses are truncated (stop_reason = max_tokens).
+# Recommended: 8192 for prompt generation, 4096 may suffice for evaluations.
+ANTHROPIC_MAX_TOKENS=8192
 
 # ────────────────────────────────────────────
 # ELEVENLABS
@@ -994,7 +1116,9 @@ ELEVENLABS_WEBHOOK_SECRET=
 # https://whapi.cloud
 # ────────────────────────────────────────────
 WHAPI_TOKEN=
-WHAPI_API_URL=
+WHAPI_API_URL=https://gate.whapi.cloud
+# Optional: set to the token configured in Whapi Dashboard → Channel → Webhooks → Token.
+# Inbound webhooks are accepted without validation in DEBUG mode if left empty.
 WHAPI_WEBHOOK_SECRET=
 
 # ────────────────────────────────────────────
@@ -1005,6 +1129,8 @@ WHAPI_WEBHOOK_SECRET=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REFRESH_TOKEN=
+# Must match the Authorised Redirect URI in Google Cloud Console
+GOOGLE_REDIRECT_URI=http://localhost:8010/settings/gmail/callback/
 GMAIL_INBOX_LABEL=CVs
 GMAIL_PROCESSED_LABEL=CVs-Processed
 GMAIL_POLL_ENABLED=True
@@ -1021,9 +1147,11 @@ MEDIA_ROOT=media/
 # AWS_STORAGE_BUCKET_NAME=
 
 # ────────────────────────────────────────────
-# SCHEDULER
+# SCHEDULER & TIMEZONE
+# All scheduling and Django datetime display use this timezone.
 # ────────────────────────────────────────────
-APSCHEDULER_TIMEZONE=UTC
+TIME_ZONE=Europe/Bucharest
+APSCHEDULER_TIMEZONE=Europe/Bucharest
 
 13. Maintainability and Hardening Notes
 
@@ -1073,3 +1201,31 @@ APSCHEDULER_TIMEZONE=UTC
 - In `scheduler/jobs.py`, batch submit failures are handled with per-application transition helpers (`set_call_failed`) instead of bulk SQL updates.
 - This preserves one audit `StatusChange` per affected application.
 - The failure path guards writes by first selecting only applications still in `CALL_QUEUED`, reducing unnecessary transition calls during concurrent state changes.
+
+13.7 Claude JSON robustness (json-repair)
+- `evaluations/services.py` uses a two-pass JSON parsing strategy for `evaluate_call()`:
+  1. Strict `json.loads()` after stripping markdown fences.
+  2. If that fails (e.g. unescaped quotes in multilingual text), fall back to `json_repair.repair_json()` before re-parsing.
+- For `generate_section()` no JSON parsing is needed — Claude returns plain text only for each section.
+- `ANTHROPIC_MAX_TOKENS` is configurable via env. The service raises `ClaudeServiceError` with a clear message if `stop_reason == "max_tokens"` (truncation detected). Recommended value: 8192.
+
+13.8 Shared candidate lookup service
+- Phone number normalisation and candidate lookup logic lives in `candidates/services.py`:
+  - `lookup_candidate_by_phone(phone)` — normalises digits, handles leading `+` and country code variants
+  - `lookup_candidate_by_email(email)` — case-insensitive exact match
+- Consumed by `cvs/services.py` (CV matching), `webhooks/views.py` (Whapi inbound), and `scheduler/jobs.py` (Gmail inbound).
+- This prevents duplicate normalisation logic scattered across the codebase.
+
+13.9 CandidateReply ingest pattern
+- All inbound text messages (WhatsApp via Whapi and email replies via Gmail) are saved as `CandidateReply` records.
+- The `_save_candidate_reply()` helper in `webhooks/views.py` and `_save_email_reply()` in `scheduler/jobs.py` both:
+  1. Attempt to resolve the sender to a `Candidate` via `lookup_candidate_by_phone` / `lookup_candidate_by_email`.
+  2. If matched, also resolve the most recent open `Application` for that candidate.
+  3. Create the `CandidateReply` record with `is_read=False`.
+- Outbound messages (`from_me=True` in Whapi) are explicitly skipped to prevent self-echoes.
+
+13.10 Per-section PromptTemplate activation rule
+- `ToggleActiveView` in `prompts/views.py` deactivates only templates with the same `section` value, not all templates globally.
+- This allows independent activation per section: e.g. activating a new System Prompt template does not affect the active First Message or Qualification templates.
+- Legacy templates with `section=None` fall back to the old global deactivation behaviour for backward compatibility.
+- The Templates list page shows a per-section health dashboard (3 status cards) so coverage gaps are immediately visible.
