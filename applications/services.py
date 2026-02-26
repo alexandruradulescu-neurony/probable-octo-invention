@@ -1,9 +1,9 @@
 import uuid
 
 from django.core.files.storage import default_storage
-from django.utils import timezone
 
 from applications.models import Application
+from applications.transitions import set_cv_received
 from cvs.models import CVUpload
 
 _CV_AWAITING_STATUSES = frozenset({
@@ -31,16 +31,9 @@ def handle_manual_cv_upload(application: Application, uploaded_file, changed_by=
     )
 
     if application.status in _CV_AWAITING_STATUSES:
-        new_status = (
-            Application.Status.CV_RECEIVED
-            if application.qualified
-            else Application.Status.CV_RECEIVED_REJECTED
-        )
-        application.cv_received_at = timezone.now()
-        application.save(update_fields=["cv_received_at", "updated_at"])
-        application.change_status(
-            new_status,
-            changed_by=changed_by,
+        set_cv_received(
+            application,
+            rejected=not bool(application.qualified),
             note="CV manually uploaded",
         )
 

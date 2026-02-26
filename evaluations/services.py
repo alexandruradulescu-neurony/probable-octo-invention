@@ -19,6 +19,12 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from applications.models import Application
+from applications.transitions import (
+    set_callback_scheduled,
+    set_needs_human,
+    set_not_qualified,
+    set_qualified,
+)
 from calls.utils import format_form_answers
 from evaluations.models import LLMEvaluation
 
@@ -285,30 +291,30 @@ class ClaudeService:
 
             # Status transition + outcome-specific side-effects
             if outcome_str == LLMEvaluation.Outcome.QUALIFIED:
-                application.status = Application.Status.QUALIFIED
+                set_qualified(application, note="Claude outcome: qualified")
 
             elif outcome_str == LLMEvaluation.Outcome.NOT_QUALIFIED:
-                application.status = Application.Status.NOT_QUALIFIED
+                set_not_qualified(application, note="Claude outcome: not_qualified")
 
             elif outcome_str == LLMEvaluation.Outcome.CALLBACK_REQUESTED:
-                application.status = Application.Status.CALLBACK_SCHEDULED
-                if callback_at:
-                    application.callback_scheduled_at = callback_at
+                set_callback_scheduled(
+                    application,
+                    callback_at=callback_at,
+                    note="Claude outcome: callback_requested",
+                )
 
             elif outcome_str == LLMEvaluation.Outcome.NEEDS_HUMAN:
-                application.status = Application.Status.NEEDS_HUMAN
-                application.needs_human_reason = (
-                    data.get("needs_human_notes") or "Escalated by Claude evaluation."
+                set_needs_human(
+                    application,
+                    reason=data.get("needs_human_notes") or "Escalated by Claude evaluation.",
+                    note="Claude outcome: needs_human",
                 )
 
             application.save(
                 update_fields=[
-                    "status",
                     "qualified",
                     "score",
                     "score_notes",
-                    "callback_scheduled_at",
-                    "needs_human_reason",
                     "updated_at",
                 ]
             )

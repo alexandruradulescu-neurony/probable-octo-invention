@@ -86,7 +86,7 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
                 needs_review=False,
             )
 
-            advance_application_status(application, now)
+            advance_application_status(application)
 
             unmatched.resolved = True
             unmatched.resolved_by_application = application
@@ -157,7 +157,7 @@ class ReassignCVView(LoginRequiredMixin, View):
                 "application", "match_method", "needs_review",
             ])
 
-            advance_application_status(new_application, now)
+            advance_application_status(new_application)
 
         logger.info(
             "CV %s reassigned to application %s by user %s",

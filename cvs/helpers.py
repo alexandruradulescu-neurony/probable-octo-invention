@@ -1,27 +1,20 @@
-from django.utils import timezone
-
 from applications.models import Application
+from applications.transitions import set_cv_received
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.models import CVUpload
 
 
-def advance_application_status(app: Application, now=None) -> None:
+def advance_application_status(app: Application) -> None:
     """
     Advance an application to the appropriate CV-received status.
     Qualified path -> CV_RECEIVED; rejected path -> CV_RECEIVED_REJECTED.
     """
-    now = now or timezone.now()
-
     if app.status == Application.Status.AWAITING_CV_REJECTED:
-        new_status = Application.Status.CV_RECEIVED_REJECTED
+        set_cv_received(app, rejected=True, note="CV received via inbox flow")
     elif app.status in AWAITING_CV_STATUSES:
-        new_status = Application.Status.CV_RECEIVED
+        set_cv_received(app, rejected=False, note="CV received via inbox flow")
     else:
         return
-
-    app.status = new_status
-    app.cv_received_at = now
-    app.save(update_fields=["status", "cv_received_at", "updated_at"])
 
 
 def channel_to_source(channel: str) -> str:

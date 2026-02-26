@@ -17,6 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from applications.models import Application
+from applications.transitions import set_call_failed, set_scoring
 from calls.models import Call
 
 logger = logging.getLogger(__name__)
@@ -136,12 +137,10 @@ def apply_call_result(call: Call, data: dict) -> tuple[str, bool]:
         application = call.application
 
         if is_completed:
-            application.status = Application.Status.SCORING
-            application.save(update_fields=["status", "updated_at"])
+            set_scoring(application, note="Call completed; moved to scoring")
 
         elif call_status in (Call.Status.FAILED, Call.Status.NO_ANSWER, Call.Status.BUSY):
-            application.status = Application.Status.CALL_FAILED
-            application.save(update_fields=["status", "updated_at"])
+            set_call_failed(application, note=f"Call ended with status {call_status}")
 
     return call_status, is_completed
 

@@ -28,6 +28,7 @@ from django.utils import timezone
 from django_apscheduler.util import close_old_connections
 
 from applications.models import Application
+from applications.transitions import set_call_failed, set_closed, set_followup_status
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from calls.utils import apply_call_result
@@ -115,9 +116,8 @@ def process_call_queue() -> None:
                 exc_info=True,
             )
             with transaction.atomic():
-                Application.objects.filter(
-                    pk__in=[a.pk for a in eligible_for_batch]
-                ).update(status=Application.Status.CALL_FAILED, updated_at=now)
+                for application in eligible_for_batch:
+                    set_call_failed(application, note="Batch call submission failed")
 
     # ── Queue 2: individual — scheduled callbacks whose time has arrived ───────
     callbacks = (
@@ -182,8 +182,7 @@ def _attempt_call(service: ElevenLabsService, app: Application) -> None:
             exc_info=True,
         )
         with transaction.atomic():
-            app.status = Application.Status.CALL_FAILED
-            app.save(update_fields=["status", "updated_at"])
+            set_call_failed(app, note="Call initiation failed in scheduler")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -379,8 +378,11 @@ def check_cv_followups() -> None:
             if message_type is not None:
                 send_followup(app, message_type)
 
-            app.status = next_status
-            app.save(update_fields=["status", "updated_at"])
+            set_followup_status(
+                app,
+                next_status,
+                note=f"Scheduler follow-up transition to {next_status}",
+            )
 
         logger.info(
             "check_cv_followups: application=%s → %s (message_type=%s)",
@@ -431,16 +433,12 @@ def close_stale_rejected() -> None:
     if not to_close:
         return
 
+    stale_to_close = list(Application.objects.filter(pk__in=to_close))
     closed_count = 0
     with transaction.atomic():
-        closed_count = (
-            Application.objects
-            .filter(pk__in=to_close)
-            .update(
-                status=Application.Status.CLOSED,
-                updated_at=now,
-            )
-        )
+        for app in stale_to_close:
+            set_closed(app, note="Rejected CV timeout reached")
+            closed_count += 1
 
     logger.info(
         "close_stale_rejected: closed %s stale rejected application(s)",

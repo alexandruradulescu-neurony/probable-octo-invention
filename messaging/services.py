@@ -17,6 +17,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from applications.models import Application
+from applications.transitions import set_awaiting_cv
 from messaging.models import Message
 
 logger = logging.getLogger(__name__)
@@ -333,8 +334,11 @@ def send_cv_request(application: Application, qualified: bool) -> list[Message]:
         )
         created.append(email_msg)
 
-    application.status = new_status
-    application.save(update_fields=["status", "updated_at"])
+    set_awaiting_cv(
+        application,
+        rejected=not qualified,
+        note=f"CV request sent (qualified={qualified})",
+    )
 
     logger.info(
         "CV request sent: application=%s qualified=%s messages=%s",

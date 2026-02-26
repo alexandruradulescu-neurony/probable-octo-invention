@@ -26,6 +26,7 @@ from django.db import transaction
 from django.db.models import Count
 
 from applications.models import Application
+from applications.transitions import set_call_in_progress
 from calls.models import Call
 from calls.utils import format_form_answers
 
@@ -210,8 +211,7 @@ class ElevenLabsService:
                 eleven_labs_conversation_id=conversation_id,
                 status=Call.Status.INITIATED,
             )
-            application.status = Application.Status.CALL_IN_PROGRESS
-            application.save(update_fields=["status", "updated_at"])
+            set_call_in_progress(application, note=f"Call initiated (attempt {attempt_number})")
 
         logger.info(
             "Call created: call_id=%s conversation_id=%s",
@@ -332,8 +332,10 @@ class ElevenLabsService:
                     eleven_labs_batch_id=batch_id,
                     status=Call.Status.INITIATED,
                 )
-                app.status = Application.Status.CALL_IN_PROGRESS
-                app.save(update_fields=["status", "updated_at"])
+                set_call_in_progress(
+                    app,
+                    note=f"Batch call initiated (batch_id={batch_id}, attempt={attempt_number})",
+                )
                 created_calls.append(call)
 
         logger.info(
