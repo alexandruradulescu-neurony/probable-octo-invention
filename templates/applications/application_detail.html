@@ -354,40 +354,40 @@
       <div class="card-header">
         <h2 class="card-header-title">Timeline</h2>
       </div>
-      <div class="card-body p-3">
-        {% if status_changes %}
-        <div class="d-flex flex-column gap-3 position-relative">
-          <div style="position: absolute; left: 4px; top: 8px; bottom: 8px; width: 1px; background: var(--border-default);"></div>
-          {% for sc in status_changes %}
-          <div class="d-flex gap-2" style="position: relative; z-index: 1;">
-            <div style="width: 9px; height: 9px; border-radius: 50%; background: #ffffff; border: 2px solid var(--text-muted); margin-top: 4px;"></div>
-            <div class="flex-grow-1" style="min-width: 0;">
-              <div class="d-flex justify-content-between align-items-baseline">
-                <div class="text-sm fw-medium">
-                  {% if sc.from_status != sc.to_status %}
-                    Status changed to <span style="text-decoration: underline;">{{ sc.get_to_status_display }}</span>
-                  {% else %}
-                    Note added
-                  {% endif %}
-                </div>
-                <div class="text-xs text-tertiary tabular-nums" style="white-space: nowrap;">
-                  {{ sc.changed_at|date:"M j, H:i" }}
-                </div>
-              </div>
-              {% if sc.note %}
-                <div class="text-sm text-secondary mt-1 p-2" style="line-height: 1.4; background: var(--bg-page); border-radius: var(--radius-sm); border: 1px solid var(--border-default);">{{ sc.note }}</div>
-              {% endif %}
-              <div class="text-xs text-tertiary mt-1">
-                {% if sc.changed_by %}by {{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% else %}by System{% endif %}
-              </div>
+      {% if status_changes %}
+      <div class="activity-list py-1">
+        {% for sc in status_changes %}
+        <div class="activity-row" style="cursor:default;align-items:flex-start;">
+          <div class="activity-dot-col">
+            <div class="activity-dot{% if sc.from_status == sc.to_status %} activity-dot-note{% endif %}"></div>
+            {% if not forloop.last %}<div class="activity-connector"></div>{% endif %}
+          </div>
+          <div class="activity-body">
+            {% if sc.from_status != sc.to_status %}
+            <div class="activity-who d-flex align-items-center gap-2 flex-wrap">
+              <strong>Status changed</strong>
+              {% include "applications/_status_badge.html" with status=sc.to_status %}
+            </div>
+            {% else %}
+            <div class="activity-who"><strong>Note</strong></div>
+            {% endif %}
+            {% if sc.note %}
+            <div class="timeline-note">{{ sc.note }}</div>
+            {% endif %}
+            <div class="timeline-meta">
+              {{ sc.changed_at|date:"M j, Y H:i" }}
+              &middot;
+              {% if sc.changed_by %}{{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% else %}System{% endif %}
             </div>
           </div>
-          {% endfor %}
         </div>
-        {% else %}
-        <div class="text-center text-sm text-tertiary">No timeline entries yet.</div>
-        {% endif %}
+        {% endfor %}
       </div>
+      {% else %}
+      <div class="card-body text-center py-4">
+        <div class="text-sm text-tertiary">No timeline entries yet.</div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Internal Note -->

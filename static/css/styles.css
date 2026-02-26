@@ -854,6 +854,13 @@ body {
   border: 2px solid var(--accent-primary-light);
   flex-shrink: 0;
 }
+
+/* Gray variant for "note" entries on the application detail timeline */
+.activity-dot-note {
+  background: #ffffff;
+  border-color: var(--text-muted) !important;
+}
+
 .activity-connector {
   width: 2px;
   flex: 1;
@@ -884,6 +891,29 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ─── Detail-page timeline note box & meta line ──────────────────────────── */
+/* Note content — left accent for visual separation from status-change entries */
+.timeline-note {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: var(--bg-page);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.65rem;
+  margin-top: 0.35rem;
+  word-break: break-word;
+}
+
+/* Slightly darker than activity-sub so author + timestamp are clearly legible */
+.timeline-meta {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 0.25rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Bulk action bar ────────────────────────────────────────────────────── */
