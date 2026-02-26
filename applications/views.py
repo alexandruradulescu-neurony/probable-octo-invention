@@ -329,12 +329,23 @@ class StatusOverrideView(LoginRequiredMixin, View):
 
 
 class AddNoteView(LoginRequiredMixin, View):
-    """POST /applications/<pk>/add-note/"""
+    """
+    POST /applications/<pk>/add-note/
+
+    Adds a free-text note to the application's status timeline.
+
+    Deliberately creates a StatusChange record with from_status == to_status (no
+    actual transition) rather than calling Application.change_status(), because
+    change_status() is a no-op when the status hasn't changed. The StatusChange
+    model is intentionally used as the unified timeline/audit log for both status
+    transitions and plain notes.
+    """
 
     def post(self, request, pk):
         app = get_object_or_404(Application, pk=pk)
         form = AddNoteForm(request.POST)
         if form.is_valid():
+            # from_status == to_status signals this is a note, not a real transition.
             StatusChange.objects.create(
                 application=app,
                 from_status=app.status,

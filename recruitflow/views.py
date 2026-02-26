@@ -18,6 +18,7 @@ from django.views.generic import TemplateView
 from applications.models import Application, StatusChange
 from calls.models import Call
 from candidates.models import Candidate
+from cvs.constants import AWAITING_CV_STATUSES as _AWAITING_CV_STATUSES_CONST
 from cvs.models import CVUpload, UnmatchedInbound
 from messaging.models import Message
 from positions.models import Position
@@ -113,13 +114,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         Application.Status.NEEDS_HUMAN,
         Application.Status.CALL_FAILED,
     }
-    AWAITING_CV_STATUSES = {
-        Application.Status.AWAITING_CV,
-        Application.Status.CV_FOLLOWUP_1,
-        Application.Status.CV_FOLLOWUP_2,
-        Application.Status.CV_OVERDUE,
-        Application.Status.AWAITING_CV_REJECTED,
-    }
+    AWAITING_CV_STATUSES = _AWAITING_CV_STATUSES_CONST
     COMPLETED_STATUSES = {
         Application.Status.CV_RECEIVED,
         Application.Status.CV_RECEIVED_REJECTED,

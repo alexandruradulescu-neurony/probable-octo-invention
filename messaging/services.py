@@ -595,13 +595,15 @@ def save_candidate_reply(
 
     _logger = logging.getLogger(__name__)
 
+    # Resolve sender to candidate + application — failures are non-fatal
+    candidate = None
+    application = None
     try:
         if "@" in sender:
             candidate = lookup_candidate_by_email(sender)
         else:
             candidate = lookup_candidate_by_phone(sender)
 
-        application = None
         if candidate:
             application = (
                 App.objects
@@ -610,24 +612,25 @@ def save_candidate_reply(
                 .order_by("-updated_at")
                 .first()
             )
-
-        CandidateReply.objects.create(
-            candidate=candidate,
-            application=application,
-            channel=channel,
-            sender=sender,
-            subject=subject,
-            body=body,
-            external_id=external_id,
-        )
-        _logger.info(
-            "CandidateReply saved: channel=%s sender=%s candidate=%s application=%s",
-            channel,
-            sender,
-            candidate.pk if candidate else None,
-            application.pk if application else None,
-        )
     except Exception as exc:
-        _logger.error(
-            "Failed to save CandidateReply for sender=%s: %s", sender, exc, exc_info=True
+        _logger.warning(
+            "Candidate/application lookup failed for sender=%s: %s", sender, exc, exc_info=True
         )
+
+    # DB write: let this propagate so the caller (webhook) can return a 5xx for retry
+    CandidateReply.objects.create(
+        candidate=candidate,
+        application=application,
+        channel=channel,
+        sender=sender,
+        subject=subject,
+        body=body,
+        external_id=external_id,
+    )
+    _logger.info(
+        "CandidateReply saved: channel=%s sender=%s candidate=%s application=%s",
+        channel,
+        sender,
+        candidate.pk if candidate else None,
+        application.pk if application else None,
+    )

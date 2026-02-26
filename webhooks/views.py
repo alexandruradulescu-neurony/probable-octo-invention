@@ -507,7 +507,7 @@ def _download_whapi_media(url: str) -> bytes | None:
         headers["Authorization"] = f"Bearer {token}"
 
     try:
-        resp = http_requests.get(url, headers=headers, timeout=30)
+        resp = http_requests.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         return resp.content
     except http_requests.RequestException as exc:

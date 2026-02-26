@@ -8,6 +8,7 @@ Spec § 12.3.
 import json
 import logging
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.db.models import Count, Q
@@ -54,7 +55,6 @@ class BulkDeletePositionsView(LoginRequiredMixin, View):
     """POST /positions/bulk-delete/ — permanently delete selected positions + their applications."""
 
     def post(self, request):
-        from django.contrib import messages
         pks = request.POST.getlist("position_ids")
         if not pks:
             messages.warning(request, "No positions selected.")
