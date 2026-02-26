@@ -5,167 +5,126 @@
 
 {% block topbar_actions %}
 <a href="{% url 'candidates:csv_import' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
-  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
   Upload CSV
 </a>
 <a href="{% url 'positions:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2 ms-2">
-  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
   New Position
 </a>
 {% endblock %}
 
 {% block content %}
 <style>
-  /* ── Stat Cards ── */
-  .stat-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  .stat-card-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .stat-card-label {
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    color: var(--text-tertiary);
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    margin-bottom: 0.45rem;
-  }
-  .stat-card-value {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    letter-spacing: -0.03em;
-    line-height: 1;
-    margin-bottom: 0.35rem;
-  }
-  .stat-card-subline {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
   /* ── Pipeline ── */
   .pipeline-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.65rem;
   }
   .pipeline-row:last-child { margin-bottom: 0; }
   .pipeline-label {
-    width: 90px;
-    font-size: 0.82rem;
+    width: 88px;
+    font-size: 0.75rem;
     color: var(--text-tertiary);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
   }
   .pipeline-track {
     flex: 1;
-    height: 8px;
+    height: 6px;
     background: var(--border-default);
-    border-radius: var(--radius-md);
+    border-radius: 99px;
     overflow: hidden;
   }
   .pipeline-bar {
     height: 100%;
-    border-radius: var(--radius-md);
-    transition: width 0.5s ease;
+    border-radius: 99px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .pipeline-count {
-    width: 32px;
+    width: 30px;
     text-align: right;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: var(--text-primary);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
-
-  /* activity styles moved to styles.css */
 </style>
 
-<!-- Stat Cards -->
+<!-- KPI Stat Cards -->
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card h-100">
+  <div class="col-md-6 col-xl-3">
+    <div class="card kpi-card h-100">
       <div class="card-body">
-        <div class="stat-card">
-          <div class="stat-card-info">
-            <div class="stat-card-label">Calls Today</div>
-            <div class="stat-card-value">{{ activity_feed.calls_today|default:"0" }}</div>
-            <div class="stat-card-subline">Since midnight</div>
-          </div>
-          <div class="icon-box icon-box-purple">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6A16 16 0 0 0 14 14.69l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        <div class="kpi-top">
+          <span class="kpi-label">Calls Today</span>
+          <div class="kpi-icon kpi-icon-purple">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6A16 16 0 0 0 14 14.69l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
           </div>
         </div>
+        <div class="kpi-value">{{ activity_feed.calls_today|default:"0" }}</div>
+        <div class="kpi-sub">Since midnight</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card h-100">
+  <div class="col-md-6 col-xl-3">
+    <div class="card kpi-card h-100">
       <div class="card-body">
-        <div class="stat-card">
-          <div class="stat-card-info">
-            <div class="stat-card-label">CVs Received</div>
-            <div class="stat-card-value">{{ activity_feed.cvs_today|default:"0" }}</div>
-            <div class="stat-card-subline">Since midnight</div>
-          </div>
-          <div class="icon-box icon-box-teal">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+        <div class="kpi-top">
+          <span class="kpi-label">CVs Received</span>
+          <div class="kpi-icon kpi-icon-teal">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
           </div>
         </div>
+        <div class="kpi-value">{{ activity_feed.cvs_today|default:"0" }}</div>
+        <div class="kpi-sub">Since midnight</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card h-100">
+  <div class="col-md-6 col-xl-3">
+    <div class="card kpi-card h-100">
       <div class="card-body">
-        <div class="stat-card">
-          <div class="stat-card-info">
-            <div class="stat-card-label">Follow-ups Sent</div>
-            <div class="stat-card-value">{{ activity_feed.followups_today|default:"0" }}</div>
-            <div class="stat-card-subline">Since midnight</div>
-          </div>
-          <div class="icon-box icon-box-blue">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <div class="kpi-top">
+          <span class="kpi-label">Follow-ups Sent</span>
+          <div class="kpi-icon kpi-icon-blue">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           </div>
         </div>
+        <div class="kpi-value">{{ activity_feed.followups_today|default:"0" }}</div>
+        <div class="kpi-sub">Since midnight</div>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card h-100">
+  <div class="col-md-6 col-xl-3">
+    <div class="card kpi-card h-100">
       <div class="card-body">
-        <div class="stat-card">
-          <div class="stat-card-info">
-            <div class="stat-card-label">Open Positions</div>
-            <div class="stat-card-value">{{ position_summaries|length|default:"0" }}</div>
-            <div class="stat-card-subline">Currently active</div>
-          </div>
-          <div class="icon-box icon-box-orange">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        <div class="kpi-top">
+          <span class="kpi-label">Open Positions</span>
+          <div class="kpi-icon kpi-icon-orange">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
           </div>
         </div>
+        <div class="kpi-value">{{ position_summaries|length|default:"0" }}</div>
+        <div class="kpi-sub">Currently active</div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="row g-3">
-  <!-- Left Column: Positions / Applications -->
+  <!-- Left Column: Positions table + Attention items -->
   <div class="col-lg-8">
     <div class="card">
       <div class="card-header">
-        <h2 class="card-header-title">Active Positions Overview</h2>
+        <h2 class="card-header-title">Active Positions</h2>
         <a href="{% url 'positions:list' %}" class="view-all-link">View all &rarr;</a>
       </div>
-      
+
       {% if position_summaries %}
       <div class="table-responsive">
         <table class="table mb-0">
@@ -182,35 +141,35 @@
             {% for s in position_summaries %}
             <tr>
               <td>
-                <a href="{% url 'applications:list' %}?position={{ s.position.pk }}" class="fw-medium text-primary text-decoration-none hover-underline">{{ s.position.title }}</a>
-                <div class="text-xs text-muted-custom">{{ s.total }} total candidates</div>
+                <a href="{% url 'applications:list' %}?position={{ s.position.pk }}" class="fw-medium text-decoration-none hover-underline">{{ s.position.title }}</a>
+                <div class="text-xs text-muted-custom mt-1">{{ s.total }} total</div>
               </td>
               <td>
                 {% if s.pending_calls %}
                   <div class="badge status-screening"><span class="badge-dot"></span> {{ s.pending_calls }}</div>
                 {% else %}
-                  <span class="text-muted-custom">-</span>
+                  <span class="text-muted-custom">—</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.in_progress %}
                   <div class="badge status-interview"><span class="badge-dot"></span> {{ s.in_progress }}</div>
                 {% else %}
-                  <span class="text-muted-custom">-</span>
+                  <span class="text-muted-custom">—</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.awaiting_cv %}
                   <div class="badge status-review"><span class="badge-dot"></span> {{ s.awaiting_cv }}</div>
                 {% else %}
-                  <span class="text-muted-custom">-</span>
+                  <span class="text-muted-custom">—</span>
                 {% endif %}
               </td>
               <td>
                 {% if s.completed %}
                   <div class="badge status-offered"><span class="badge-dot"></span> {{ s.completed }}</div>
                 {% else %}
-                  <span class="text-muted-custom">-</span>
+                  <span class="text-muted-custom">—</span>
                 {% endif %}
               </td>
             </tr>
@@ -220,19 +179,24 @@
       </div>
       {% else %}
       <div class="card-body text-center py-5">
-        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--text-tertiary); margin-bottom: 1rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        <div class="empty-state-icon mx-auto mb-3">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        </div>
         <div class="empty-state-title">No open positions</div>
         <div class="empty-state-desc">Create a position to start tracking candidates.</div>
-        <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
+        <a href="{% url 'positions:create' %}" class="btn btn-secondary btn-sm">Create Position</a>
       </div>
       {% endif %}
     </div>
-    
-    <!-- Attention Required -->
+
+    <!-- Needs Attention -->
     {% with a=attention_required %}
     {% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
     <div class="mt-4">
-      <h6 class="fw-semibold text-sm mb-3" style="text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.08em;">Needs Attention</h6>
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-negative);flex-shrink:0;"></div>
+        <span style="font-size:0.70rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.10em;">Needs Attention</span>
+      </div>
       <div class="row g-2">
         {% if a.call_failures %}
         <div class="col-sm-6">
@@ -271,7 +235,7 @@
         <div class="col-sm-6">
           <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
             <div class="attn-item attn-item-warning">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="13" x2="8" y2="13"></line><line x1="12" y1="17" x2="8" y2="17"></line></svg>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
               <span class="attn-item-label">CVs Need Review</span>
               <span class="attn-item-count attn-count-warning">{{ a.needs_review_cvs }}</span>
             </div>
@@ -309,11 +273,11 @@
   <!-- Right Column: Pipeline & Activity -->
   <div class="col-lg-4">
     <!-- Pipeline Widget -->
-    <div class="card mb-4">
+    <div class="card mb-3">
       <div class="card-header">
-        <h2 class="card-header-title">Pipeline Overview</h2>
+        <h2 class="card-header-title">Pipeline</h2>
       </div>
-      <div class="card-body">
+      <div class="card-body" style="padding: 1.25rem;">
         {% for stage in pipeline_data %}
         <div class="pipeline-row">
           <div class="pipeline-label">{{ stage.label }}</div>
@@ -326,10 +290,11 @@
       </div>
     </div>
 
-    <!-- Activity Feed -->
+    <!-- Recent Activity Feed -->
     <div class="card">
       <div class="card-header">
         <h2 class="card-header-title">Recent Activity</h2>
+        <a href="{% url 'applications:list' %}" class="view-all-link">View all &rarr;</a>
       </div>
       {% if recent_changes %}
       <div class="activity-list py-2">
@@ -343,7 +308,7 @@
             <div class="activity-body">
               <div class="activity-who">
                 <strong>{{ sc.application.candidate.full_name }}</strong>
-                → {{ sc.get_to_status_display }}
+                &rarr; {{ sc.get_to_status_display }}
               </div>
               <div class="activity-sub">{{ sc.application.position.title }} &middot; {{ sc.changed_at|date:"d M H:i" }}</div>
             </div>
@@ -352,7 +317,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="card-body text-center py-5">
+      <div class="card-body text-center py-4">
         <div class="text-sm text-tertiary">No recent activity.</div>
       </div>
       {% endif %}

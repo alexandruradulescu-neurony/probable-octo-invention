@@ -180,7 +180,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "completed": pos.completed,
                 "total": pos.total,
             }
-            for pos in positions[:10]
+            for pos in positions[:15]
         ]
 
     # ── Activity feed ──────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 "application__position",
                 "changed_by",
             )
-            .order_by("-changed_at")[:5]
+            .order_by("-changed_at")[:10]
         )
 
     # ── Attention required ─────────────────────────────────────────────────────
