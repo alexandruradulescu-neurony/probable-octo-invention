@@ -9,6 +9,8 @@ import logging
 
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.cache import cache
+from django.db import IntegrityError, transaction as db_transaction
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
@@ -242,6 +244,7 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                 )
                 return redirect("applications:list")
             qs.delete()
+            cache.delete("sidebar_counts")
             django_messages.success(request, f"Deleted {count} application(s).")
 
         elif action == "move":
@@ -252,22 +255,33 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                 try:
                     pos = Position.objects.get(pk=position_id)
                     moved = 0
-                    for app in qs.select_related("position"):
-                        old_title = app.position.title
-                        app.position = pos
-                        app.save(update_fields=["position", "updated_at"])
-                        StatusChange.objects.create(
-                            application=app,
-                            from_status=app.status,
-                            to_status=app.status,
-                            changed_by=request.user,
-                            note=f"Application moved from position '{old_title}' to '{pos.title}'",
+                    conflict = 0
+                    with db_transaction.atomic():
+                        for app in qs.select_related("position"):
+                            try:
+                                old_title = app.position.title
+                                app.position = pos
+                                app.save(update_fields=["position", "updated_at"])
+                                StatusChange.objects.create(
+                                    application=app,
+                                    from_status=app.status,
+                                    to_status=app.status,
+                                    changed_by=request.user,
+                                    note=f"Application moved from position '{old_title}' to '{pos.title}'",
+                                )
+                                moved += 1
+                            except IntegrityError:
+                                conflict += 1
+                    if moved:
+                        django_messages.success(
+                            request,
+                            f"Moved {moved} application(s) to '{pos.title}'.",
                         )
-                        moved += 1
-                    django_messages.success(
-                        request,
-                        f"Moved {moved} application(s) to '{pos.title}'.",
-                    )
+                    if conflict:
+                        django_messages.warning(
+                            request,
+                            f"{conflict} application(s) skipped — candidate already has an application for '{pos.title}'.",
+                        )
                 except Position.DoesNotExist:
                     django_messages.error(request, "Selected position not found.")
 
