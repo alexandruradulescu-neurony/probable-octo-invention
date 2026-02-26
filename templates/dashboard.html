@@ -182,7 +182,7 @@
             {% for s in position_summaries %}
             <tr>
               <td>
-                <div class="fw-medium text-primary">{{ s.position.title }}</div>
+                <a href="{% url 'applications:list' %}?position={{ s.position.pk }}" class="fw-medium text-primary text-decoration-none hover-underline">{{ s.position.title }}</a>
                 <div class="text-xs text-muted-custom">{{ s.total }} total candidates</div>
               </td>
               <td>

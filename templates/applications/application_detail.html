@@ -85,12 +85,12 @@
       {% if calls %}
       <div class="list-group list-group-flush" style="border-radius: 0 0 var(--radius-lg) var(--radius-lg);">
         {% for call in calls %}
-        <div class="list-group-item py-3 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
+        <div class="list-group-item py-4 px-4 border-0 border-bottom" style="border-color: var(--border-light) !important;">
 
           {# ── Call header ── #}
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="d-flex align-items-center gap-2">
-              <span class="fw-semibold text-sm">Attempt #{{ call.attempt_number }}</span>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="fw-bold" style="font-size:1rem;color:var(--text-primary);">Attempt #{{ call.attempt_number }}</span>
               {% if call.status == "completed" %}
                 <div class="badge status-offered"><span class="badge-dot"></span> Completed</div>
               {% elif call.status == "initiated" or call.status == "in_progress" %}
@@ -99,41 +99,44 @@
                 <div class="badge status-rejected"><span class="badge-dot"></span> {{ call.get_status_display }}</div>
               {% endif %}
             </div>
-            <div class="text-xs text-tertiary tabular-nums">
+            <div class="text-sm tabular-nums" style="color:var(--text-secondary);white-space:nowrap;">
               {{ call.initiated_at|date:"M j, Y H:i" }}
-              {% if call.duration_seconds %}&middot; {{ call.duration_seconds }}s{% endif %}
+              {% if call.duration_seconds %}<span style="color:var(--text-muted);">&middot; {{ call.duration_seconds }}s</span>{% endif %}
             </div>
           </div>
 
           {# ── Call summary ── #}
           {% if call.summary_title %}
-          <div class="text-sm text-secondary fw-medium">{{ call.summary_title }}</div>
+          <div class="fw-semibold mb-1" style="font-size:0.95rem;color:var(--text-primary);">{{ call.summary_title }}</div>
           {% endif %}
           {% if call.summary %}
-          <div class="text-sm text-secondary mt-1" style="line-height: 1.5;">{{ call.summary }}</div>
+          <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.65;{% if not call.summary_title %}margin-top:0;{% endif %}">{{ call.summary }}</div>
           {% endif %}
 
           {# ── Transcript (collapsible) ── #}
           {% if call.transcript %}
-          <div class="mt-2">
-            <a class="text-xs fw-medium text-decoration-underline" data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
+          <div class="mt-3">
+            <a class="text-sm fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
+               style="color:var(--accent-primary);"
+               data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
               View Transcript
             </a>
             <div class="collapse mt-2" id="transcript-{{ call.pk }}">
-              <div class="p-3 text-sm text-secondary" style="background: var(--bg-page); border: 1px solid var(--border-default); border-radius: var(--radius-md); white-space: pre-line; max-height: 300px; overflow-y: auto;">{{ call.transcript }}</div>
+              <div style="background:var(--bg-page);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:0.9rem 1rem;white-space:pre-line;max-height:320px;overflow-y:auto;font-size:0.875rem;line-height:1.7;color:var(--text-secondary);">{{ call.transcript }}</div>
             </div>
           </div>
           {% endif %}
 
           {# ── AI Evaluation (embedded) ── #}
           {% for ev in call.evaluations.all %}
-          <div class="mt-3 p-3" style="background: var(--bg-page); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+          <div class="mt-3 p-3" style="background:var(--bg-page);border:1px solid var(--border-default);border-left:3px solid var(--accent-primary);border-radius:var(--radius-md);">
             <div class="d-flex justify-content-between align-items-start mb-2">
-              <div class="d-flex align-items-center gap-2">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0" style="color:var(--accent-primary);">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0" style="color:var(--accent-primary);">
                   <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
-                <span class="text-xs fw-semibold" style="color:var(--accent-primary);text-transform:uppercase;letter-spacing:.05em;">AI Evaluation</span>
+                <span class="fw-bold text-sm" style="color:var(--accent-primary);text-transform:uppercase;letter-spacing:.06em;">AI Evaluation</span>
                 {% if ev.outcome == "qualified" %}
                   <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
                 {% elif ev.outcome == "not_qualified" %}
@@ -143,18 +146,18 @@
                 {% elif ev.outcome == "needs_human" %}
                   <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
                 {% endif %}
-                <span class="text-xs fw-semibold text-secondary">{{ ev.score }}/100</span>
+                <span class="fw-bold text-sm" style="color:var(--text-primary);">{{ ev.score }}<span class="fw-medium" style="color:var(--text-muted);">/100</span></span>
               </div>
-              <div class="text-xs text-tertiary tabular-nums">{{ ev.evaluated_at|date:"M j, H:i" }}</div>
+              <div class="text-sm tabular-nums" style="color:var(--text-secondary);white-space:nowrap;">{{ ev.evaluated_at|date:"M j, H:i" }}</div>
             </div>
-            <div class="text-sm text-secondary" style="line-height: 1.5;">{{ ev.reasoning }}</div>
+            <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.65;">{{ ev.reasoning }}</div>
             {% if ev.callback_requested and ev.callback_notes %}
-            <div class="mt-2 p-2 text-sm" style="background: var(--status-review-bg); border-radius: var(--radius-sm); color: var(--status-review-text);">
+            <div class="mt-2 p-2" style="background:var(--status-review-bg);border-radius:var(--radius-sm);color:var(--status-review-text);font-size:0.875rem;line-height:1.5;">
               <strong>Callback note:</strong> {{ ev.callback_notes }}
             </div>
             {% endif %}
             {% if ev.needs_human and ev.needs_human_notes %}
-            <div class="mt-2 p-2 text-sm" style="background: var(--status-rejected-bg); border-radius: var(--radius-sm); color: var(--status-rejected-text);">
+            <div class="mt-2 p-2" style="background:var(--status-rejected-bg);border-radius:var(--radius-sm);color:var(--status-rejected-text);font-size:0.875rem;line-height:1.5;">
               <strong>Escalation:</strong> {{ ev.needs_human_notes }}
             </div>
             {% endif %}

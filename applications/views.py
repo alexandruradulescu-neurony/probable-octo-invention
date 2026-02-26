@@ -32,7 +32,7 @@ from cvs.models import CVUpload
 from evaluations.models import LLMEvaluation
 from messaging.models import CandidateReply, Message
 from positions.models import Position
-from recruitflow.context_processors import SIDEBAR_CACHE_KEY
+from recruitflow.constants import SIDEBAR_CACHE_KEY
 from recruitflow.text_utils import humanize_form_question
 
 logger = logging.getLogger(__name__)

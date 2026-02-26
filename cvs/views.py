@@ -16,7 +16,7 @@ import logging
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.files.storage import default_storage
-from recruitflow.context_processors import SIDEBAR_CACHE_KEY
+from recruitflow.constants import SIDEBAR_CACHE_KEY
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, JsonResponse

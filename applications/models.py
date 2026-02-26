@@ -1,5 +1,8 @@
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
+
+from recruitflow.constants import SIDEBAR_CACHE_KEY
 
 
 class Application(models.Model):
@@ -102,8 +105,6 @@ class Application(models.Model):
             changed_by=changed_by,
             note=note,
         )
-        from django.core.cache import cache
-        from recruitflow.context_processors import SIDEBAR_CACHE_KEY
         cache.delete(SIDEBAR_CACHE_KEY)
 
 

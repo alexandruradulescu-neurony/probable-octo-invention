@@ -96,6 +96,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -129,7 +130,10 @@ WSGI_APPLICATION = "recruitflow.wsgi.application"
 #   postgres://USER:PASSWORD@HOST:PORT/DBNAME
 
 DATABASES = {
-    "default": env.db("DATABASE_URL"),
+    "default": {
+        **env.db("DATABASE_URL"),
+        "CONN_MAX_AGE": env.int("CONN_MAX_AGE", default=60),
+    },
 }
 
 # ─── Password Validation ───────────────────────────────────────────────────────
@@ -156,6 +160,17 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# WhiteNoise serves and compresses static files with content-hash fingerprinting.
+# CompressedManifestStaticFilesStorage also writes staticfiles.json for cache-busting.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / env("MEDIA_ROOT", default="media")
@@ -201,7 +216,7 @@ WHAPI_WEBHOOK_SECRET = env("WHAPI_WEBHOOK_SECRET", default="")
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
 GOOGLE_REFRESH_TOKEN = env("GOOGLE_REFRESH_TOKEN", default="")
-GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI", default="http://localhost:8010/settings/gmail/callback/")
+GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
 
 GMAIL_INBOX_LABEL = env("GMAIL_INBOX_LABEL", default="CVs")
 GMAIL_PROCESSED_LABEL = env("GMAIL_PROCESSED_LABEL", default="CVs-Processed")

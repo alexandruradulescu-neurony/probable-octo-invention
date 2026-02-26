@@ -25,7 +25,7 @@ Gmail API (polling)
 Scheduling
 django-apscheduler
 File storage
-Local or S3 (configurable)
+Local filesystem
 
 
 3. Django App Structure
@@ -441,7 +441,7 @@ str
 
 file_path
 str
-Local path or S3 key
+Local filesystem path
 source
 ENUM
 email_attachment, whatsapp_media, manual_upload
@@ -1138,13 +1138,9 @@ GMAIL_POLL_MINUTES=15
 
 # ────────────────────────────────────────────
 # STORAGE
-# Default: local. Uncomment S3 block for production.
+# Local filesystem only.
 # ────────────────────────────────────────────
 MEDIA_ROOT=media/
-
-# AWS_ACCESS_KEY_ID=
-# AWS_SECRET_ACCESS_KEY=
-# AWS_STORAGE_BUCKET_NAME=
 
 # ────────────────────────────────────────────
 # SCHEDULER & TIMEZONE

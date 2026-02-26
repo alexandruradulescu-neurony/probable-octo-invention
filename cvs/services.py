@@ -42,18 +42,13 @@ from candidates.services import lookup_candidate_by_email, lookup_candidate_by_p
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
+from recruitflow.constants import FUZZY_NAME_THRESHOLD, PDF_MAX_PAGES
 from recruitflow.text_utils import build_full_name, strip_json_fence
 
 logger = logging.getLogger(__name__)
 
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-
-# Minimum SequenceMatcher ratio to accept a fuzzy name match.
-FUZZY_NAME_THRESHOLD = 0.80
-
-# Maximum pages to extract from a PDF for CV content analysis (spec § 11).
-PDF_MAX_PAGES = 2
 
 # Regex that captures an application reference number from free text.
 # Matches patterns like:  App #42  |  Application ID: 123  |  Ref 456  |  #789

@@ -88,3 +88,86 @@ class ClaudeEvaluationTests(TestCase):
         call.application.refresh_from_db()
         self.assertEqual(call.application.status, Application.Status.CALLBACK_SCHEDULED)
         self.assertIsNotNone(call.application.callback_scheduled_at)
+
+    @patch.object(ClaudeService, "_send_message")
+    def test_evaluate_call_not_qualified_advances_to_awaiting_cv_rejected(self, mock_send_message):
+        """
+        Claude returning not_qualified should move the Application to
+        awaiting_cv_rejected (spec §7 — not-qualified path).
+        """
+        mock_send_message.return_value = json.dumps(
+            {
+                "outcome": "not_qualified",
+                "qualified": False,
+                "score": 20,
+                "reasoning": "Lacks required experience",
+                "callback_requested": False,
+                "callback_notes": None,
+                "needs_human": False,
+                "needs_human_notes": None,
+                "callback_at": None,
+            }
+        )
+        call = _make_call()
+
+        evaluation = ClaudeService().evaluate_call(call)
+
+        self.assertEqual(evaluation.outcome, LLMEvaluation.Outcome.NOT_QUALIFIED)
+        self.assertFalse(evaluation.qualified)
+        call.application.refresh_from_db()
+        self.assertEqual(call.application.status, Application.Status.AWAITING_CV_REJECTED)
+        self.assertFalse(call.application.qualified)
+
+    @patch.object(ClaudeService, "_send_message")
+    def test_evaluate_call_needs_human_escalates_application(self, mock_send_message):
+        """
+        Claude returning needs_human should move the Application to needs_human
+        and persist the reason (spec §7 — needs-human path).
+        """
+        mock_send_message.return_value = json.dumps(
+            {
+                "outcome": "needs_human",
+                "qualified": False,
+                "score": 0,
+                "reasoning": "Candidate refused bot",
+                "callback_requested": False,
+                "callback_notes": None,
+                "needs_human": True,
+                "needs_human_notes": "Candidate became hostile and demanded a human",
+                "callback_at": None,
+            }
+        )
+        call = _make_call()
+
+        evaluation = ClaudeService().evaluate_call(call)
+
+        self.assertEqual(evaluation.outcome, LLMEvaluation.Outcome.NEEDS_HUMAN)
+        self.assertTrue(evaluation.needs_human)
+        call.application.refresh_from_db()
+        self.assertEqual(call.application.status, Application.Status.NEEDS_HUMAN)
+        self.assertIsNotNone(call.application.needs_human_reason)
+
+    @patch.object(ClaudeService, "_trigger_cv_request")
+    @patch.object(ClaudeService, "_send_message")
+    def test_evaluate_call_stores_score_and_score_notes(self, mock_send_message, _mock_trigger):
+        """Qualified evaluation persists score and reasoning on the Application."""
+        mock_send_message.return_value = json.dumps(
+            {
+                "outcome": "qualified",
+                "qualified": True,
+                "score": 78,
+                "reasoning": "Solid background in B2B sales.",
+                "callback_requested": False,
+                "callback_notes": None,
+                "needs_human": False,
+                "needs_human_notes": None,
+                "callback_at": None,
+            }
+        )
+        call = _make_call()
+
+        ClaudeService().evaluate_call(call)
+
+        call.application.refresh_from_db()
+        self.assertEqual(call.application.score, 78)
+        self.assertIn("B2B", call.application.score_notes)

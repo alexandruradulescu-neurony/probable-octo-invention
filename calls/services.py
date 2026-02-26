@@ -29,6 +29,7 @@ from applications.models import Application
 from applications.transitions import set_call_in_progress
 from calls.models import Call
 from calls.utils import format_form_answers
+from recruitflow.constants import BATCH_CHUNK_SIZE
 from recruitflow.text_utils import build_full_name
 
 logger = logging.getLogger(__name__)
@@ -39,8 +40,6 @@ ELEVENLABS_OUTBOUND_URL = (
 ELEVENLABS_BATCH_URL = (
     "https://api.elevenlabs.io/v1/convai/batch-calling/submit"
 )
-
-BATCH_CHUNK_SIZE = 50
 
 CONVERSATION_ID_KEYS = ("conversation_id", "call_id", "id", "call_sid")
 

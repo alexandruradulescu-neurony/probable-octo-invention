@@ -2,11 +2,13 @@ import tempfile
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from applications.models import Application
+from applications.models import Application, StatusChange
 from applications.services import handle_manual_cv_upload
 from applications.transitions import set_callback_scheduled, set_cv_received, set_needs_human
 from candidates.models import Candidate
@@ -136,3 +138,51 @@ class TransitionAtomicityTests(TestCase):
         app.refresh_from_db()
         self.assertIsNone(app.cv_received_at)
         self.assertEqual(app.status, Application.Status.AWAITING_CV)
+
+
+# ── Application.change_status model tests ─────────────────────────────────────
+
+class ApplicationChangeStatusTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="recruiter2", password="test-pass"
+        )
+        pos = _make_position()
+        self.app = Application.objects.create(
+            candidate=_make_candidate(),
+            position=pos,
+            status=Application.Status.PENDING_CALL,
+        )
+
+    def test_change_status_creates_status_change_record(self):
+        self.app.change_status(Application.Status.CALL_QUEUED, changed_by=self.user)
+
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.status, Application.Status.CALL_QUEUED)
+
+        sc = StatusChange.objects.get(application=self.app)
+        self.assertEqual(sc.from_status, Application.Status.PENDING_CALL)
+        self.assertEqual(sc.to_status, Application.Status.CALL_QUEUED)
+        self.assertEqual(sc.changed_by, self.user)
+
+    def test_change_status_noop_when_same_status(self):
+        """No StatusChange record created when transitioning to the same status."""
+        self.app.change_status(Application.Status.PENDING_CALL)
+
+        self.assertEqual(StatusChange.objects.filter(application=self.app).count(), 0)
+
+    def test_change_status_clears_sidebar_cache(self):
+        from recruitflow.constants import SIDEBAR_CACHE_KEY
+        cache.set(SIDEBAR_CACHE_KEY, "cached_value", 60)
+
+        self.app.change_status(Application.Status.CALL_QUEUED)
+
+        self.assertIsNone(cache.get(SIDEBAR_CACHE_KEY))
+
+    def test_unique_together_candidate_position_constraint(self):
+        """A candidate cannot have two applications for the same position."""
+        candidate = _make_candidate()
+        pos = _make_position()
+        Application.objects.create(candidate=candidate, position=pos)
+        with self.assertRaises(IntegrityError):
+            Application.objects.create(candidate=candidate, position=pos)

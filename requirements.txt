@@ -1,6 +1,12 @@
 # Core Framework
 Django==5.2.11
 
+# Production WSGI server
+gunicorn==25.1.0
+
+# Static file serving (production)
+whitenoise==6.11.0
+
 # Database
 psycopg2-binary==2.9.11
 

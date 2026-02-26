@@ -88,3 +88,99 @@ class WebhookLateBindingTests(TestCase):
 
         call.refresh_from_db()
         self.assertEqual(call.eleven_labs_conversation_id, "conv_bound_1")
+
+
+# ── Whapi webhook integration tests ───────────────────────────────────────────
+
+class WhapiWebhookTests(TestCase):
+    @override_settings(DEBUG=True, WHAPI_WEBHOOK_SECRET="")
+    def test_whapi_text_message_creates_candidate_reply(self):
+        """
+        An inbound WhatsApp text message creates a CandidateReply record
+        and resolves to the matching Candidate (spec §13.9 + §4.9).
+        """
+        from messaging.models import CandidateReply
+
+        candidate = _make_candidate()
+
+        payload = {
+            "messages": [
+                {
+                    "id": "msg_abc123",
+                    "from": "+40700000001@s.whatsapp.net",
+                    "type": "text",
+                    "text": {"body": "Hello, I have a question about my application."},
+                    "from_me": False,
+                }
+            ]
+        }
+        response = self.client.post(
+            reverse("webhooks:whapi"),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        reply = CandidateReply.objects.filter(sender="+40700000001").first()
+        self.assertIsNotNone(reply)
+        self.assertEqual(reply.channel, CandidateReply.Channel.WHATSAPP)
+        self.assertIn("question", reply.body)
+        self.assertEqual(reply.candidate, candidate)
+
+    @override_settings(DEBUG=True, WHAPI_WEBHOOK_SECRET="")
+    def test_whapi_from_me_message_is_skipped(self):
+        """
+        Outbound messages (from_me=True) must be silently ignored to prevent
+        self-echoes (spec §13.9).
+        """
+        from messaging.models import CandidateReply
+
+        payload = {
+            "messages": [
+                {
+                    "id": "msg_selfecho",
+                    "from": "+40700000001@s.whatsapp.net",
+                    "type": "text",
+                    "text": {"body": "This was sent BY us, not received."},
+                    "from_me": True,
+                }
+            ]
+        }
+        response = self.client.post(
+            reverse("webhooks:whapi"),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # No CandidateReply should have been created
+        self.assertEqual(CandidateReply.objects.count(), 0)
+
+    @override_settings(DEBUG=True, WHAPI_WEBHOOK_SECRET="")
+    def test_whapi_empty_messages_array_returns_ok(self):
+        """An empty messages list should return 200 without errors."""
+        response = self.client.post(
+            reverse("webhooks:whapi"),
+            data=json.dumps({"messages": []}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(DEBUG=True, ELEVENLABS_WEBHOOK_SECRET="")
+    def test_elevenlabs_missing_conversation_id_returns_ok(self):
+        """A payload with no conversation_id should return 200 (non-fatal)."""
+        response = self.client.post(
+            reverse("webhooks:elevenlabs"),
+            data=json.dumps({"data": {}}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @override_settings(DEBUG=True, ELEVENLABS_WEBHOOK_SECRET="")
+    def test_elevenlabs_invalid_json_returns_400(self):
+        response = self.client.post(
+            reverse("webhooks:elevenlabs"),
+            data="not json at all",
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)

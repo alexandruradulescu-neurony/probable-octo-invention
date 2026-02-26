@@ -5,9 +5,7 @@ from candidates.models import Candidate
 from cvs.models import UnmatchedInbound, CVUpload
 from messaging.models import CandidateReply
 from positions.models import Position
-
-SIDEBAR_CACHE_KEY = "sidebar_counts"
-SIDEBAR_CACHE_TTL = 60
+from recruitflow.constants import SIDEBAR_CACHE_KEY, SIDEBAR_CACHE_TTL
 
 
 def sidebar_counts(request):

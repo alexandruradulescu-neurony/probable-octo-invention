@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
-from recruitflow.context_processors import SIDEBAR_CACHE_KEY
+from recruitflow.constants import SIDEBAR_CACHE_KEY
 
 from evaluations.services import ClaudeService, ClaudeServiceError
 from positions.forms import PositionForm

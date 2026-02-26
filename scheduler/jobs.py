@@ -29,26 +29,19 @@ from django_apscheduler.util import close_old_connections
 
 from applications.models import Application, StatusChange
 from applications.transitions import set_call_failed, set_closed, set_followup_status
-from cvs.constants import AWAITING_CV_STATUSES
 from calls.models import Call
 from calls.services import ElevenLabsError, ElevenLabsService
 from calls.utils import apply_call_result
+from cvs.constants import AWAITING_CV_STATUSES
 from evaluations.services import trigger_evaluation
 from messaging.models import CandidateReply, Message
 from messaging.services import save_candidate_reply, send_followup
 from positions.models import Position
+from recruitflow.constants import BATCH_ORPHAN_THRESHOLD_MINUTES, STUCK_CALL_THRESHOLD_MINUTES
 
 logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-
-# A call is considered "stuck" if it has been in initiated/in_progress longer
-# than this threshold without the webhook delivering a completion event.
-STUCK_CALL_THRESHOLD_MINUTES = 15
-
-# Batch calls never receive a polled conversation_id; escalate to CALL_FAILED after this
-# extended window so the application can re-enter the retry flow.
-BATCH_ORPHAN_THRESHOLD_MINUTES = 60
 
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io"
 
