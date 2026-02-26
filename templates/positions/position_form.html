@@ -5,7 +5,7 @@
 
 {% block topbar_actions %}
 <a href="{% url 'positions:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
-  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
   Back to Positions
 </a>
 {% endblock %}
@@ -16,7 +16,7 @@
 
   {% if form.errors %}
   <div class="alert alert-danger mb-4 d-flex align-items-start gap-2">
-    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
     <div>
       <div class="fw-semibold mb-1">Please correct the errors below.</div>
       {% if form.non_field_errors %}
@@ -55,7 +55,7 @@
           <div class="mb-0">
             <label for="id_campaign_questions" class="form-label">
               Campaign Questions
-              <span class="text-tertiary" style="font-weight: 400; text-transform: none; letter-spacing: 0;">(one per line)</span>
+              <span class="text-muted-custom" style="font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 0.8rem;">(one per line)</span>
             </label>
             {{ form.campaign_questions }}
             {% if form.campaign_questions.errors %}<div class="error-text">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
@@ -67,15 +67,17 @@
       <div class="card mb-4">
         <div class="card-header">
           <h2 class="card-header-title">AI Prompts</h2>
-          <button type="button" id="btn-generate-all" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate all three prompts using Claude (3 sequential calls)">
+          <button type="button" id="btn-generate-all" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate all three prompts using Claude">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             Generate All
           </button>
         </div>
         <div class="card-body">
-          <div class="alert alert-info mb-4 d-flex align-items-start gap-2" style="padding: 0.75rem;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div class="text-sm" style="line-height: 1.4;">
+
+          <!-- AI info banner -->
+          <div class="d-flex align-items-start gap-2 mb-4 p-3" style="background: rgba(67,24,255,0.04); border: 1px solid rgba(67,24,255,0.12); border-radius: var(--radius-md);">
+            <svg width="14" height="14" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 1px; flex-shrink: 0; opacity: 0.75;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div class="text-sm" style="color: var(--text-secondary); line-height: 1.5;">
               The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.{% if object %} Generated prompts are saved automatically.{% endif %}
             </div>
           </div>
@@ -84,7 +86,7 @@
           <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-1">
               <label for="id_system_prompt" class="form-label mb-0">System Prompt</label>
-              <button type="button" class="btn-regen" data-section="system_prompt" title="Regenerate System Prompt with Claude">
+              <button type="button" class="btn-regen" data-section="system_prompt" title="Regenerate with Claude">
                 <span class="regen-icon">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                 </span>
@@ -94,14 +96,14 @@
             </div>
             {{ form.system_prompt }}
             <div class="help-text">Personality, instructions, how to ask screening questions.</div>
-            <div class="regen-error text-xs mt-1" data-section="system_prompt" style="color: var(--accent-danger); display: none;"></div>
+            <div class="regen-error text-xs mt-1" data-section="system_prompt" style="color: var(--accent-negative); display: none;"></div>
           </div>
 
           <!-- First Message -->
           <div class="mb-4">
             <div class="d-flex align-items-center justify-content-between mb-1">
               <label for="id_first_message" class="form-label mb-0">First Message</label>
-              <button type="button" class="btn-regen" data-section="first_message" title="Regenerate First Message with Claude">
+              <button type="button" class="btn-regen" data-section="first_message" title="Regenerate with Claude">
                 <span class="regen-icon">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                 </span>
@@ -111,14 +113,14 @@
             </div>
             {{ form.first_message }}
             <div class="help-text">Opening line the agent says when the candidate picks up.</div>
-            <div class="regen-error text-xs mt-1" data-section="first_message" style="color: var(--accent-danger); display: none;"></div>
+            <div class="regen-error text-xs mt-1" data-section="first_message" style="color: var(--accent-negative); display: none;"></div>
           </div>
 
           <!-- Qualification Prompt -->
           <div class="mb-0">
             <div class="d-flex align-items-center justify-content-between mb-1">
               <label for="id_qualification_prompt" class="form-label mb-0">Qualification Prompt</label>
-              <button type="button" class="btn-regen" data-section="qualification_prompt" title="Regenerate Qualification Prompt with Claude">
+              <button type="button" class="btn-regen" data-section="qualification_prompt" title="Regenerate with Claude">
                 <span class="regen-icon">
                   <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                 </span>
@@ -128,7 +130,7 @@
             </div>
             {{ form.qualification_prompt }}
             <div class="help-text">Sent to Claude along with the transcript for scoring.</div>
-            <div class="regen-error text-xs mt-1" data-section="qualification_prompt" style="color: var(--accent-danger); display: none;"></div>
+            <div class="regen-error text-xs mt-1" data-section="qualification_prompt" style="color: var(--accent-negative); display: none;"></div>
           </div>
 
         </div>
@@ -182,8 +184,8 @@
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2" style="padding: 0.6rem;">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
         {% if object %}Save Changes{% else %}Create Position{% endif %}
       </button>
     </div>
@@ -198,12 +200,12 @@
   align-items: center;
   gap: 5px;
   font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-tertiary);
   background: none;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  padding: 3px 8px;
+  padding: 3px 9px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   line-height: 1.4;
@@ -211,10 +213,10 @@
 .btn-regen:hover:not(:disabled) {
   color: var(--accent-primary);
   border-color: var(--accent-primary);
-  background: rgba(var(--accent-primary-rgb, 79, 70, 229), 0.05);
+  background: rgba(67, 24, 255, 0.05);
 }
 .btn-regen:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .btn-regen.is-loading .regen-icon { display: none; }
@@ -248,11 +250,7 @@
 
   function setRegenState(btn, loading) {
     btn.disabled = loading;
-    if (loading) {
-      btn.classList.add('is-loading');
-    } else {
-      btn.classList.remove('is-loading');
-    }
+    btn.classList.toggle('is-loading', loading);
   }
 
   function showFieldError(section, msg) {
@@ -312,9 +310,7 @@
 
   // Individual regenerate buttons
   document.querySelectorAll('.btn-regen').forEach(btn => {
-    btn.addEventListener('click', () => {
-      generateSection(btn.dataset.section);
-    });
+    btn.addEventListener('click', () => generateSection(btn.dataset.section));
   });
 
   // Generate All — 3 sequential calls
@@ -327,7 +323,7 @@
     }
 
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width: 12px; height: 12px; border-width: 1px;"></span> Generating…';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width:11px;height:11px;border-width:1.5px;"></span> Generating…';
 
     const sections = ['system_prompt', 'first_message', 'qualification_prompt'];
     for (const section of sections) {
@@ -335,7 +331,7 @@
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right: 4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate All';
+    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right:3px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate All';
   });
 })();
 </script>

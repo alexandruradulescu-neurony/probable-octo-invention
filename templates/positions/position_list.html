@@ -5,7 +5,7 @@
 
 {% block topbar_actions %}
 <a href="{% url 'positions:create' %}" class="btn btn-primary d-inline-flex align-items-center gap-2">
-  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
   New Position
 </a>
 {% endblock %}
@@ -13,7 +13,6 @@
 {% block content %}
 <form method="post" action="{% url 'positions:bulk_delete' %}" id="bulk-form">
 {% csrf_token %}
-{# Server-side confirmation gate — view only checks this when positions are submitted for deletion #}
 <input type="hidden" name="confirm_delete" value="yes">
 
 <div id="bulk-bar" class="bulk-action-bar mb-3" style="display:none;">
@@ -22,7 +21,7 @@
     <div class="bulk-divider"></div>
     <button type="submit" name="action" value="delete" class="bulk-btn bulk-btn-danger"
             onclick="return confirm('Delete selected positions and ALL their applications? This cannot be undone.')">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
       Delete
     </button>
   </div>
@@ -41,7 +40,7 @@
           </th>
           <th>Title</th>
           <th>Status</th>
-          <th class="text-center">Open Applications</th>
+          <th class="text-center">Applications</th>
           <th>Created</th>
           <th></th>
         </tr>
@@ -65,21 +64,23 @@
             {% endif %}
           </td>
           <td class="text-center">
-            <span class="badge badge-neutral">{{ pos.open_applications_count }}</span>
+            <span class="badge badge-neutral tabular-nums">{{ pos.open_applications_count }}</span>
           </td>
           <td class="text-xs text-muted-custom">{{ pos.created_at|date:"M j, Y" }}</td>
-          <td class="text-end no-row-click">
+          <td class="text-end no-row-click" style="white-space: nowrap;">
             <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="btn btn-secondary btn-sm">Applications</a>
-            <a href="{% url 'positions:edit' pos.pk %}" class="btn btn-secondary btn-sm">Edit</a>
+            <a href="{% url 'positions:edit' pos.pk %}" class="btn btn-secondary btn-sm ms-1">Edit</a>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="5" class="text-center py-5">
-            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary mb-3"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          <td colspan="6" class="text-center py-5">
+            <div class="empty-state-icon mx-auto mb-3">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </div>
             <div class="empty-state-title">No positions yet</div>
             <div class="empty-state-desc">Create your first position to get started.</div>
-            <a href="{% url 'positions:create' %}" class="btn btn-secondary">Create Position</a>
+            <a href="{% url 'positions:create' %}" class="btn btn-secondary btn-sm">Create Position</a>
           </td>
         </tr>
         {% endfor %}
