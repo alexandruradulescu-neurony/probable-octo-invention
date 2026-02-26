@@ -267,17 +267,18 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                     with db_transaction.atomic():
                         for app in qs.select_related("position"):
                             try:
-                                old_title = app.position.title
-                                app.position = pos
-                                app.save(update_fields=["position", "updated_at"])
-                                StatusChange.objects.create(
-                                    application=app,
-                                    from_status=app.status,
-                                    to_status=app.status,
-                                    changed_by=request.user,
-                                    note=f"Application moved from position '{old_title}' to '{pos.title}'",
-                                )
-                                moved += 1
+                                with db_transaction.atomic():  # savepoint per app
+                                    old_title = app.position.title
+                                    app.position = pos
+                                    app.save(update_fields=["position", "updated_at"])
+                                    StatusChange.objects.create(
+                                        application=app,
+                                        from_status=app.status,
+                                        to_status=app.status,
+                                        changed_by=request.user,
+                                        note=f"Application moved from position '{old_title}' to '{pos.title}'",
+                                    )
+                                    moved += 1
                             except IntegrityError:
                                 conflict += 1
                     if moved:

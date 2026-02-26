@@ -25,6 +25,7 @@ from applications.transitions import (
     set_not_qualified,
     set_qualified,
 )
+from calls.models import Call
 from calls.utils import format_form_answers
 from evaluations.models import LLMEvaluation
 from recruitflow.text_utils import strip_json_fence
@@ -216,8 +217,10 @@ class ClaudeService:
         Raises:
             ClaudeServiceError on API or JSON parsing failure.
         """
-        existing = LLMEvaluation.objects.filter(call=call).first()
-        if existing:
+        # First fast-path check (avoids Claude API cost on obvious duplicates).
+        # Not race-safe by itself — a definitive re-check is done inside atomic() below.
+        if LLMEvaluation.objects.filter(call=call).exists():
+            existing = LLMEvaluation.objects.filter(call=call).first()
             logger.info(
                 "Evaluation already exists for call=%s (evaluation=%s) — skipping duplicate",
                 call.pk, existing.pk,
@@ -294,6 +297,17 @@ class ClaudeService:
         callback_at = _parse_optional_datetime(data.get("callback_at"))
 
         with transaction.atomic():
+            # Lock the Call row to serialise concurrent webhook + scheduler deliveries.
+            # Re-check for an existing evaluation inside the lock to close the TOCTOU window.
+            Call.objects.select_for_update().get(pk=call.pk)
+            existing = LLMEvaluation.objects.filter(call=call).first()
+            if existing:
+                logger.info(
+                    "Evaluation already exists for call=%s (evaluation=%s) — skipping duplicate (race prevented)",
+                    call.pk, existing.pk,
+                )
+                return existing
+
             evaluation = LLMEvaluation.objects.create(
                 application=application,
                 call=call,
