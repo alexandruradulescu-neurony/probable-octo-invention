@@ -128,12 +128,14 @@ class Command(BaseCommand):
             f"Starting scheduler (timezone={settings.APSCHEDULER_TIMEZONE})"
         ))
 
+        scheduler.start()
+
         for job in scheduler.get_jobs():
+            next_run = getattr(job, "next_run_time", None)
             self.stdout.write(
-                f"  • {job.id:<30} next run: {job.next_run_time}"
+                f"  • {job.id:<30} next run: {next_run}"
             )
 
-        scheduler.start()
         self.stdout.write(self.style.SUCCESS(
             "Scheduler running. Press Ctrl+C to stop."
         ))
