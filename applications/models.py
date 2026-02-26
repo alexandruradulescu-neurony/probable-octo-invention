@@ -103,7 +103,8 @@ class Application(models.Model):
             note=note,
         )
         from django.core.cache import cache
-        cache.delete("sidebar_counts")
+        from recruitflow.context_processors import SIDEBAR_CACHE_KEY
+        cache.delete(SIDEBAR_CACHE_KEY)
 
 
 class StatusChange(models.Model):

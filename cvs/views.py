@@ -16,6 +16,7 @@ import logging
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from recruitflow.context_processors import SIDEBAR_CACHE_KEY
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, JsonResponse
@@ -26,6 +27,7 @@ from django.views import View
 from django.views.generic import TemplateView
 
 from applications.models import Application
+from applications.transitions import set_awaiting_cv
 from cvs.constants import AWAITING_CV_STATUSES
 from cvs.helpers import advance_application_status, channel_to_source
 from cvs.models import CVUpload, UnmatchedInbound
@@ -216,7 +218,7 @@ class AssignUnmatchedView(LoginRequiredMixin, View):
                 "resolved", "resolved_by_application", "resolved_at",
             ])
 
-        cache.delete("sidebar_counts")
+        cache.delete(SIDEBAR_CACHE_KEY)
 
         logger.info(
             "Unmatched %s assigned to candidate %s (%s app(s) advanced) by user %s",
@@ -257,7 +259,7 @@ class ConfirmCVReviewView(LoginRequiredMixin, View):
         cv = get_object_or_404(CVUpload, pk=cv_upload_id, needs_review=True)
         cv.needs_review = False
         cv.save(update_fields=["needs_review"])
-        cache.delete("sidebar_counts")
+        cache.delete(SIDEBAR_CACHE_KEY)
 
         logger.info(
             "CV %s confirmed by user %s", cv.pk, request.user.pk,
@@ -285,9 +287,7 @@ class ReassignCVView(LoginRequiredMixin, View):
 
         cv = get_object_or_404(CVUpload, pk=cv_upload_id)
         new_application = get_object_or_404(Application, pk=application_id)
-
-        now = timezone.now()
-
+        old_application = cv.application  # capture before reassign
         new_candidate = new_application.candidate
 
         with transaction.atomic():
@@ -307,9 +307,29 @@ class ReassignCVView(LoginRequiredMixin, View):
             for app in all_awaiting:
                 advance_application_status(app)
 
+            # Revert the original application if it now has no remaining CVs and was
+            # only advanced because of this specific CV.
+            if old_application and old_application.pk != new_application.pk:
+                remaining = CVUpload.objects.filter(
+                    application=old_application
+                ).exclude(pk=cv.pk).count()
+                if remaining == 0 and old_application.status in (
+                    Application.Status.CV_RECEIVED,
+                    Application.Status.CV_RECEIVED_REJECTED,
+                ):
+                    rejected = (
+                        old_application.status == Application.Status.CV_RECEIVED_REJECTED
+                    )
+                    set_awaiting_cv(
+                        old_application,
+                        rejected=rejected,
+                        note="CV reassigned away — reverting to awaiting-CV status",
+                    )
+
         logger.info(
-            "CV %s reassigned to application %s by user %s",
-            cv.pk, new_application.pk, request.user.pk,
+            "CV %s reassigned from application %s to application %s by user %s",
+            cv.pk, old_application.pk if old_application else None,
+            new_application.pk, request.user.pk,
         )
 
         return redirect("cvs:inbox")

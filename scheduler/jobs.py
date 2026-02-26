@@ -125,11 +125,17 @@ def process_call_queue() -> None:
                 )
                 .values_list("pk", flat=True)
             )
-            with transaction.atomic():
-                for app_pk in queued_ids:
-                    set_call_failed(
-                        eligible_by_pk[app_pk],
-                        note="Batch call submission failed",
+            for app_pk in queued_ids:
+                try:
+                    with transaction.atomic():
+                        set_call_failed(
+                            eligible_by_pk[app_pk],
+                            note="Batch call submission failed",
+                        )
+                except Exception as exc:
+                    logger.error(
+                        "Failed to mark application=%s as CALL_FAILED after batch error: %s",
+                        app_pk, exc, exc_info=True,
                     )
 
     # ── Queue 2: individual — scheduled callbacks whose time has arrived ───────

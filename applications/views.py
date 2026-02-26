@@ -32,6 +32,7 @@ from cvs.models import CVUpload
 from evaluations.models import LLMEvaluation
 from messaging.models import CandidateReply, Message
 from positions.models import Position
+from recruitflow.context_processors import SIDEBAR_CACHE_KEY
 from recruitflow.text_utils import humanize_form_question
 
 logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ class BulkActionApplicationsView(LoginRequiredMixin, View):
                 )
                 return redirect("applications:list")
             qs.delete()
-            cache.delete("sidebar_counts")
+            cache.delete(SIDEBAR_CACHE_KEY)
             django_messages.success(request, f"Deleted {count} application(s).")
 
         elif action == "move":
