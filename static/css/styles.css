@@ -679,10 +679,9 @@ body {
 
 /* ─── Topbar ─────────────────────────────────────────────────────────────────── */
 .topbar-breadcrumb {
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
   font-weight: 500;
-  margin-bottom: 0.15rem;
   letter-spacing: 0.01em;
   display: flex;
   align-items: center;
@@ -706,14 +705,6 @@ body {
   font-weight: 600;
 }
 
-.topbar-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin: 0;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-}
 
 .topbar-right {
   display: flex;
@@ -790,11 +781,11 @@ body {
 .topbar-search-input {
   background: var(--bg-page);
   border: 1px solid var(--border-default);
-  border-radius: 30px;
+  border-radius: var(--radius-lg);
   padding: 0.48rem 1rem 0.48rem 2.25rem;
   font-size: 0.82rem;
   color: var(--text-primary);
-  width: 210px;
+  width: 240px;
   outline: none;
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
@@ -804,10 +795,10 @@ body {
 .topbar-search-input::placeholder { color: var(--text-muted); }
 
 .topbar-search-input:focus {
-  width: 250px;
+  width: 300px;
   background: #ffffff;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.07);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.07);
 }
 
 .topbar-search-icon {
