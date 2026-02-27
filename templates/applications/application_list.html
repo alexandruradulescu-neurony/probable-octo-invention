@@ -255,6 +255,20 @@
   const textMuted   = root.getPropertyValue('--text-muted').trim()   || '#94a3b8';
   const borderLight = root.getPropertyValue('--border-light').trim() || '#e2e8f0';
 
+  // Compute shared y-axis max: largest per-position daily total across all days
+  // Datasets are grouped as [qual_bar(3k), unqual_bar(3k+1), trend(3k+2)]
+  const numDays = raw.labels.length;
+  const numPos  = raw.datasets.length / 3;
+  let sharedMax = 1;
+  for (let di = 0; di < numDays; di++) {
+    for (let pi = 0; pi < numPos; pi++) {
+      const q = raw.datasets[pi * 3    ].data[di] || 0;
+      const u = raw.datasets[pi * 3 + 1].data[di] || 0;
+      sharedMax = Math.max(sharedMax, q + u);
+    }
+  }
+  sharedMax = Math.ceil(sharedMax * 1.2);
+
   new Chart(document.getElementById('applist-activity-chart'), {
     type: 'bar',
     data: {
@@ -277,7 +291,6 @@
             borderRadius: 3,
             useBorderRadius: true,
             padding: 12,
-            // Hide the "__" prefixed unqualified datasets from the legend
             filter: (item) => !item.text.startsWith('__'),
           },
         },
@@ -289,15 +302,11 @@
           bodyColor: '#cbd5e1',
           padding: 10,
           cornerRadius: 6,
-          // Only show items that have data; group the pair into one line per position
-          // Only show the vivid bar segment (qualified) rows; skip hidden/trend datasets
           filter: (item) => !item.dataset.label.startsWith('__'),
           callbacks: {
             label: (item) => {
-              // Datasets are grouped as: [qual_bar(3k), unqual_bar(3k+1), trend(3k+2)] per position
-              // Tooltip filter only shows qual_bar rows (label doesn't start with __)
               const dsIdx    = item.datasetIndex;
-              const unqualDs = raw.datasets[dsIdx + 1];   // unqual_bar is immediately after
+              const unqualDs = raw.datasets[dsIdx + 1];
               const unqual   = unqualDs ? (unqualDs.data[item.dataIndex] || 0) : 0;
               const qual     = item.parsed.y || 0;
               const total    = unqual + qual;
@@ -313,11 +322,20 @@
           grid: { display: false },
           ticks: { color: textMuted, font: { size: 11 } },
         },
+        // Primary stacked axis for bars
         y: {
           stacked: true,
           beginAtZero: true,
+          max: sharedMax,
           grid: { color: borderLight },
           ticks: { color: textMuted, font: { size: 11 }, precision: 0 },
+        },
+        // Separate non-stacked axis for trend lines — same range, invisible
+        yLine: {
+          stacked: false,
+          display: false,
+          beginAtZero: true,
+          max: sharedMax,
         },
       },
     },

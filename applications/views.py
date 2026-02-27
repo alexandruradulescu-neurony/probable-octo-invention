@@ -184,6 +184,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 "data": qualified_vals,
                 "backgroundColor": col_vivid,
                 "stack": stack_key,
+                "yAxisID": "y",
                 "borderSkipped": False,
                 "borderRadius": 0,
                 "order": 2,
@@ -195,11 +196,12 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 "data": unqualified,
                 "backgroundColor": col_light,
                 "stack": stack_key,
+                "yAxisID": "y",
                 "borderSkipped": False,
                 "borderRadius": 3,
                 "order": 2,
             })
-            # Trend line: qualified count per day (hidden from legend)
+            # Trend line: on separate non-stacked axis (hidden from legend)
             datasets.append({
                 "type": "line",
                 "label": f"__trend_{pos.title}",
@@ -215,6 +217,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 "tension": 0.35,
                 "fill": False,
                 "spanGaps": False,
+                "yAxisID": "yLine",
                 "order": 1,
             })
 
