@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load rf_tags %}
 {% block title %}{{ candidate.full_name }} — {{ position.title }} — RecruitFlow{% endblock %}
 {% block breadcrumb %}Applications{% endblock %}
 {% block page_title %}{{ candidate.full_name }}{% endblock %}
@@ -13,8 +14,8 @@
 .call-item:last-child { border-bottom: none; }
 
 .call-attempt-badge {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 1.5px solid var(--border-default);
   background: var(--bg-page);
@@ -27,35 +28,21 @@
   flex-shrink: 0;
 }
 
-.call-eval {
-  margin-top: 0.85rem;
-  background: var(--bg-page);
-  border: 1px solid var(--border-default);
-  border-left: 3px solid var(--accent-primary);
-  border-radius: var(--radius-md);
-  padding: 0.85rem 1rem;
+.call-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
 }
 
-.call-eval-score {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.call-eval-score-denom {
-  font-size: 0.75rem;
-  font-weight: 500;
+.call-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
-}
-
-.call-note-box {
-  font-size: 0.82rem;
-  line-height: 1.5;
-  padding: 0.4rem 0.65rem;
-  border-radius: var(--radius-sm);
-  margin-top: 0.5rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Messages ─────────────────────────────────────────────────────── */
@@ -103,19 +90,15 @@
   <!-- ── Left column ─────────────────────────────────────────────── -->
   <div class="col-lg-8">
 
-    <!-- Candidate Hero Header -->
+    <!-- ── Candidate Hero Header ──────────────────────────────────── -->
     <div class="card candidate-header-card mb-4 card-hero">
       <div class="candidate-header-stripe"></div>
       <div class="card-body" style="padding:1.5rem;">
         <div class="d-flex align-items-start gap-4 flex-wrap">
-
-          <!-- Avatar -->
           <div class="initials-circle initials-circle-xl flex-shrink-0"
                style="background:var(--gradient-primary);color:#fff;">
             {{ candidate.full_name|default:"?"|make_list|first|upper }}
           </div>
-
-          <!-- Name + position + badges -->
           <div style="flex:1;min-width:160px;">
             <div style="font-size:1.25rem;font-weight:800;letter-spacing:-0.025em;color:var(--text-primary);line-height:1.2;margin-bottom:0.2rem;">
               {{ candidate.full_name }}
@@ -135,8 +118,6 @@
               {% endif %}
             </div>
           </div>
-
-          <!-- Contact info column -->
           <div class="candidate-contact-col d-flex flex-column">
             <div class="info-row">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
@@ -161,12 +142,11 @@
             {% endif %}
             {% endwith %}
           </div>
-
         </div>
       </div>
     </div>
 
-    <!-- Call History -->
+    <!-- ── Call History ────────────────────────────────────────────── -->
     <div class="card mb-4">
       <div class="card-header">
         <h2 class="card-header-title">Call History</h2>
@@ -177,8 +157,7 @@
       <div>
         {% for call in calls %}
         <div class="call-item">
-
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex justify-content-between align-items-start">
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <div class="call-attempt-badge">{{ call.attempt_number }}</div>
               {% if call.status == "completed" %}
@@ -188,68 +167,42 @@
               {% else %}
                 <div class="badge status-rejected"><span class="badge-dot"></span> {{ call.get_status_display }}</div>
               {% endif %}
-            </div>
-            <div class="text-xs tabular-nums text-muted-custom d-flex align-items-center gap-2">
-              <span>{{ call.initiated_at|date:"M j, Y H:i" }}</span>
-              {% if call.duration_seconds %}
-              <span class="badge badge-neutral tabular-nums">{{ call.duration_seconds }}s</span>
+              {% if call.summary_title %}
+              <span class="fw-semibold text-sm">{{ call.summary_title }}</span>
               {% endif %}
             </div>
+            {% if call.transcript %}
+            <a class="text-xs fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 flex-shrink-0"
+               style="color:var(--accent-primary);"
+               data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              View Transcript
+            </a>
+            {% endif %}
           </div>
 
-          {% if call.summary_title %}
-          <div class="fw-semibold mb-1" style="font-size:0.9rem;">{{ call.summary_title }}</div>
-          {% endif %}
+          <div class="call-meta-row">
+            <div class="call-meta-item">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              {{ call.initiated_at|date:"M j, Y · H:i" }}
+            </div>
+            {% if call.duration_seconds %}
+            <div class="call-meta-item">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              {{ call.duration_seconds }}s
+            </div>
+            {% endif %}
+          </div>
+
           {% if call.summary %}
-          <div class="text-sm" style="color:var(--text-secondary);line-height:1.65;">{{ call.summary }}</div>
+          <div class="text-sm mt-2" style="color:var(--text-secondary);line-height:1.65;">{{ call.summary }}</div>
           {% endif %}
 
           {% if call.transcript %}
-          <div class="mt-2">
-            <a class="text-xs fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
-               style="color:var(--accent-primary);"
-               data-bs-toggle="collapse" href="#transcript-{{ call.pk }}" role="button">
-              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-              View Transcript
-            </a>
-            <div class="collapse mt-2" id="transcript-{{ call.pk }}">
-              <div style="background:var(--bg-page);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:0.85rem 1rem;white-space:pre-line;max-height:300px;overflow-y:auto;font-size:0.85rem;line-height:1.7;color:var(--text-secondary);">{{ call.transcript }}</div>
-            </div>
+          <div class="collapse mt-2" id="transcript-{{ call.pk }}">
+            <div style="background:var(--bg-page);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:0.85rem 1rem;white-space:pre-line;max-height:300px;overflow-y:auto;font-size:0.85rem;line-height:1.7;color:var(--text-secondary);">{{ call.transcript }}</div>
           </div>
           {% endif %}
-
-          {% for ev in call.evaluations.all %}
-          <div class="call-eval">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-              <span class="text-xs fw-bold text-muted-custom" style="text-transform:uppercase;letter-spacing:.07em;">AI Eval</span>
-              <span class="d-flex align-items-baseline gap-1">
-                <span class="call-eval-score">{{ ev.score }}</span>
-                <span class="call-eval-score-denom">/100</span>
-              </span>
-              {% if ev.outcome == "qualified" %}
-                <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
-              {% elif ev.outcome == "not_qualified" %}
-                <div class="badge status-rejected"><span class="badge-dot"></span> Not Qualified</div>
-              {% elif ev.outcome == "callback_requested" %}
-                <div class="badge status-review"><span class="badge-dot"></span> Callback</div>
-              {% elif ev.outcome == "needs_human" %}
-                <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
-              {% endif %}
-            </div>
-            <div class="text-sm" style="color:var(--text-secondary);line-height:1.6;">{{ ev.reasoning }}</div>
-            {% if ev.callback_requested and ev.callback_notes %}
-            <div class="call-note-box" style="background:var(--status-review-bg);color:var(--status-review-text);">
-              <strong>Callback:</strong> {{ ev.callback_notes }}
-            </div>
-            {% endif %}
-            {% if ev.needs_human and ev.needs_human_notes %}
-            <div class="call-note-box" style="background:var(--status-rejected-bg);color:var(--status-rejected-text);">
-              <strong>Escalation:</strong> {{ ev.needs_human_notes }}
-            </div>
-            {% endif %}
-          </div>
-          {% endfor %}
-
         </div>
         {% endfor %}
       </div>
@@ -264,24 +217,172 @@
       {% endif %}
     </div>
 
-    <!-- Pre-screening Answers -->
-    {% if form_answers_list %}
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Pre-screening Answers</h2>
-      </div>
-      <div>
-        {% for qa in form_answers_list %}
-        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-light);">
-          <div class="text-xs fw-semibold text-tertiary mb-1" style="text-transform:uppercase;letter-spacing:.05em;">{{ qa.question }}</div>
-          <div class="text-sm fw-medium">{{ qa.answer }}</div>
+    <!-- ── AI Evaluations ─────────────────────────────────────────── -->
+    {% for call in calls %}
+      {% for ev in call.evaluations.all %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h2 class="card-header-title">AI Evaluation</h2>
+          <div class="d-flex align-items-center gap-2">
+            {% if ev.outcome == "qualified" %}
+              <div class="badge status-offered"><span class="badge-dot"></span> Qualified</div>
+            {% elif ev.outcome == "not_qualified" %}
+              <div class="badge status-rejected"><span class="badge-dot"></span> Not Qualified</div>
+            {% elif ev.outcome == "callback_requested" %}
+              <div class="badge status-review"><span class="badge-dot"></span> Callback Requested</div>
+            {% elif ev.outcome == "needs_human" %}
+              <div class="badge status-screening"><span class="badge-dot"></span> Needs Human</div>
+            {% endif %}
+          </div>
         </div>
-        {% endfor %}
+
+        <div class="card-body">
+          <div class="d-flex gap-0 align-items-start">
+
+            <!-- Score gauge -->
+            {% with arc_filled=ev.score|score_arc stroke_color=ev.outcome|score_stroke_color %}
+            <div class="eval-gauge-wrap">
+              <div style="position:relative;width:88px;height:88px;">
+                <svg class="eval-gauge-svg" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border-default)" stroke-width="5"/>
+                  <circle cx="40" cy="40" r="34" fill="none"
+                          stroke="{{ stroke_color }}"
+                          stroke-width="5"
+                          stroke-dasharray="{{ arc_filled }} 214"
+                          stroke-linecap="round"
+                          transform="rotate(-90 40 40)"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
+                  <span class="eval-gauge-score">{{ ev.score }}</span>
+                  <span class="eval-gauge-denom">/100</span>
+                </div>
+              </div>
+              <span class="eval-gauge-label">Overall Score</span>
+            </div>
+            {% endwith %}
+
+            <!-- Criteria list or reasoning fallback -->
+            <div class="eval-criteria-list">
+              {% if ev.raw_response.criteria %}
+                {% for criterion in ev.raw_response.criteria %}
+                <div class="eval-criterion">
+                  <div class="eval-criterion-icon {% if criterion.passed %}eval-criterion-pass{% else %}eval-criterion-fail{% endif %}">
+                    {% if criterion.passed %}
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    {% else %}
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="eval-criterion-name">{{ criterion.name }}</div>
+                    {% if criterion.note %}
+                    <div class="eval-criterion-note">{{ criterion.note }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              {% else %}
+                {# Fallback for evaluations without structured criteria #}
+                <div class="text-sm" style="color:var(--text-secondary);line-height:1.65;">{{ ev.reasoning }}</div>
+              {% endif %}
+            </div>
+
+          </div>
+
+          {# Disqualifying factor #}
+          {% if ev.raw_response.disqualifying_factor %}
+          <div class="eval-disqualifying">
+            <div class="eval-disqualifying-label">Disqualifying Factor</div>
+            <div class="eval-disqualifying-text">{{ ev.raw_response.disqualifying_factor }}</div>
+          </div>
+          {% endif %}
+
+          {# Callback info #}
+          {% if ev.callback_requested and ev.callback_notes %}
+          <div class="eval-callback-box">
+            <strong>Callback:</strong> {{ ev.callback_notes }}
+          </div>
+          {% endif %}
+
+          {# Human escalation #}
+          {% if ev.needs_human and ev.needs_human_notes %}
+          <div style="margin-top:0.75rem;padding:0.65rem 0.9rem;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.2);border-left:3px solid #F97316;border-radius:var(--radius-md);font-size:0.82rem;color:#7C2D12;line-height:1.5;">
+            <strong>Escalation:</strong> {{ ev.needs_human_notes }}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endfor %}
+    {% endfor %}
+
+    <!-- ── Pre-screening Answers + Candidate Details (tabbed) ──────── -->
+    {% if form_answers_list or candidate %}
+    <div class="card mb-4">
+      <div class="card-header" style="padding-bottom:0;border-bottom:none;">
+        <div>
+          <ul class="nav rf-tabs" id="prescreening-tabs" role="tablist">
+            {% if form_answers_list %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-prescreening" data-bs-toggle="tab" data-bs-target="#pane-prescreening" type="button" role="tab">
+                Pre-screening Answers
+              </button>
+            </li>
+            {% endif %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if not form_answers_list %}active{% endif %}" id="tab-details" data-bs-toggle="tab" data-bs-target="#pane-details" type="button" role="tab">
+                Candidate Details
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border-light);">
+        <div class="tab-content rf-tabs-content">
+
+          {# Pre-screening Answers pane #}
+          {% if form_answers_list %}
+          <div class="tab-pane fade show active" id="pane-prescreening" role="tabpanel">
+            {% for qa in form_answers_list %}
+            <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-light);">
+              <div class="text-xs fw-semibold text-tertiary mb-1" style="text-transform:uppercase;letter-spacing:.05em;">{{ qa.question }}</div>
+              <div class="text-sm fw-medium">{{ qa.answer }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {# Candidate Details pane #}
+          <div class="tab-pane fade {% if not form_answers_list %}show active{% endif %}" id="pane-details" role="tabpanel">
+            <table class="table meta-table mb-0">
+              <tbody>
+                <tr><td>ID</td><td class="tabular-nums">#{{ application.pk }}</td></tr>
+                <tr><td>Created</td><td class="tabular-nums">{{ application.created_at|date:"M j, Y H:i" }}</td></tr>
+                <tr><td>Updated</td><td class="tabular-nums">{{ application.updated_at|date:"M j, Y H:i" }}</td></tr>
+                {% if application.cv_received_at %}
+                <tr><td>CV Received</td><td class="tabular-nums">{{ application.cv_received_at|date:"M j, Y H:i" }}</td></tr>
+                {% endif %}
+                {% if application.callback_scheduled_at %}
+                <tr><td>Callback At</td><td class="tabular-nums">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td></tr>
+                {% endif %}
+                <tr><td colspan="2" style="padding:0;height:1px;background:var(--border-default);"></td></tr>
+                <tr><td>Source</td><td>{{ candidate.get_source_display }}</td></tr>
+                {% if candidate.campaign_name %}
+                <tr><td>Campaign</td><td>{{ candidate.campaign_name }}</td></tr>
+                {% endif %}
+                {% if candidate.platform %}
+                <tr><td>Platform</td><td>{{ candidate.platform|upper }}</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
       </div>
     </div>
     {% endif %}
 
-    <!-- Messages -->
+    <!-- ── Messages ──────────────────────────────────────────────── -->
     <div class="card mb-4">
       <div class="card-header">
         <h2 class="card-header-title">Messages</h2>
@@ -449,24 +550,25 @@
         {% for sc in status_changes %}
         <div class="activity-row" style="cursor:default;align-items:flex-start;">
           <div class="activity-dot-col">
-            <div class="activity-dot{% if sc.from_status == sc.to_status %} activity-dot-note{% endif %}"></div>
+            {% with dot_color=sc.to_status|status_dot_color %}
+            <div class="activity-dot-colored" style="background:{{ dot_color }};border-color:{{ dot_color }};opacity:0.85;"></div>
+            {% endwith %}
             {% if not forloop.last %}<div class="activity-connector"></div>{% endif %}
           </div>
           <div class="activity-body">
             {% if sc.from_status != sc.to_status %}
             <div class="activity-who d-flex align-items-center gap-2 flex-wrap">
-              <strong>Status changed</strong>
-              {% include "applications/_status_badge.html" with status=sc.to_status %}
+              <strong>{{ sc.get_to_status_display }}</strong>
             </div>
             {% else %}
             <div class="activity-who"><strong>Note</strong></div>
             {% endif %}
             {% if sc.note %}
-            <div class="timeline-note">{{ sc.note }}</div>
+            <div class="timeline-subtitle">{{ sc.note }}</div>
             {% endif %}
             <div class="timeline-meta">
-              {{ sc.changed_at|date:"M j, Y H:i" }} &middot;
-              {% if sc.changed_by %}{{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% else %}System{% endif %}
+              {{ sc.changed_at|date:"M j, Y · H:i" }}
+              {% if sc.changed_by %}&middot; {{ sc.changed_by.get_full_name|default:sc.changed_by.username }}{% endif %}
             </div>
           </div>
         </div>
@@ -537,43 +639,12 @@
           {% endfor %}
         </div>
         {% endif %}
-
         <form method="post" action="{% url 'applications:upload_cv' application.pk %}" enctype="multipart/form-data">
           {% csrf_token %}
           <label class="form-label" style="text-transform:none;letter-spacing:0;">Upload New CV</label>
           {{ manual_cv_upload_form.cv_file }}
           <button type="submit" class="btn btn-secondary w-100 mt-2">Upload</button>
         </form>
-      </div>
-    </div>
-
-    <!-- Details -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Details</h2>
-      </div>
-      <div class="card-body p-0">
-        <table class="table meta-table mb-0">
-          <tbody>
-            <tr><td>ID</td><td class="tabular-nums">#{{ application.pk }}</td></tr>
-            <tr><td>Created</td><td class="tabular-nums">{{ application.created_at|date:"M j, Y H:i" }}</td></tr>
-            <tr><td>Updated</td><td class="tabular-nums">{{ application.updated_at|date:"M j, Y H:i" }}</td></tr>
-            {% if application.cv_received_at %}
-            <tr><td>CV Received</td><td class="tabular-nums">{{ application.cv_received_at|date:"M j, Y H:i" }}</td></tr>
-            {% endif %}
-            {% if application.callback_scheduled_at %}
-            <tr><td>Callback At</td><td class="tabular-nums">{{ application.callback_scheduled_at|date:"M j, Y H:i" }}</td></tr>
-            {% endif %}
-            <tr><td colspan="2" style="padding:0;height:1px;background:var(--border-default);"></td></tr>
-            <tr><td>Source</td><td>{{ candidate.get_source_display }}</td></tr>
-            {% if candidate.campaign_name %}
-            <tr><td>Campaign</td><td>{{ candidate.campaign_name }}</td></tr>
-            {% endif %}
-            {% if candidate.platform %}
-            <tr><td>Platform</td><td>{{ candidate.platform|upper }}</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
       </div>
     </div>
 

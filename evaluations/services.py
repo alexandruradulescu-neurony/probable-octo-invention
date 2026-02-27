@@ -256,13 +256,21 @@ class ClaudeService:
             '  "outcome": "qualified|not_qualified|callback_requested|needs_human",\n'
             '  "qualified": true|false,\n'
             '  "score": <integer 0-100>,\n'
-            '  "reasoning": "<concise explanation>",\n'
+            '  "reasoning": "<brief overall summary (1-2 sentences)>",\n'
+            '  "criteria": [\n'
+            '    {"name": "<criterion name>", "passed": true|false, "note": "<1-sentence explanation>"},\n'
+            '    ...\n'
+            '  ],\n'
+            '  "disqualifying_factor": "<the single most critical reason the candidate fails, or null if qualified>",\n'
             '  "callback_requested": true|false,\n'
             '  "callback_notes": "<notes or null>",\n'
             '  "needs_human": true|false,\n'
             '  "needs_human_notes": "<notes or null>",\n'
             '  "callback_at": "<ISO 8601 datetime or null>"\n'
-            "}"
+            "}\n\n"
+            "For 'criteria': create one entry per qualification criterion from your system prompt. "
+            "Each criterion must have 'name' (short label, e.g. 'Driver\\'s License'), "
+            "'passed' (true/false), and 'note' (brief factual observation from the transcript)."
         )
 
         logger.info(
