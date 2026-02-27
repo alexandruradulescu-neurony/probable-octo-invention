@@ -40,19 +40,21 @@
           </th>
           <th>Title</th>
           <th>Status</th>
-          <th class="text-center">Applications</th>
           <th>Created</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for pos in positions %}
-        <tr data-href="{% url 'applications:list' %}?position={{ pos.pk }}">
+        <tr data-href="{% url 'positions:edit' pos.pk %}">
           <td style="padding-left:1.1rem;" class="no-row-click">
             <input type="checkbox" class="form-check-input row-check" name="position_ids" value="{{ pos.pk }}">
           </td>
           <td>
-            <div class="fw-medium">{{ pos.title }}</div>
+            <div class="d-flex align-items-center gap-2">
+              <div class="fw-medium">{{ pos.title }}</div>
+              <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="badge badge-neutral tabular-nums no-row-click" style="text-decoration:none;">{{ pos.open_applications_count }}</a>
+            </div>
           </td>
           <td>
             {% if pos.status == "open" %}
@@ -63,18 +65,12 @@
               <div class="badge status-rejected"><span class="badge-dot"></span> Closed</div>
             {% endif %}
           </td>
-          <td class="text-center">
-            <span class="badge badge-neutral tabular-nums">{{ pos.open_applications_count }}</span>
-          </td>
           <td class="text-xs text-muted-custom">{{ pos.created_at|date:"M j, Y" }}</td>
-          <td class="text-end no-row-click" style="white-space: nowrap;">
-            <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="btn btn-secondary btn-sm">Applications</a>
-            <a href="{% url 'positions:edit' pos.pk %}" class="btn btn-secondary btn-sm ms-1">Edit</a>
-          </td>
+          <td></td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="text-center py-5">
+          <td colspan="5" class="text-center py-5">
             <div class="empty-state-icon mx-auto mb-3">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
             </div>
