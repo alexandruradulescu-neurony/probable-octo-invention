@@ -33,6 +33,12 @@ DEBUG = env("DEBUG")
 # Strip whitespace from each host to guard against accidental spaces in .env
 ALLOWED_HOSTS = [h.strip() for h in env.list("ALLOWED_HOSTS")]
 
+# In development, allow any host so the app is reachable over LAN without
+# editing ALLOWED_HOSTS for every new IP.  Django's CSRF middleware verifies
+# the Origin == scheme+Host, so security is not compromised.
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+
 # Full origin URLs required by Django's CSRF check (must include scheme).
 # ngrok terminates TLS, so its origin must use https://.
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env.list("CSRF_TRUSTED_ORIGINS", default=[])]
