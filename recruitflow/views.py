@@ -92,13 +92,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     Spec § 12.2 — Dashboard (Home)
 
     Context:
+      - period             : active chart period (7 / 14 / 30 days)
       - position_summaries : per-position status breakdown
-      - activity_feed      : today's calls, CVs received, follow-ups sent
+      - kpi_totals         : period-aggregate KPI counts with trend vs prior period
+      - chart_data         : daily time-series for calls, CVs, follow-ups
       - attention_required : items needing recruiter action
       - pipeline_data      : aggregated status counts across all applications
       - recent_changes     : latest StatusChange audit trail entries
     """
     template_name = "dashboard.html"
+
+    VALID_PERIODS = frozenset({7, 14, 30})
 
     PENDING_STATUSES = {
         Application.Status.PENDING_CALL,
@@ -126,12 +130,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         now = timezone.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        ctx["position_summaries"] = self._position_summaries()
-        ctx["activity_feed"] = self._activity_feed(today_start)
-        ctx["attention_required"] = self._attention_required(now, today_start)
-        ctx["pipeline_data"] = self._pipeline_data()
-        ctx["recent_changes"] = self._recent_changes()
+        try:
+            period = int(self.request.GET.get("period", 7))
+        except (ValueError, TypeError):
+            period = 7
+        if period not in self.VALID_PERIODS:
+            period = 7
 
+        ctx.update({
+            "period": period,
+            "position_summaries": self._position_summaries(),
+            "kpi_totals": self._kpi_totals(period, now, today_start),
+            "chart_data": self._chart_data(period, now),
+            "attention_required": self._attention_required(now, today_start),
+            "pipeline_data": self._pipeline_data(),
+            "recent_changes": self._recent_changes(),
+        })
         return ctx
 
     # ── Position summary cards ─────────────────────────────────────────────────
@@ -183,24 +197,107 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             for pos in positions[:15]
         ]
 
-    # ── Activity feed ──────────────────────────────────────────────────────────
+    # ── Chart time-series data ─────────────────────────────────────────────────
 
-    @staticmethod
-    def _activity_feed(today_start) -> dict:
+    @classmethod
+    def _chart_data(cls, period: int, now) -> dict:
+        """
+        Daily counts for calls, CVs received, and follow-ups over the last
+        `period` days (inclusive of today). Returns three parallel lists plus
+        the corresponding date labels.
+        """
+        today = now.date()
+        start_date = today - timedelta(days=period - 1)
+        dates = [start_date + timedelta(days=i) for i in range(period)]
+
+        followup_types = [
+            Message.MessageType.CV_FOLLOWUP_1,
+            Message.MessageType.CV_FOLLOWUP_2,
+        ]
+
+        calls_map = {
+            row["initiated_at__date"]: row["count"]
+            for row in Call.objects
+            .filter(initiated_at__date__gte=start_date)
+            .values("initiated_at__date")
+            .annotate(count=Count("id"))
+        }
+        cvs_map = {
+            row["received_at__date"]: row["count"]
+            for row in CVUpload.objects
+            .filter(received_at__date__gte=start_date)
+            .values("received_at__date")
+            .annotate(count=Count("id"))
+        }
+        followups_map = {
+            row["sent_at__date"]: row["count"]
+            for row in Message.objects
+            .filter(sent_at__date__gte=start_date, message_type__in=followup_types)
+            .values("sent_at__date")
+            .annotate(count=Count("id"))
+        }
+
+        labels, calls_data, cvs_data, followups_data = [], [], [], []
+        for d in dates:
+            labels.append(f"{d.day} {d.strftime('%b')}")
+            calls_data.append(calls_map.get(d, 0))
+            cvs_data.append(cvs_map.get(d, 0))
+            followups_data.append(followups_map.get(d, 0))
+
         return {
-            "calls_today": Call.objects.filter(
-                initiated_at__gte=today_start
-            ).count(),
-            "cvs_today": CVUpload.objects.filter(
-                received_at__gte=today_start
-            ).count(),
-            "followups_today": Message.objects.filter(
-                sent_at__gte=today_start,
-                message_type__in=[
-                    Message.MessageType.CV_FOLLOWUP_1,
-                    Message.MessageType.CV_FOLLOWUP_2,
-                ],
-            ).count(),
+            "labels": labels,
+            "calls": calls_data,
+            "cvs": cvs_data,
+            "followups": followups_data,
+        }
+
+    # ── KPI period totals with trend ───────────────────────────────────────────
+
+    @classmethod
+    def _kpi_totals(cls, period: int, now, today_start) -> dict:
+        """
+        Aggregate totals for the selected period plus a percentage trend
+        comparing the current period to the equally-sized prior period.
+        """
+        period_start = today_start - timedelta(days=period - 1)
+        prev_start = period_start - timedelta(days=period)
+
+        followup_types = [
+            Message.MessageType.CV_FOLLOWUP_1,
+            Message.MessageType.CV_FOLLOWUP_2,
+        ]
+
+        curr_calls = Call.objects.filter(initiated_at__gte=period_start).count()
+        prev_calls = Call.objects.filter(
+            initiated_at__gte=prev_start, initiated_at__lt=period_start,
+        ).count()
+
+        curr_cvs = CVUpload.objects.filter(received_at__gte=period_start).count()
+        prev_cvs = CVUpload.objects.filter(
+            received_at__gte=prev_start, received_at__lt=period_start,
+        ).count()
+
+        curr_fu = Message.objects.filter(
+            sent_at__gte=period_start, message_type__in=followup_types,
+        ).count()
+        prev_fu = Message.objects.filter(
+            sent_at__gte=prev_start, sent_at__lt=period_start,
+            message_type__in=followup_types,
+        ).count()
+
+        def _trend(curr, prev):
+            if prev == 0:
+                return None
+            pct = round((curr - prev) / prev * 100)
+            return {"pct": abs(pct), "up": pct >= 0}
+
+        return {
+            "calls": curr_calls,
+            "calls_trend": _trend(curr_calls, prev_calls),
+            "cvs": curr_cvs,
+            "cvs_trend": _trend(curr_cvs, prev_cvs),
+            "followups": curr_fu,
+            "followups_trend": _trend(curr_fu, prev_fu),
         }
 
     # ── Pipeline data ──────────────────────────────────────────────────────────

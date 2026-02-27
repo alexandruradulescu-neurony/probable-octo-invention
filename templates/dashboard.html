@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — RecruitFlow{% endblock %}
 {% block breadcrumb %}Dashboard{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'candidates:csv_import' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
@@ -14,9 +13,94 @@
 </a>
 {% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-  /* ── Pipeline ── */
+  /* ── Period toggle tabs ─────────────────────────────────────── */
+  .period-tabs {
+    display: flex;
+    background: var(--bg-page);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .period-tab {
+    padding: 4px 14px;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .period-tab:hover { color: var(--text-primary); }
+  .period-tab.active {
+    background: #ffffff;
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(15,23,42,0.10);
+  }
+
+  /* ── Overview metric blocks ─────────────────────────────────── */
+  .ov-metrics {
+    display: flex;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+  }
+  .ov-metric {
+    flex: 1;
+    padding: 0 1.5rem;
+    border-right: 1px solid var(--border-light);
+  }
+  .ov-metric:first-child { padding-left: 0; }
+  .ov-metric:last-child  { border-right: none; }
+  .ov-metric-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 0.5rem;
+  }
+  .ov-metric-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ov-metric-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 0.4rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .ov-metric-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* ── Trend badges ───────────────────────────────────────────── */
+  .trend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+  .trend-up   { background: rgba(16,185,129,0.10); color: #059669; }
+  .trend-down { background: rgba(239,68,68,0.10);  color: #DC2626; }
+
+  /* ── Pipeline ───────────────────────────────────────────────── */
   .pipeline-row {
     display: flex;
     align-items: center;
@@ -55,70 +139,97 @@
     flex-shrink: 0;
   }
 </style>
+{% endblock %}
 
-<!-- KPI Stat Cards -->
-<div class="row g-3 mb-4">
-  <div class="col-md-6 col-xl-3">
-    <div class="card kpi-card h-100">
-      <div class="card-body">
-        <div class="kpi-top">
-          <span class="kpi-label">Calls Today</span>
-          <div class="kpi-icon kpi-icon-purple">
-            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.42 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6A16 16 0 0 0 14 14.69l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          </div>
-        </div>
-        <div class="kpi-value">{{ activity_feed.calls_today|default:"0" }}</div>
-        <div class="kpi-sub">Since midnight</div>
-      </div>
+{% block content %}
+
+{# ── Activity Overview card ──────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-header-title">Activity Overview</h2>
+    <div class="period-tabs">
+      <a href="?period=7"  class="period-tab {% if period == 7  %}active{% endif %}">7 days</a>
+      <a href="?period=14" class="period-tab {% if period == 14 %}active{% endif %}">14 days</a>
+      <a href="?period=30" class="period-tab {% if period == 30 %}active{% endif %}">30 days</a>
     </div>
   </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card kpi-card h-100">
-      <div class="card-body">
-        <div class="kpi-top">
-          <span class="kpi-label">CVs Received</span>
-          <div class="kpi-icon kpi-icon-teal">
-            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
-          </div>
+  <div class="card-body" style="padding: 1.5rem 1.5rem 1.25rem;">
+
+    {# KPI metrics row #}
+    <div class="ov-metrics">
+
+      {# Calls #}
+      <div class="ov-metric">
+        <div class="ov-metric-label">
+          <div class="ov-metric-dot" style="background:#4F46E5;"></div>
+          Calls
         </div>
-        <div class="kpi-value">{{ activity_feed.cvs_today|default:"0" }}</div>
-        <div class="kpi-sub">Since midnight</div>
+        <div class="ov-metric-value">{{ kpi_totals.calls }}</div>
+        {% if kpi_totals.calls_trend %}
+        <span class="trend-badge {% if kpi_totals.calls_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.calls_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.calls_trend.pct }}%
+        </span>
+        {% else %}
+        <span class="ov-metric-sub">No prior data</span>
+        {% endif %}
       </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card kpi-card h-100">
-      <div class="card-body">
-        <div class="kpi-top">
-          <span class="kpi-label">Follow-ups Sent</span>
-          <div class="kpi-icon kpi-icon-blue">
-            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </div>
+
+      {# CVs Received #}
+      <div class="ov-metric">
+        <div class="ov-metric-label">
+          <div class="ov-metric-dot" style="background:#10B981;"></div>
+          CVs Received
         </div>
-        <div class="kpi-value">{{ activity_feed.followups_today|default:"0" }}</div>
-        <div class="kpi-sub">Since midnight</div>
+        <div class="ov-metric-value">{{ kpi_totals.cvs }}</div>
+        {% if kpi_totals.cvs_trend %}
+        <span class="trend-badge {% if kpi_totals.cvs_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.cvs_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.cvs_trend.pct }}%
+        </span>
+        {% else %}
+        <span class="ov-metric-sub">No prior data</span>
+        {% endif %}
       </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-xl-3">
-    <div class="card kpi-card h-100">
-      <div class="card-body">
-        <div class="kpi-top">
-          <span class="kpi-label">Open Positions</span>
-          <div class="kpi-icon kpi-icon-orange">
-            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-          </div>
+
+      {# Follow-ups #}
+      <div class="ov-metric">
+        <div class="ov-metric-label">
+          <div class="ov-metric-dot" style="background:#8B5CF6;"></div>
+          Follow-ups
         </div>
-        <div class="kpi-value">{{ position_summaries|length|default:"0" }}</div>
-        <div class="kpi-sub">Currently active</div>
+        <div class="ov-metric-value">{{ kpi_totals.followups }}</div>
+        {% if kpi_totals.followups_trend %}
+        <span class="trend-badge {% if kpi_totals.followups_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.followups_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.followups_trend.pct }}%
+        </span>
+        {% else %}
+        <span class="ov-metric-sub">No prior data</span>
+        {% endif %}
       </div>
+
+      {# Open Positions #}
+      <div class="ov-metric">
+        <div class="ov-metric-label">Open Positions</div>
+        <div class="ov-metric-value">{{ position_summaries|length }}</div>
+        <span class="ov-metric-sub">Currently active</span>
+      </div>
+
+    </div>{# /ov-metrics #}
+
+    {# Chart #}
+    {{ chart_data|json_script:"dashboard-chart-data" }}
+    <div style="position:relative; height:220px;">
+      <canvas id="activity-chart"></canvas>
     </div>
+
   </div>
 </div>
 
+{# ── Lower 2-column layout ─────────────────────────────────────── #}
 <div class="row g-3">
-  <!-- Left Column: Positions table + Attention items -->
+
+  {# Left: Active Positions + Needs Attention #}
   <div class="col-lg-8">
+
     <div class="card">
       <div class="card-header">
         <h2 class="card-header-title">Active Positions</h2>
@@ -131,7 +242,7 @@
           <thead>
             <tr>
               <th>Position</th>
-              <th>Pending Calls</th>
+              <th>Pending</th>
               <th>In Progress</th>
               <th>Awaiting CV</th>
               <th>Completed</th>
@@ -145,32 +256,16 @@
                 <div class="text-xs text-muted-custom mt-1">{{ s.total }} total</div>
               </td>
               <td>
-                {% if s.pending_calls %}
-                  <div class="badge status-screening"><span class="badge-dot"></span> {{ s.pending_calls }}</div>
-                {% else %}
-                  <span class="text-muted-custom">—</span>
-                {% endif %}
+                {% if s.pending_calls %}<div class="badge status-screening"><span class="badge-dot"></span> {{ s.pending_calls }}</div>{% else %}<span class="text-muted-custom">—</span>{% endif %}
               </td>
               <td>
-                {% if s.in_progress %}
-                  <div class="badge status-interview"><span class="badge-dot"></span> {{ s.in_progress }}</div>
-                {% else %}
-                  <span class="text-muted-custom">—</span>
-                {% endif %}
+                {% if s.in_progress %}<div class="badge status-interview"><span class="badge-dot"></span> {{ s.in_progress }}</div>{% else %}<span class="text-muted-custom">—</span>{% endif %}
               </td>
               <td>
-                {% if s.awaiting_cv %}
-                  <div class="badge status-review"><span class="badge-dot"></span> {{ s.awaiting_cv }}</div>
-                {% else %}
-                  <span class="text-muted-custom">—</span>
-                {% endif %}
+                {% if s.awaiting_cv %}<div class="badge status-review"><span class="badge-dot"></span> {{ s.awaiting_cv }}</div>{% else %}<span class="text-muted-custom">—</span>{% endif %}
               </td>
               <td>
-                {% if s.completed %}
-                  <div class="badge status-offered"><span class="badge-dot"></span> {{ s.completed }}</div>
-                {% else %}
-                  <span class="text-muted-custom">—</span>
-                {% endif %}
+                {% if s.completed %}<div class="badge status-offered"><span class="badge-dot"></span> {{ s.completed }}</div>{% else %}<span class="text-muted-custom">—</span>{% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -189,7 +284,7 @@
       {% endif %}
     </div>
 
-    <!-- Needs Attention -->
+    {# Needs Attention #}
     {% with a=attention_required %}
     {% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
     <div class="mt-4">
@@ -268,20 +363,21 @@
     </div>
     {% endif %}
     {% endwith %}
-  </div>
 
-  <!-- Right Column: Pipeline & Activity -->
+  </div>{# /col-lg-8 #}
+
+  {# Right: Pipeline + Recent Activity #}
   <div class="col-lg-4">
-    <!-- Pipeline Widget -->
+
     <div class="card mb-3">
       <div class="card-header">
         <h2 class="card-header-title">Pipeline</h2>
       </div>
-      <div class="card-body" style="padding: 1.25rem;">
+      <div class="card-body" style="padding:1.25rem;">
         {% for stage in pipeline_data %}
         <div class="pipeline-row">
           <div class="pipeline-label">{{ stage.label }}</div>
-          <div class="pipeline-track"><div class="pipeline-bar" style="width: {{ stage.pct }}%; background: {{ stage.color }};"></div></div>
+          <div class="pipeline-track"><div class="pipeline-bar" style="width:{{ stage.pct }}%;background:{{ stage.color }};"></div></div>
           <div class="pipeline-count">{{ stage.count }}</div>
         </div>
         {% empty %}
@@ -290,7 +386,6 @@
       </div>
     </div>
 
-    <!-- Recent Activity Feed -->
     <div class="card">
       <div class="card-header">
         <h2 class="card-header-title">Recent Activity</h2>
@@ -322,7 +417,130 @@
       </div>
       {% endif %}
     </div>
-  </div>
-</div>
 
+  </div>{# /col-lg-4 #}
+
+</div>{# /row #}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var dataEl = document.getElementById('dashboard-chart-data');
+  var canvas  = document.getElementById('activity-chart');
+  if (!dataEl || !canvas) return;
+
+  var d = JSON.parse(dataEl.textContent);
+
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: d.labels,
+      datasets: [
+        {
+          label: 'Calls',
+          data: d.calls,
+          borderColor: '#4F46E5',
+          backgroundColor: 'rgba(79,70,229,0.08)',
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#4F46E5',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'CVs Received',
+          data: d.cvs,
+          borderColor: '#10B981',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#10B981',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Follow-ups',
+          data: d.followups,
+          borderColor: '#8B5CF6',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#8B5CF6',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: '#ffffff',
+          titleColor: '#0F172A',
+          bodyColor: '#334155',
+          borderColor: '#E2E8F0',
+          borderWidth: 1,
+          padding: 12,
+          boxPadding: 4,
+          titleFont: { family: "'DM Sans', sans-serif", weight: '700', size: 12 },
+          bodyFont: { family: "'DM Sans', sans-serif", size: 12 },
+          callbacks: {
+            labelColor: function (ctx) {
+              return {
+                borderColor: ctx.dataset.borderColor,
+                backgroundColor: ctx.dataset.borderColor,
+                borderRadius: 3,
+              };
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            font: { size: 11, family: "'DM Sans', sans-serif" },
+            color: '#94A3B8',
+          },
+        },
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: '#F1F5F9',
+            drawBorder: false,
+          },
+          border: { display: false },
+          ticks: {
+            precision: 0,
+            font: { size: 11, family: "'DM Sans', sans-serif" },
+            color: '#94A3B8',
+            padding: 8,
+          },
+        },
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+    },
+  });
+})();
+</script>
 {% endblock %}
