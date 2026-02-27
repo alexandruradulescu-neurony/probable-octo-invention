@@ -109,13 +109,30 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             "date_from": self.request.GET.get("date_from", ""),
             "date_to": self.request.GET.get("date_to", ""),
         }
+        from django.db.models import Count, Q as DQ
+
+        open_positions = (
+            Position.objects
+            .filter(status=Position.Status.OPEN)
+            .annotate(
+                apps_count=Count("applications"),
+                qualified_count=Count(
+                    "applications",
+                    filter=DQ(applications__qualified=True),
+                ),
+            )
+            .order_by("title")
+        )
+
         ctx["period"] = period
         ctx["period_urls"] = {7: _period_url(7), 14: _period_url(14), 30: _period_url(30)}
         ctx["kpi_totals"] = DashboardView._kpi_totals(period, now, today_start)
-        ctx["chart_data"] = DashboardView._chart_data(period, now)
-        ctx["open_positions_count"] = Position.objects.filter(
-            status=Position.Status.OPEN
-        ).count()
+        ctx["positions_chart_data"] = {
+            "labels":      [p.title for p in open_positions],
+            "applications": [p.apps_count for p in open_positions],
+            "qualified":    [p.qualified_count for p in open_positions],
+        }
+        ctx["open_positions_count"] = len(open_positions)
         return ctx
 
 

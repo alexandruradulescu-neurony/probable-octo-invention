@@ -27,7 +27,7 @@
 {# ── Activity Overview ───────────────────────────────────────────── #}
 <div class="card mb-4">
   <div class="card-header">
-    <h2 class="card-header-title">Activity Overview</h2>
+    <h2 class="card-header-title">Open Positions Overview</h2>
     <div class="period-tabs">
       <a href="{{ period_urls.7 }}"  class="period-tab {% if period == 7  %}active{% endif %}">7 days</a>
       <a href="{{ period_urls.14 }}" class="period-tab {% if period == 14 %}active{% endif %}">14 days</a>
@@ -76,8 +76,8 @@
 
     </div>
 
-    {{ chart_data|json_script:"applist-chart-data" }}
-    <div style="position:relative;height:200px;">
+    {{ positions_chart_data|json_script:"applist-chart-data" }}
+    <div style="position:relative;height:220px;">
       <canvas id="applist-activity-chart"></canvas>
     </div>
 
@@ -252,44 +252,30 @@
 (function () {
   const raw = JSON.parse(document.getElementById('applist-chart-data').textContent);
   const root = getComputedStyle(document.documentElement);
-  const textMuted = root.getPropertyValue('--text-muted').trim() || '#94a3b8';
+  const textMuted   = root.getPropertyValue('--text-muted').trim()   || '#94a3b8';
   const borderLight = root.getPropertyValue('--border-light').trim() || '#e2e8f0';
 
+  // Truncate long position titles for the axis
+  const labels = raw.labels.map(l => l.length > 22 ? l.slice(0, 20) + '…' : l);
+
   new Chart(document.getElementById('applist-activity-chart'), {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: raw.labels,
+      labels: labels,
       datasets: [
         {
-          label: 'Calls',
-          data: raw.calls,
-          borderColor: '#4F46E5',
-          backgroundColor: 'rgba(79,70,229,0.08)',
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.35,
-          fill: true,
+          label: 'Applications',
+          data: raw.applications,
+          backgroundColor: 'rgba(79,70,229,0.75)',
+          borderRadius: 4,
+          borderSkipped: false,
         },
         {
-          label: 'CVs',
-          data: raw.cvs,
-          borderColor: '#10B981',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.35,
-        },
-        {
-          label: 'Follow-ups',
-          data: raw.followups,
-          borderColor: '#8B5CF6',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.35,
+          label: 'Qualified',
+          data: raw.qualified,
+          backgroundColor: 'rgba(16,185,129,0.75)',
+          borderRadius: 4,
+          borderSkipped: false,
         },
       ],
     },
@@ -297,7 +283,20 @@
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            color: textMuted,
+            font: { size: 11, weight: '600' },
+            boxWidth: 10,
+            boxHeight: 10,
+            borderRadius: 3,
+            useBorderRadius: true,
+            padding: 16,
+          },
+        },
         tooltip: {
           mode: 'index',
           intersect: false,
@@ -306,12 +305,15 @@
           bodyColor: '#cbd5e1',
           padding: 10,
           cornerRadius: 6,
+          callbacks: {
+            title: (items) => raw.labels[items[0].dataIndex],
+          },
         },
       },
       scales: {
         x: {
-          grid: { color: borderLight },
-          ticks: { color: textMuted, font: { size: 11 }, maxTicksLimit: 7 },
+          grid: { display: false },
+          ticks: { color: textMuted, font: { size: 11 } },
         },
         y: {
           beginAtZero: true,
