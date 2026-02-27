@@ -277,6 +277,8 @@
             borderRadius: 3,
             useBorderRadius: true,
             padding: 12,
+            // Hide the "__" prefixed unqualified datasets from the legend
+            filter: (item) => !item.text.startsWith('__'),
           },
         },
         tooltip: {
@@ -287,7 +289,21 @@
           bodyColor: '#cbd5e1',
           padding: 10,
           cornerRadius: 6,
-          filter: (item) => item.parsed.y > 0,
+          // Only show items that have data; group the pair into one line per position
+          filter: (item) => item.parsed.y > 0 || !item.dataset.label.startsWith('__'),
+          callbacks: {
+            label: (item) => {
+              if (item.dataset.label.startsWith('__')) return null;
+              // Find the matching unqualified dataset (immediately before this one)
+              const dsIdx = item.datasetIndex;
+              const unqualDs = raw.datasets[dsIdx - 1];
+              const unqual = unqualDs ? (unqualDs.data[item.dataIndex] || 0) : 0;
+              const qual   = item.parsed.y || 0;
+              const total  = unqual + qual;
+              if (total === 0) return null;
+              return ` ${item.dataset.label}: ${total} total, ${qual} qualified`;
+            },
+          },
         },
       },
       scales: {

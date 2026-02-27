@@ -123,7 +123,9 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             Position.objects.filter(status=Position.Status.OPEN).order_by("title")
         )
 
-        # Single query: daily application counts per open position
+        from django.db.models import Q as DQ
+
+        # Single query: daily total + qualified counts per open position
         rows = (
             Application.objects
             .filter(
@@ -131,33 +133,61 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 position__in=open_positions,
             )
             .values("created_at__date", "position_id")
-            .annotate(count=Count("id"))
+            .annotate(
+                total=Count("id"),
+                qualified_n=Count("id", filter=DQ(qualified=True)),
+            )
         )
-        # Build lookup: (position_id, date) → count
-        counts = {(r["position_id"], r["created_at__date"]): r["count"] for r in rows}
+        # Build lookup: (position_id, date) → {total, qualified}
+        counts = {
+            (r["position_id"], r["created_at__date"]): {
+                "total": r["total"],
+                "qualified": r["qualified_n"],
+            }
+            for r in rows
+        }
 
-        # Palette — cycle through distinct colours per position
+        # Two-tone palette per position: (light=unqualified, vivid=qualified)
         palette = [
-            "rgba(79,70,229,0.80)",   # indigo
-            "rgba(16,185,129,0.80)",  # green
-            "rgba(245,158,11,0.80)",  # amber
-            "rgba(239,68,68,0.80)",   # red
-            "rgba(139,92,246,0.80)",  # violet
-            "rgba(20,184,166,0.80)",  # teal
-            "rgba(249,115,22,0.80)",  # orange
-            "rgba(236,72,153,0.80)",  # pink
+            ("rgba(79,70,229,0.25)",  "rgba(79,70,229,0.85)"),   # indigo
+            ("rgba(16,185,129,0.25)", "rgba(16,185,129,0.85)"),  # green
+            ("rgba(245,158,11,0.25)", "rgba(245,158,11,0.85)"),  # amber
+            ("rgba(239,68,68,0.25)",  "rgba(239,68,68,0.85)"),   # red
+            ("rgba(139,92,246,0.25)", "rgba(139,92,246,0.85)"),  # violet
+            ("rgba(20,184,166,0.25)", "rgba(20,184,166,0.85)"),  # teal
+            ("rgba(249,115,22,0.25)", "rgba(249,115,22,0.85)"),  # orange
+            ("rgba(236,72,153,0.25)", "rgba(236,72,153,0.85)"),  # pink
         ]
 
         datasets = []
         for idx, pos in enumerate(open_positions):
-            color = palette[idx % len(palette)]
+            col_light, col_vivid = palette[idx % len(palette)]
+            stack_key = f"pos_{idx}"
+
+            unqualified = []
+            qualified_vals = []
+            for d in dates:
+                c = counts.get((pos.pk, d), {"total": 0, "qualified": 0})
+                qualified_vals.append(c["qualified"])
+                unqualified.append(c["total"] - c["qualified"])
+
+            # Bottom segment: unqualified (hidden from legend via "__" prefix)
+            datasets.append({
+                "label": f"__{pos.title}",
+                "data": unqualified,
+                "backgroundColor": col_light,
+                "stack": stack_key,
+                "borderSkipped": False,
+                "borderRadius": 0,
+            })
+            # Top segment: qualified (shown in legend)
             datasets.append({
                 "label": pos.title,
-                "data":  [counts.get((pos.pk, d), 0) for d in dates],
-                "backgroundColor": color,
-                "borderRadius": 3,
+                "data": qualified_vals,
+                "backgroundColor": col_vivid,
+                "stack": stack_key,
                 "borderSkipped": False,
-                "stack": "daily",
+                "borderRadius": 3,
             })
 
         ctx["period"] = period
