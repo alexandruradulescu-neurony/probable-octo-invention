@@ -138,6 +138,66 @@
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
   }
+
+  /* ── Needs-Attention list rows ──────────────────────────────────── */
+  .attn-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s;
+    color: var(--text-primary);
+  }
+  .attn-row:last-child { border-bottom: none; }
+  .attn-row:hover { background: var(--bg-page); }
+  .attn-row-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .attn-icon-danger  { background: rgba(239,68,68,0.09);  color: #DC2626; }
+  .attn-icon-warning { background: rgba(245,158,11,0.09); color: #D97706; }
+  .attn-icon-info    { background: rgba(79,70,229,0.09);  color: #4F46E5; }
+  .attn-row-body { flex: 1; min-width: 0; }
+  .attn-row-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .attn-row-sub {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .attn-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 99px;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .attn-badge-danger  { background: var(--status-rejected-bg);  color: var(--status-rejected-text);  }
+  .attn-badge-warning { background: var(--status-screening-bg); color: var(--status-screening-text); }
+  .attn-badge-info    { background: var(--status-review-bg);    color: var(--status-review-text);    }
+  .attn-arrow {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: color 0.12s, transform 0.12s;
+  }
+  .attn-row:hover .attn-arrow {
+    color: var(--accent-primary);
+    transform: translateX(2px);
+  }
 </style>
 {% endblock %}
 
@@ -249,10 +309,11 @@
             </tr>
           </thead>
           <tbody>
+            {% url 'applications:list' as apps_list_url %}
             {% for s in position_summaries %}
-            <tr>
+            <tr data-href="{{ apps_list_url }}?position={{ s.position.pk }}" style="cursor:pointer;">
               <td>
-                <a href="{% url 'applications:list' %}?position={{ s.position.pk }}" class="fw-medium text-decoration-none hover-underline">{{ s.position.title }}</a>
+                <span class="fw-medium">{{ s.position.title }}</span>
                 <div class="text-xs text-muted-custom mt-1">{{ s.total }} total</div>
               </td>
               <td>
@@ -284,83 +345,114 @@
       {% endif %}
     </div>
 
-    {# Needs Attention #}
+    {# Needs Attention card #}
     {% with a=attention_required %}
     {% if a.call_failures or a.cv_overdue or a.needs_human or a.callbacks_today or a.unmatched_inbound or a.needs_review_cvs %}
-    <div class="mt-4">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent-negative);flex-shrink:0;"></div>
-        <span style="font-size:0.70rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.10em;">Needs Attention</span>
+    <div class="card mt-3">
+      <div class="card-header">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--accent-negative);flex-shrink:0;box-shadow:0 0 0 2px rgba(239,68,68,0.18);"></div>
+          <h2 class="card-header-title">Needs Attention</h2>
+        </div>
       </div>
-      <div class="row g-2">
-        {% if a.call_failures %}
-        <div class="col-sm-6">
-          <a href="{% url 'applications:list' %}?status=call_failed" class="text-decoration-none">
-            <div class="attn-item attn-item-danger">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              <span class="attn-item-label">Call Failures</span>
-              <span class="attn-item-count attn-count-danger">{{ a.call_failures }}</span>
-            </div>
-          </a>
+
+      {% if a.call_failures %}
+      <a href="{% url 'applications:list' %}?status=call_failed" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-danger">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">Call Failures</div>
+            <div class="attn-row-sub">Calls that failed and need retry</div>
+          </div>
+          <span class="attn-badge attn-badge-danger">{{ a.call_failures }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-        {% if a.cv_overdue %}
-        <div class="col-sm-6">
-          <a href="{% url 'applications:list' %}?status=cv_overdue" class="text-decoration-none">
-            <div class="attn-item attn-item-warning">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span class="attn-item-label">CV Overdue</span>
-              <span class="attn-item-count attn-count-warning">{{ a.cv_overdue }}</span>
-            </div>
-          </a>
+      </a>
+      {% endif %}
+
+      {% if a.cv_overdue %}
+      <a href="{% url 'applications:list' %}?status=cv_overdue" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-warning">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">CV Overdue</div>
+            <div class="attn-row-sub">Candidates awaiting CV past deadline</div>
+          </div>
+          <span class="attn-badge attn-badge-warning">{{ a.cv_overdue }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-        {% if a.callbacks_today %}
-        <div class="col-sm-6">
-          <a href="{% url 'applications:list' %}?status=callback_scheduled" class="text-decoration-none">
-            <div class="attn-item attn-item-info">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              <span class="attn-item-label">Callbacks Today</span>
-              <span class="attn-item-count attn-count-info">{{ a.callbacks_today }}</span>
-            </div>
-          </a>
+      </a>
+      {% endif %}
+
+      {% if a.callbacks_today %}
+      <a href="{% url 'applications:list' %}?status=callback_scheduled" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-info">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">Callbacks Today</div>
+            <div class="attn-row-sub">Scheduled callbacks due today</div>
+          </div>
+          <span class="attn-badge attn-badge-info">{{ a.callbacks_today }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-        {% if a.needs_review_cvs %}
-        <div class="col-sm-6">
-          <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
-            <div class="attn-item attn-item-warning">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-              <span class="attn-item-label">CVs Need Review</span>
-              <span class="attn-item-count attn-count-warning">{{ a.needs_review_cvs }}</span>
-            </div>
-          </a>
+      </a>
+      {% endif %}
+
+      {% if a.needs_review_cvs %}
+      <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-warning">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">CVs Need Review</div>
+            <div class="attn-row-sub">CVs received that need manual review</div>
+          </div>
+          <span class="attn-badge attn-badge-warning">{{ a.needs_review_cvs }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-        {% if a.needs_human %}
-        <div class="col-sm-6">
-          <a href="{% url 'applications:list' %}?needs_human=1" class="text-decoration-none">
-            <div class="attn-item attn-item-info">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              <span class="attn-item-label">Needs Human Review</span>
-              <span class="attn-item-count attn-count-info">{{ a.needs_human }}</span>
-            </div>
-          </a>
+      </a>
+      {% endif %}
+
+      {% if a.needs_human %}
+      <a href="{% url 'applications:list' %}?needs_human=1" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-info">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">Needs Human Review</div>
+            <div class="attn-row-sub">Applications requiring human intervention</div>
+          </div>
+          <span class="attn-badge attn-badge-info">{{ a.needs_human }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-        {% if a.unmatched_inbound %}
-        <div class="col-sm-6">
-          <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
-            <div class="attn-item attn-item-warning">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
-              <span class="attn-item-label">Unmatched Inbound</span>
-              <span class="attn-item-count attn-count-warning">{{ a.unmatched_inbound }}</span>
-            </div>
-          </a>
+      </a>
+      {% endif %}
+
+      {% if a.unmatched_inbound %}
+      <a href="{% url 'cvs:inbox' %}" class="text-decoration-none">
+        <div class="attn-row">
+          <div class="attn-row-icon attn-icon-warning">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="attn-row-body">
+            <div class="attn-row-title">Unmatched Inbound</div>
+            <div class="attn-row-sub">Messages that couldn't be matched to a candidate</div>
+          </div>
+          <span class="attn-badge attn-badge-warning">{{ a.unmatched_inbound }}</span>
+          <svg class="attn-arrow" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </div>
-        {% endif %}
-      </div>
-    </div>
+      </a>
+      {% endif %}
+
+    </div>{# /card #}
     {% endif %}
     {% endwith %}
 
