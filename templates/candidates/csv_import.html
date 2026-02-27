@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Import CSV — RecruitFlow{% endblock %}
-{% block breadcrumb %}Candidates{% endblock %}
-{% block page_title %}Import Candidates from CSV{% endblock %}
+{% block breadcrumb %}<span class="bc-section">Candidates</span><span class="bc-sep">/</span><span class="bc-page">Import CSV</span>{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'candidates:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">

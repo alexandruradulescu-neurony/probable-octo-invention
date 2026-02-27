@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ object|default:"New Position" }} — RecruitFlow{% endblock %}
-{% block breadcrumb %}Positions{% endblock %}
-{% block page_title %}{% if object %}Edit Position{% else %}New Position{% endif %}{% endblock %}
+{% block breadcrumb %}<span class="bc-section">Positions</span><span class="bc-sep">/</span><span class="bc-page">{% if object %}Edit Position{% else %}New Position{% endif %}</span>{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'positions:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">

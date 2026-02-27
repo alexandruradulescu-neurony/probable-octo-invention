@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Edit Message Template — RecruitFlow{% endblock %}
-{% block breadcrumb %}Configure &rsaquo; Templates &rsaquo; Edit{% endblock %}
-{% block page_title %}Edit: {{ object }}{% endblock %}
+{% block breadcrumb %}<span class="bc-section">Configure</span><span class="bc-sep">/</span><span class="bc-section">Templates</span><span class="bc-sep">/</span><span class="bc-page">Edit: {{ object }}</span>{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'messaging:template_list' %}"
