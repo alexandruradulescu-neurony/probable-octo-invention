@@ -56,6 +56,19 @@
               <div class="fw-medium">{{ pos.title }}</div>
               <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="badge badge-neutral tabular-nums no-row-click" style="text-decoration:none;" title="{{ pos.qualified_count }} qualified / {{ pos.total_applications_count }} total">{{ pos.qualified_count }}&thinsp;/&thinsp;{{ pos.total_applications_count }}</a>
             </div>
+            {% if pos.company or pos.contact_type %}
+            <div class="d-flex align-items-center gap-2 mt-1">
+              {% if pos.company %}
+              <span class="text-xs text-muted-custom">{{ pos.company }}</span>
+              {% endif %}
+              {% if "cim" in pos.contact_type %}
+              <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">CIM</span>
+              {% endif %}
+              {% if "b2b" in pos.contact_type %}
+              <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">B2B</span>
+              {% endif %}
+            </div>
+            {% endif %}
           </td>
           <td>
             {% if pos.status == "open" %}
