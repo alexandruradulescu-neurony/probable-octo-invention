@@ -23,7 +23,7 @@
 
 <!-- Sidebar -->
 <nav class="sidebar d-flex flex-column">
-  <div class="px-4 pt-5 pb-3">
+  <div class="px-4 pt-4 pb-3">
     <div class="d-flex align-items-center gap-2 mb-5">
       <div class="brand-logo">RF</div>
       <div class="brand-text">RecruitFlow</div>
@@ -122,7 +122,10 @@
 <div class="main-content">
   <div class="topbar">
     <div>
-      <div class="topbar-breadcrumb">Pages / <span>{% block breadcrumb %}Dashboard{% endblock %}</span></div>
+      <div class="topbar-breadcrumb">
+        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:middle;opacity:.5;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Pages / <span>{% block breadcrumb %}Dashboard{% endblock %}</span>
+      </div>
       <h1 class="topbar-title">{% block page_title %}Dashboard{% endblock %}</h1>
     </div>
     <div class="topbar-right">

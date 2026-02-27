@@ -237,11 +237,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         )
 
         stages = [
-            {"label": "Pending",     "count": totals["pending"],     "color": "#A3AED0"},
-            {"label": "Screening",   "count": totals["screening"],   "color": "#7551FF"},
-            {"label": "Evaluated",   "count": totals["evaluated"],   "color": "#4318FF"},
-            {"label": "Awaiting CV", "count": totals["awaiting_cv"], "color": "#F0B429"},
-            {"label": "Completed",   "count": totals["completed"],   "color": "#01B574"},
+            {"label": "Pending",     "count": totals["pending"],     "color": "#94A3B8"},
+            {"label": "Screening",   "count": totals["screening"],   "color": "#6366F1"},
+            {"label": "Evaluated",   "count": totals["evaluated"],   "color": "#4F46E5"},
+            {"label": "Awaiting CV", "count": totals["awaiting_cv"], "color": "#F59E0B"},
+            {"label": "Completed",   "count": totals["completed"],   "color": "#10B981"},
         ]
 
         max_count = max((s["count"] for s in stages), default=1) or 1

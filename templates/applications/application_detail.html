@@ -31,6 +31,7 @@
   margin-top: 0.85rem;
   background: var(--bg-page);
   border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent-primary);
   border-radius: var(--radius-md);
   padding: 0.85rem 1rem;
 }
@@ -57,21 +58,6 @@
   margin-top: 0.5rem;
 }
 
-/* ── Action sections in right column ──────────────────────────────── */
-.action-section {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-light);
-}
-.action-section:last-child { border-bottom: none; }
-.action-section-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  margin-bottom: 0.65rem;
-}
-
 /* ── Messages ─────────────────────────────────────────────────────── */
 .msg-dir {
   width: 20px;
@@ -82,10 +68,15 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.msg-dir-out { background: var(--bg-page); }
+.msg-dir-out { background: var(--bg-page); border: 1px solid var(--border-default); }
 .msg-dir-in  { background: var(--accent-primary-pale); }
 
-/* .btn-icon-delete is defined globally in styles.css */
+/* ── Quick-action sections ────────────────────────────────────────── */
+.action-section {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.action-section:last-child { border-bottom: none; }
 </style>
 {% endblock %}
 
@@ -112,13 +103,24 @@
   <!-- ── Left column ─────────────────────────────────────────────── -->
   <div class="col-lg-8">
 
-    <!-- Candidate header -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <div class="row align-items-center">
-          <div class="col-md-7">
-            <div class="fw-bold mb-1" style="font-size:1.05rem;letter-spacing:-0.01em;">{{ candidate.full_name }}</div>
-            <div class="text-sm text-tertiary mb-3">{{ position.title }}</div>
+    <!-- Candidate Hero Header -->
+    <div class="card candidate-header-card mb-4 card-hero">
+      <div class="candidate-header-stripe"></div>
+      <div class="card-body" style="padding:1.5rem;">
+        <div class="d-flex align-items-start gap-4 flex-wrap">
+
+          <!-- Avatar -->
+          <div class="initials-circle initials-circle-xl flex-shrink-0"
+               style="background:var(--gradient-primary);color:#fff;">
+            {{ candidate.full_name|default:"?"|make_list|first|upper }}
+          </div>
+
+          <!-- Name + position + badges -->
+          <div style="flex:1;min-width:160px;">
+            <div style="font-size:1.25rem;font-weight:800;letter-spacing:-0.025em;color:var(--text-primary);line-height:1.2;margin-bottom:0.2rem;">
+              {{ candidate.full_name }}
+            </div>
+            <div class="text-sm text-tertiary mb-3" style="font-weight:500;">{{ position.title }}</div>
             <div class="d-flex gap-2 flex-wrap align-items-center">
               {% include "applications/_status_badge.html" with status=application.status %}
               {% if application.qualified is not None %}
@@ -133,32 +135,33 @@
               {% endif %}
             </div>
           </div>
-          <div class="col-md-5 mt-3 mt-md-0 border-start ps-4" style="border-color: var(--border-light) !important;">
-            <div class="d-flex flex-column gap-2">
-              <div class="d-flex align-items-center gap-2 text-sm">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary flex-shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                <a href="tel:{{ candidate.phone }}" class="contact-link">{{ candidate.phone }}</a>
-              </div>
-              <div class="d-flex align-items-center gap-2 text-sm">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary flex-shrink-0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                <a href="mailto:{{ candidate.email }}" class="contact-link">{{ candidate.email }}</a>
-              </div>
-              {% if candidate.whatsapp_number %}
-              <div class="d-flex align-items-center gap-2 text-sm">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-positive);flex-shrink:0;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank" class="contact-link">{{ candidate.whatsapp_number }}</a>
-              </div>
-              {% endif %}
-              {% with cv_uploads|first as latest_cv %}
-              {% if latest_cv and latest_cv.file_path %}
-              <div class="d-flex align-items-center gap-2 text-sm">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-negative);flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                <a href="/{{ latest_cv.file_path }}" download="{{ latest_cv.file_name }}" class="contact-link">Download CV</a>
-              </div>
-              {% endif %}
-              {% endwith %}
+
+          <!-- Contact info column -->
+          <div class="candidate-contact-col d-flex flex-column">
+            <div class="info-row">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              <a href="tel:{{ candidate.phone }}" class="contact-link">{{ candidate.phone }}</a>
             </div>
+            <div class="info-row">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <a href="mailto:{{ candidate.email }}" class="contact-link">{{ candidate.email }}</a>
+            </div>
+            {% if candidate.whatsapp_number %}
+            <div class="info-row">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-positive);"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              <a href="https://wa.me/{{ candidate.whatsapp_number }}" target="_blank" class="contact-link">{{ candidate.whatsapp_number }}</a>
+            </div>
+            {% endif %}
+            {% with cv_uploads|first as latest_cv %}
+            {% if latest_cv and latest_cv.file_path %}
+            <div class="info-row">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-negative);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <a href="/{{ latest_cv.file_path }}" download="{{ latest_cv.file_name }}" class="contact-link">Download CV</a>
+            </div>
+            {% endif %}
+            {% endwith %}
           </div>
+
         </div>
       </div>
     </div>
@@ -175,7 +178,6 @@
         {% for call in calls %}
         <div class="call-item">
 
-          {# ── Attempt header ── #}
           <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <div class="call-attempt-badge">{{ call.attempt_number }}</div>
@@ -195,7 +197,6 @@
             </div>
           </div>
 
-          {# ── Summary ── #}
           {% if call.summary_title %}
           <div class="fw-semibold mb-1" style="font-size:0.9rem;">{{ call.summary_title }}</div>
           {% endif %}
@@ -203,7 +204,6 @@
           <div class="text-sm" style="color:var(--text-secondary);line-height:1.65;">{{ call.summary }}</div>
           {% endif %}
 
-          {# ── Transcript (collapsible) ── #}
           {% if call.transcript %}
           <div class="mt-2">
             <a class="text-xs fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
@@ -218,7 +218,6 @@
           </div>
           {% endif %}
 
-          {# ── AI Evaluation ── #}
           {% for ev in call.evaluations.all %}
           <div class="call-eval">
             <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
@@ -256,7 +255,11 @@
       </div>
       {% else %}
       <div class="card-body text-center py-5">
-        <div class="text-sm text-tertiary">No calls have been made yet.</div>
+        <div class="empty-state-icon mx-auto mb-3">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </div>
+        <div class="empty-state-title">No calls yet</div>
+        <div class="empty-state-desc">No calls have been made to this candidate.</div>
       </div>
       {% endif %}
     </div>
@@ -269,8 +272,7 @@
       </div>
       <div>
         {% for qa in form_answers_list %}
-        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-light);">
-          {% if not forloop.last %}{% endif %}
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-light);">
           <div class="text-xs fw-semibold text-tertiary mb-1" style="text-transform:uppercase;letter-spacing:.05em;">{{ qa.question }}</div>
           <div class="text-sm fw-medium">{{ qa.answer }}</div>
         </div>
@@ -301,7 +303,6 @@
             </tr>
           </thead>
           <tbody>
-            {# ── Outbound ── #}
             {% for msg in sent_messages %}
             <tr>
               <td class="ps-3">
@@ -335,7 +336,6 @@
               </td>
             </tr>
             {% endfor %}
-            {# ── Inbound replies ── #}
             {% for reply in candidate_replies %}
             <tr {% if not reply.is_read %}style="background:var(--bg-page);"{% endif %}>
               <td class="ps-3">
@@ -369,7 +369,7 @@
                   {% endif %}
                   <form method="post" action="{% url 'messaging:reply_read' reply.pk %}?next={{ request.path }}" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn-icon-delete" title="Mark as read" style="color:var(--accent-positive);border-color:rgba(1,181,116,0.3);">
+                    <button type="submit" class="btn-icon-delete" title="Mark as read" style="color:var(--accent-positive);border-color:rgba(16,185,129,0.3);">
                       <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </button>
                   </form>
@@ -399,7 +399,6 @@
         <h2 class="card-header-title">Quick Actions</h2>
       </div>
 
-      {# ── Change Status ── #}
       <div class="action-section">
         <div class="action-section-label">Change Status</div>
         <form method="post" action="{% url 'applications:override_status' application.pk %}">
@@ -412,7 +411,6 @@
         </form>
       </div>
 
-      {# ── Schedule Callback ── #}
       <div class="action-section">
         <div class="action-section-label">Schedule Callback</div>
         <form method="post" action="{% url 'applications:schedule_callback' application.pk %}">
@@ -428,7 +426,6 @@
         </form>
       </div>
 
-      {# ── Send CV Reminder ── #}
       <div class="action-section">
         <div class="action-section-label">Send Reminder</div>
         <form method="post" action="{% url 'applications:trigger_followup' application.pk %}">
