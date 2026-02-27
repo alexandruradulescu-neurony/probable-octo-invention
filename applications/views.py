@@ -109,13 +109,62 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             "date_from": self.request.GET.get("date_from", ""),
             "date_to": self.request.GET.get("date_to", ""),
         }
-        positions_chart_data = DashboardView._positions_chart_data()
+        from datetime import timedelta
+        from django.db.models import Count
+
+        # Date range
+        today = now.date()
+        start_date = today - timedelta(days=period - 1)
+        dates = [start_date + timedelta(days=i) for i in range(period)]
+        date_labels = [f"{d.day} {d.strftime('%b')}" for d in dates]
+
+        # Open positions ordered by title
+        open_positions = list(
+            Position.objects.filter(status=Position.Status.OPEN).order_by("title")
+        )
+
+        # Single query: daily application counts per open position
+        rows = (
+            Application.objects
+            .filter(
+                created_at__date__gte=start_date,
+                position__in=open_positions,
+            )
+            .values("created_at__date", "position_id")
+            .annotate(count=Count("id"))
+        )
+        # Build lookup: (position_id, date) → count
+        counts = {(r["position_id"], r["created_at__date"]): r["count"] for r in rows}
+
+        # Palette — cycle through distinct colours per position
+        palette = [
+            "rgba(79,70,229,0.80)",   # indigo
+            "rgba(16,185,129,0.80)",  # green
+            "rgba(245,158,11,0.80)",  # amber
+            "rgba(239,68,68,0.80)",   # red
+            "rgba(139,92,246,0.80)",  # violet
+            "rgba(20,184,166,0.80)",  # teal
+            "rgba(249,115,22,0.80)",  # orange
+            "rgba(236,72,153,0.80)",  # pink
+        ]
+
+        datasets = []
+        for idx, pos in enumerate(open_positions):
+            color = palette[idx % len(palette)]
+            datasets.append({
+                "label": pos.title,
+                "data":  [counts.get((pos.pk, d), 0) for d in dates],
+                "backgroundColor": color,
+                "borderRadius": 3,
+                "borderSkipped": False,
+                "stack": "daily",
+            })
 
         ctx["period"] = period
         ctx["period_urls"] = {7: _period_url(7), 14: _period_url(14), 30: _period_url(30)}
         ctx["kpi_totals"] = DashboardView._kpi_totals(period, now, today_start)
-        ctx["positions_chart_data"] = positions_chart_data
-        ctx["open_positions_count"] = len(positions_chart_data["labels"])
+        ctx["positions_chart_data"] = {"labels": date_labels, "datasets": datasets}
+        ctx["open_positions_count"] = len(open_positions)
         return ctx
 
 

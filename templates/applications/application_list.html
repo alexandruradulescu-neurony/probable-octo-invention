@@ -255,34 +255,11 @@
   const textMuted   = root.getPropertyValue('--text-muted').trim()   || '#94a3b8';
   const borderLight = root.getPropertyValue('--border-light').trim() || '#e2e8f0';
 
-  // Truncate long position titles for the axis
-  const labels = raw.labels.map(l => l.length > 22 ? l.slice(0, 20) + '…' : l);
-
-  // Stacked: base = non-qualified, top = qualified → full height = total
-  const notQualified = raw.applications.map((t, i) => t - raw.qualified[i]);
-
   new Chart(document.getElementById('applist-activity-chart'), {
     type: 'bar',
     data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Other',
-          data: notQualified,
-          backgroundColor: 'rgba(79,70,229,0.45)',
-          borderRadius: 0,
-          borderSkipped: false,
-          stack: 'pos',
-        },
-        {
-          label: 'Qualified',
-          data: raw.qualified,
-          backgroundColor: 'rgba(16,185,129,0.80)',
-          borderRadius: 4,
-          borderSkipped: false,
-          stack: 'pos',
-        },
-      ],
+      labels: raw.labels,
+      datasets: raw.datasets,
     },
     options: {
       responsive: true,
@@ -299,7 +276,7 @@
             boxHeight: 10,
             borderRadius: 3,
             useBorderRadius: true,
-            padding: 16,
+            padding: 12,
           },
         },
         tooltip: {
@@ -310,13 +287,7 @@
           bodyColor: '#cbd5e1',
           padding: 10,
           cornerRadius: 6,
-          callbacks: {
-            title: (items) => raw.labels[items[0].dataIndex],
-            afterBody: (items) => {
-              const i = items[0].dataIndex;
-              return [`Total: ${raw.applications[i]}`];
-            },
-          },
+          filter: (item) => item.parsed.y > 0,
         },
       },
       scales: {
