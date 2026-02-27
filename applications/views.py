@@ -171,23 +171,29 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 qualified_vals.append(c["qualified"])
                 unqualified.append(c["total"] - c["qualified"])
 
-            # Bottom segment: unqualified (hidden from legend)
-            datasets.append({
-                "type": "bar",
-                "label": f"__{pos.title}",
-                "data": unqualified,
-                "backgroundColor": col_light,
-                "stack": stack_key,
-                "borderSkipped": False,
-                "borderRadius": 0,
-                "order": 2,
-            })
-            # Top segment: qualified (shown in legend)
+            # Trend line data: null on days with zero total (no activity) → breaks the line
+            trend_data = [
+                q if (q + u) > 0 else None
+                for q, u in zip(qualified_vals, unqualified)
+            ]
+
+            # Bottom segment: qualified (vivid — shown in legend)
             datasets.append({
                 "type": "bar",
                 "label": pos.title,
                 "data": qualified_vals,
                 "backgroundColor": col_vivid,
+                "stack": stack_key,
+                "borderSkipped": False,
+                "borderRadius": 0,
+                "order": 2,
+            })
+            # Top segment: unqualified (light — hidden from legend)
+            datasets.append({
+                "type": "bar",
+                "label": f"__{pos.title}",
+                "data": unqualified,
+                "backgroundColor": col_light,
                 "stack": stack_key,
                 "borderSkipped": False,
                 "borderRadius": 3,
@@ -197,7 +203,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             datasets.append({
                 "type": "line",
                 "label": f"__trend_{pos.title}",
-                "data": qualified_vals,
+                "data": trend_data,
                 "borderColor": col_vivid,
                 "backgroundColor": "transparent",
                 "borderWidth": 2,
@@ -208,6 +214,7 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 "pointHoverRadius": 6,
                 "tension": 0.35,
                 "fill": False,
+                "spanGaps": False,
                 "order": 1,
             })
 

@@ -294,15 +294,13 @@
           filter: (item) => !item.dataset.label.startsWith('__'),
           callbacks: {
             label: (item) => {
-              // For each position's qualified bar, also look up the unqualified bar
-              // (it sits two datasets back: unqual, qual, trend → qual is at dsIdx, unqual at dsIdx-1... but now trend is dsIdx+1)
-              // Datasets are grouped as: [unqual_bar, qual_bar, trend_line] per position
-              // qual_bar is at index 3k+1; unqual_bar is at 3k
-              const dsIdx = item.datasetIndex;
-              const unqualDs = raw.datasets[dsIdx - 1];
-              const unqual = unqualDs ? (unqualDs.data[item.dataIndex] || 0) : 0;
-              const qual   = item.parsed.y || 0;
-              const total  = unqual + qual;
+              // Datasets are grouped as: [qual_bar(3k), unqual_bar(3k+1), trend(3k+2)] per position
+              // Tooltip filter only shows qual_bar rows (label doesn't start with __)
+              const dsIdx    = item.datasetIndex;
+              const unqualDs = raw.datasets[dsIdx + 1];   // unqual_bar is immediately after
+              const unqual   = unqualDs ? (unqualDs.data[item.dataIndex] || 0) : 0;
+              const qual     = item.parsed.y || 0;
+              const total    = unqual + qual;
               if (total === 0) return null;
               return ` ${item.dataset.label}: ${total} total, ${qual} qualified`;
             },
