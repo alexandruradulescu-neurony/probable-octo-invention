@@ -171,23 +171,44 @@ class ApplicationListView(LoginRequiredMixin, ListView):
                 qualified_vals.append(c["qualified"])
                 unqualified.append(c["total"] - c["qualified"])
 
-            # Bottom segment: unqualified (hidden from legend via "__" prefix)
+            # Bottom segment: unqualified (hidden from legend)
             datasets.append({
+                "type": "bar",
                 "label": f"__{pos.title}",
                 "data": unqualified,
                 "backgroundColor": col_light,
                 "stack": stack_key,
                 "borderSkipped": False,
                 "borderRadius": 0,
+                "order": 2,
             })
             # Top segment: qualified (shown in legend)
             datasets.append({
+                "type": "bar",
                 "label": pos.title,
                 "data": qualified_vals,
                 "backgroundColor": col_vivid,
                 "stack": stack_key,
                 "borderSkipped": False,
                 "borderRadius": 3,
+                "order": 2,
+            })
+            # Trend line: qualified count per day (hidden from legend)
+            datasets.append({
+                "type": "line",
+                "label": f"__trend_{pos.title}",
+                "data": qualified_vals,
+                "borderColor": col_vivid,
+                "backgroundColor": "transparent",
+                "borderWidth": 2,
+                "pointBackgroundColor": col_vivid,
+                "pointBorderColor": "#ffffff",
+                "pointBorderWidth": 1,
+                "pointRadius": 4,
+                "pointHoverRadius": 6,
+                "tension": 0.35,
+                "fill": False,
+                "order": 1,
             })
 
         ctx["period"] = period

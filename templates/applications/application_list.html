@@ -290,11 +290,14 @@
           padding: 10,
           cornerRadius: 6,
           // Only show items that have data; group the pair into one line per position
-          filter: (item) => item.parsed.y > 0 || !item.dataset.label.startsWith('__'),
+          // Only show the vivid bar segment (qualified) rows; skip hidden/trend datasets
+          filter: (item) => !item.dataset.label.startsWith('__'),
           callbacks: {
             label: (item) => {
-              if (item.dataset.label.startsWith('__')) return null;
-              // Find the matching unqualified dataset (immediately before this one)
+              // For each position's qualified bar, also look up the unqualified bar
+              // (it sits two datasets back: unqual, qual, trend → qual is at dsIdx, unqual at dsIdx-1... but now trend is dsIdx+1)
+              // Datasets are grouped as: [unqual_bar, qual_bar, trend_line] per position
+              // qual_bar is at index 3k+1; unqual_bar is at 3k
               const dsIdx = item.datasetIndex;
               const unqualDs = raw.datasets[dsIdx - 1];
               const unqual = unqualDs ? (unqualDs.data[item.dataIndex] || 0) : 0;
