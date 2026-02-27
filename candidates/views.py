@@ -203,7 +203,11 @@ class CSVImportView(LoginRequiredMixin, View):
     template_name = "candidates/csv_import.html"
 
     def get(self, request):
-        return render(request, self.template_name, {"form": CSVImportForm()})
+        initial = {}
+        position_id = request.GET.get("position")
+        if position_id:
+            initial["position"] = position_id
+        return render(request, self.template_name, {"form": CSVImportForm(initial=initial)})
 
     def post(self, request):
         if "confirm" in request.POST:
