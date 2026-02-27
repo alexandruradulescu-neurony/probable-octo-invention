@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load rf_tags %}
 {% block title %}{{ candidate.full_name }} — {{ position.title }} — RecruitFlow{% endblock %}
-{% block breadcrumb %}Applications{% endblock %}
-{% block page_title %}{{ candidate.full_name }}{% endblock %}
+{% block breadcrumb %}Applications / {{ candidate.full_name }}{% endblock %}
+{% block topbar_title_block %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -71,7 +71,7 @@
 <div class="d-flex align-items-center gap-2">
   <form method="post" action="{% url 'applications:call_now' application.pk %}" class="m-0">
     {% csrf_token %}
-    <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2"
+    <button type="submit" class="btn btn-success d-inline-flex align-items-center gap-2"
             onclick="return confirm('Initiate a call to {{ candidate.phone }} right now?')">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       Call Now
@@ -91,8 +91,7 @@
   <div class="col-lg-8">
 
     <!-- ── Candidate Hero Header ──────────────────────────────────── -->
-    <div class="card candidate-header-card mb-4 card-hero">
-      <div class="candidate-header-stripe"></div>
+    <div class="card candidate-header-card mb-4">
       <div class="card-body" style="padding:1.5rem;">
         <div class="d-flex align-items-start gap-4 flex-wrap">
           <div class="initials-circle initials-circle-xl flex-shrink-0"

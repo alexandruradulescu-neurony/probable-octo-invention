@@ -1,6 +1,6 @@
 :root {
   /* Surfaces */
-  --bg-page: #F4F7FB;
+  --bg-page: #F8FAFC;
   --bg-card: #ffffff;
   --bg-sidebar: #0D1425;
   --bg-topbar: #ffffff;
@@ -142,12 +142,10 @@ body {
 }
 
 .card-header-title {
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   font-weight: 700;
   margin: 0;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  color: var(--text-primary);
 }
 
 .card-body {
@@ -373,6 +371,19 @@ body {
   background-color: var(--bg-page);
   color: var(--text-primary);
   border-color: var(--border-default);
+}
+
+.btn-success {
+  background: #10B981;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-success:hover, .btn-success:focus {
+  background: #059669;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.32) !important;
 }
 
 /* ─── Badges ────────────────────────────────────────────────────────────────── */
@@ -1204,6 +1215,7 @@ body {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  border-radius: 14px;
 }
 
 /* ─── Info rows (contact / metadata items) ──────────────────────────────────── */
@@ -1250,10 +1262,6 @@ body {
 /* ─── Candidate hero layout (detail page header card) ───────────────────────── */
 .candidate-header-card {
   overflow: hidden;
-}
-.candidate-header-stripe {
-  height: 3px;
-  background: var(--gradient-primary);
 }
 .candidate-contact-col {
   border-left: 1px solid var(--border-light);
@@ -1474,7 +1482,7 @@ body {
 /* Status subtitle in timeline */
 .timeline-subtitle {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--accent-primary-light);
   margin-top: 0.1rem;
   line-height: 1.35;
   font-variant-numeric: tabular-nums;

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ candidate.full_name }} — RecruitFlow{% endblock %}
-{% block breadcrumb %}Candidates{% endblock %}
-{% block page_title %}{{ candidate.full_name }}{% endblock %}
+{% block breadcrumb %}Candidates / {{ candidate.full_name }}{% endblock %}
+{% block topbar_title_block %}{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'candidates:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
@@ -12,8 +12,7 @@
 
 {% block content %}
 <!-- Candidate Hero Header -->
-<div class="card candidate-header-card mb-4 card-hero">
-  <div class="candidate-header-stripe"></div>
+<div class="card candidate-header-card mb-4">
   <div class="card-body" style="padding:1.5rem;">
 
     <!-- Display mode -->
