@@ -373,6 +373,38 @@ body {
   border-color: var(--border-default);
 }
 
+/* ── Regenerate button (AI prompt sections) ─────────────────────────────────── */
+.btn-regen {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  line-height: 1.4;
+}
+.btn-regen:hover:not(:disabled) {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+.btn-regen:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-regen.is-loading .regen-icon   { display: none; }
+.btn-regen.is-loading .regen-spinner { display: inline-block !important; }
+.prompt-field-wrap.is-generating textarea {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .btn-success {
   background: #10B981;
   color: #ffffff;

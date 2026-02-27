@@ -15,26 +15,34 @@
 
   {% if form.errors %}
   <div class="alert alert-danger mb-4 d-flex align-items-start gap-2">
-    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 2px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top:2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
     <div>
       <div class="fw-semibold mb-1">Please correct the errors below.</div>
       {% if form.non_field_errors %}
-      <ul class="mb-0 ps-3 text-sm">
-        {% for error in form.non_field_errors %}
-        <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
+      <ul class="mb-0 ps-3 text-sm">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
       {% endif %}
     </div>
   </div>
   {% endif %}
 
   <div class="row g-4">
-    <!-- Left column: core fields -->
-    <div class="col-lg-7">
+
+    <!-- ── Left column ───────────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+      <!-- Position Details -->
       <div class="card mb-4">
         <div class="card-header">
           <h2 class="card-header-title">Position Details</h2>
+          {% if object %}
+            {% if object.status == 'open' %}
+              <div class="badge status-offered"><span class="badge-dot"></span> Open</div>
+            {% elif object.status == 'paused' %}
+              <div class="badge status-screening"><span class="badge-dot"></span> Paused</div>
+            {% elif object.status == 'closed' %}
+              <div class="badge status-rejected"><span class="badge-dot"></span> Closed</div>
+            {% endif %}
+          {% endif %}
         </div>
         <div class="card-body">
           <div class="mb-3">
@@ -54,7 +62,7 @@
           <div class="mb-0">
             <label for="id_campaign_questions" class="form-label">
               Campaign Questions
-              <span class="text-muted-custom" style="font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 0.8rem;">(one per line)</span>
+              <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;font-size:0.8rem;">(one per line)</span>
             </label>
             {{ form.campaign_questions }}
             {% if form.campaign_questions.errors %}<div class="error-text">{{ form.campaign_questions.errors.0 }}</div>{% endif %}
@@ -62,82 +70,113 @@
         </div>
       </div>
 
-      <!-- AI Prompts -->
+      <!-- AI Prompts (tabbed) -->
       <div class="card mb-4">
+
+        <!-- Header: icon + title + Generate All -->
         <div class="card-header">
-          <h2 class="card-header-title">AI Prompts</h2>
-          <button type="button" id="btn-generate-all" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" title="Auto-generate all three prompts using Claude">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          <div class="d-flex align-items-center gap-2">
+            <div class="kpi-icon kpi-icon-purple">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+            <h2 class="card-header-title">AI Prompts</h2>
+          </div>
+          <button type="button" id="btn-generate-all" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
             Generate All
           </button>
         </div>
-        <div class="card-body">
 
-          <!-- AI info banner -->
-          <div class="d-flex align-items-start gap-2 mb-4 p-3" style="background: rgba(67,24,255,0.04); border: 1px solid rgba(67,24,255,0.12); border-radius: var(--radius-md);">
-            <svg width="14" height="14" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top: 1px; flex-shrink: 0; opacity: 0.75;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div class="text-sm" style="color: var(--text-secondary); line-height: 1.5;">
+        <!-- Info notice -->
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-light);background:rgba(79,70,229,0.03);">
+          <div class="d-flex align-items-start gap-2">
+            <svg width="13" height="13" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top:1px;flex-shrink:0;opacity:0.7;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div class="text-sm" style="color:var(--text-secondary);line-height:1.5;">
               The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.{% if object %} Generated prompts are saved automatically.{% endif %}
             </div>
           </div>
+        </div>
 
-          <!-- System Prompt -->
-          <div class="mb-4">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <label for="id_system_prompt" class="form-label mb-0">System Prompt</label>
-              <button type="button" class="btn-regen" data-section="system_prompt" title="Regenerate with Claude">
-                <span class="regen-icon">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                </span>
-                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
-                Regenerate
-              </button>
+        <!-- Tab nav -->
+        <div style="padding:0 1.25rem;">
+          <ul class="nav rf-tabs" id="prompt-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-system-prompt" data-bs-toggle="tab" data-bs-target="#pane-system-prompt" type="button" role="tab">System Prompt</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-first-message" data-bs-toggle="tab" data-bs-target="#pane-first-message" type="button" role="tab">First Message</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-qual-prompt" data-bs-toggle="tab" data-bs-target="#pane-qual-prompt" type="button" role="tab">Qualification Prompt</button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Tab panes -->
+        <div style="border-top:1px solid var(--border-light);">
+          <div class="tab-content">
+
+            <!-- System Prompt -->
+            <div class="tab-pane fade show active" id="pane-system-prompt" role="tabpanel">
+              <div style="padding:1rem 1.25rem;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label for="id_system_prompt" class="form-label mb-0">System Prompt</label>
+                  <button type="button" class="btn-regen" data-section="system_prompt" title="Regenerate with Claude">
+                    <span class="regen-icon"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span>
+                    <span class="regen-spinner spinner-border spinner-border-sm" style="width:11px;height:11px;border-width:1.5px;display:none;"></span>
+                    Regenerate
+                  </button>
+                </div>
+                {{ form.system_prompt }}
+                <div class="help-text mt-1">Personality, instructions, how to ask screening questions.</div>
+                <div class="regen-error text-xs mt-1" data-section="system_prompt" style="color:var(--accent-negative);display:none;"></div>
+              </div>
             </div>
-            {{ form.system_prompt }}
-            <div class="help-text">Personality, instructions, how to ask screening questions.</div>
-            <div class="regen-error text-xs mt-1" data-section="system_prompt" style="color: var(--accent-negative); display: none;"></div>
-          </div>
 
-          <!-- First Message -->
-          <div class="mb-4">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <label for="id_first_message" class="form-label mb-0">First Message</label>
-              <button type="button" class="btn-regen" data-section="first_message" title="Regenerate with Claude">
-                <span class="regen-icon">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                </span>
-                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
-                Regenerate
-              </button>
+            <!-- First Message -->
+            <div class="tab-pane fade" id="pane-first-message" role="tabpanel">
+              <div style="padding:1rem 1.25rem;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label for="id_first_message" class="form-label mb-0">First Message</label>
+                  <button type="button" class="btn-regen" data-section="first_message" title="Regenerate with Claude">
+                    <span class="regen-icon"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span>
+                    <span class="regen-spinner spinner-border spinner-border-sm" style="width:11px;height:11px;border-width:1.5px;display:none;"></span>
+                    Regenerate
+                  </button>
+                </div>
+                {{ form.first_message }}
+                <div class="help-text mt-1">Opening line the agent says when the candidate picks up.</div>
+                <div class="regen-error text-xs mt-1" data-section="first_message" style="color:var(--accent-negative);display:none;"></div>
+              </div>
             </div>
-            {{ form.first_message }}
-            <div class="help-text">Opening line the agent says when the candidate picks up.</div>
-            <div class="regen-error text-xs mt-1" data-section="first_message" style="color: var(--accent-negative); display: none;"></div>
-          </div>
 
-          <!-- Qualification Prompt -->
-          <div class="mb-0">
-            <div class="d-flex align-items-center justify-content-between mb-1">
-              <label for="id_qualification_prompt" class="form-label mb-0">Qualification Prompt</label>
-              <button type="button" class="btn-regen" data-section="qualification_prompt" title="Regenerate with Claude">
-                <span class="regen-icon">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                </span>
-                <span class="regen-spinner spinner-border spinner-border-sm" style="width: 11px; height: 11px; border-width: 1.5px; display: none;"></span>
-                Regenerate
-              </button>
+            <!-- Qualification Prompt -->
+            <div class="tab-pane fade" id="pane-qual-prompt" role="tabpanel">
+              <div style="padding:1rem 1.25rem;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <label for="id_qualification_prompt" class="form-label mb-0">Qualification Prompt</label>
+                  <button type="button" class="btn-regen" data-section="qualification_prompt" title="Regenerate with Claude">
+                    <span class="regen-icon"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></span>
+                    <span class="regen-spinner spinner-border spinner-border-sm" style="width:11px;height:11px;border-width:1.5px;display:none;"></span>
+                    Regenerate
+                  </button>
+                </div>
+                {{ form.qualification_prompt }}
+                <div class="help-text mt-1">Sent to Claude along with the transcript for scoring.</div>
+                <div class="regen-error text-xs mt-1" data-section="qualification_prompt" style="color:var(--accent-negative);display:none;"></div>
+              </div>
             </div>
-            {{ form.qualification_prompt }}
-            <div class="help-text">Sent to Claude along with the transcript for scoring.</div>
-            <div class="regen-error text-xs mt-1" data-section="qualification_prompt" style="color: var(--accent-negative); display: none;"></div>
-          </div>
 
+          </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Right column: configuration -->
-    <div class="col-lg-5">
+    <!-- ── Right column ──────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+      <!-- Call Settings -->
       <div class="card mb-4">
         <div class="card-header">
           <h2 class="card-header-title">Call Settings</h2>
@@ -149,15 +188,15 @@
               {{ form.call_retry_max }}
             </div>
             <div class="col-6">
-              <label for="id_call_retry_interval_minutes" class="form-label">Retry Interval (min)</label>
+              <label for="id_call_retry_interval_minutes" class="form-label">Retry Interval <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;">(min)</span></label>
               {{ form.call_retry_interval_minutes }}
             </div>
             <div class="col-6">
-              <label for="id_calling_hour_start" class="form-label">Call From (hour)</label>
+              <label for="id_calling_hour_start" class="form-label">Call From <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;">(hour)</span></label>
               {{ form.calling_hour_start }}
             </div>
             <div class="col-6">
-              <label for="id_calling_hour_end" class="form-label">Call Until (hour)</label>
+              <label for="id_calling_hour_end" class="form-label">Call Until <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;">(hour)</span></label>
               {{ form.calling_hour_end }}
               {% if form.calling_hour_end.errors %}<div class="error-text">{{ form.calling_hour_end.errors.0 }}</div>{% endif %}
             </div>
@@ -165,67 +204,50 @@
         </div>
       </div>
 
+      <!-- CV Follow-up Settings -->
       <div class="card mb-4">
         <div class="card-header">
           <h2 class="card-header-title">CV Follow-up Settings</h2>
         </div>
         <div class="card-body">
           <div class="mb-3">
-            <label for="id_follow_up_interval_hours" class="form-label">Follow-up Interval (hours)</label>
+            <label for="id_follow_up_interval_hours" class="form-label">Follow-up Interval <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;">(hours)</span></label>
             {{ form.follow_up_interval_hours }}
             <div class="help-text">Qualified candidates only.</div>
           </div>
           <div class="mb-0">
-            <label for="id_rejected_cv_timeout_days" class="form-label">Rejected CV Timeout (days)</label>
+            <label for="id_rejected_cv_timeout_days" class="form-label">Rejected CV Timeout <span class="text-muted-custom fw-normal" style="text-transform:none;letter-spacing:0;">(days)</span></label>
             {{ form.rejected_cv_timeout_days }}
             <div class="help-text">Days before auto-closing rejected apps with no CV.</div>
           </div>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2">
+      <!-- Save -->
+      <button type="submit" class="btn btn-primary w-100 d-flex justify-content-center align-items-center gap-2 mb-3" style="padding:0.7rem;">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
         {% if object %}Save Changes{% else %}Create Position{% endif %}
       </button>
+
+      <!-- How prompts work -->
+      <div class="info-block">
+        <div class="d-flex align-items-start gap-3">
+          <div class="kpi-icon kpi-icon-purple" style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </div>
+          <div>
+            <div class="fw-semibold text-sm mb-1">How prompts work</div>
+            <div class="help-text mb-0">The system prompt sets the AI agent's personality. The first message is what candidates hear when they pick up. The qualification prompt is used by Claude to score transcripts after each call.</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </form>
 {% endblock %}
 
 {% block extra_js %}
-<style>
-.btn-regen {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  background: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 3px 9px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  line-height: 1.4;
-}
-.btn-regen:hover:not(:disabled) {
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  background: rgba(67, 24, 255, 0.05);
-}
-.btn-regen:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.btn-regen.is-loading .regen-icon { display: none; }
-.btn-regen.is-loading .regen-spinner { display: inline-block !important; }
-.prompt-field-wrap.is-generating textarea {
-  opacity: 0.5;
-  pointer-events: none;
-}
-</style>
-
 <script>
 (function () {
   const GENERATE_URL = "{% url 'positions:generate_section' %}";
@@ -240,10 +262,10 @@
 
   function getPositionData() {
     return {
-      title:               (document.getElementById('id_title')?.value || '').trim(),
-      description:         (document.getElementById('id_description')?.value || '').trim(),
-      campaign_questions:  (document.getElementById('id_campaign_questions')?.value || '').trim(),
-      position_pk:         POSITION_PK !== '0' ? parseInt(POSITION_PK, 10) : null,
+      title:              (document.getElementById('id_title')?.value || '').trim(),
+      description:        (document.getElementById('id_description')?.value || '').trim(),
+      campaign_questions: (document.getElementById('id_campaign_questions')?.value || '').trim(),
+      position_pk:        POSITION_PK !== '0' ? parseInt(POSITION_PK, 10) : null,
     };
   }
 
@@ -259,9 +281,7 @@
     el.style.display = msg ? 'block' : 'none';
   }
 
-  function clearFieldError(section) {
-    showFieldError(section, '');
-  }
+  function clearFieldError(section) { showFieldError(section, ''); }
 
   async function generateSection(section) {
     const posData = getPositionData();
@@ -270,9 +290,8 @@
       return false;
     }
 
-    const btn = document.querySelector(`.btn-regen[data-section="${section}"]`);
-    const fieldId = SECTION_FIELD_MAP[section];
-    const textarea = document.getElementById(fieldId);
+    const btn      = document.querySelector(`.btn-regen[data-section="${section}"]`);
+    const textarea = document.getElementById(SECTION_FIELD_MAP[section]);
 
     setRegenState(btn, true);
     clearFieldError(section);
@@ -281,24 +300,24 @@
     try {
       const resp = await fetch(GENERATE_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': CSRF,
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
         body: JSON.stringify({ section, ...posData }),
       });
-
       const data = await resp.json();
-
-      if (!resp.ok) {
-        showFieldError(section, data.error || 'Generation failed.');
-        return false;
-      }
-
+      if (!resp.ok) { showFieldError(section, data.error || 'Generation failed.'); return false; }
       if (textarea) textarea.value = data.value || '';
-      return true;
 
-    } catch (err) {
+      /* Switch to the tab that contains this section */
+      const tabMap = {
+        system_prompt:        'tab-system-prompt',
+        first_message:        'tab-first-message',
+        qualification_prompt: 'tab-qual-prompt',
+      };
+      const tabEl = document.getElementById(tabMap[section]);
+      if (tabEl) { const tab = new bootstrap.Tab(tabEl); tab.show(); }
+
+      return true;
+    } catch {
       showFieldError(section, 'Network error. Please try again.');
       return false;
     } finally {
@@ -307,30 +326,25 @@
     }
   }
 
-  // Individual regenerate buttons
   document.querySelectorAll('.btn-regen').forEach(btn => {
     btn.addEventListener('click', () => generateSection(btn.dataset.section));
   });
 
-  // Generate All — 3 sequential calls
   document.getElementById('btn-generate-all').addEventListener('click', async function () {
     const btn = this;
-    const title = (document.getElementById('id_title')?.value || '').trim();
-    if (!title) {
+    if (!(document.getElementById('id_title')?.value || '').trim()) {
       alert('Please enter a position title before generating prompts.');
       return;
     }
-
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width:11px;height:11px;border-width:1.5px;"></span> Generating…';
 
-    const sections = ['system_prompt', 'first_message', 'qualification_prompt'];
-    for (const section of sections) {
+    for (const section of ['system_prompt', 'first_message', 'qualification_prompt']) {
       await generateSection(section);
     }
 
     btn.disabled = false;
-    btn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right:3px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Generate All';
+    btn.innerHTML = '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-right:3px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Generate All';
   });
 })();
 </script>
