@@ -45,7 +45,12 @@ class PositionListView(LoginRequiredMixin, ListView):
                 open_applications_count=Count(
                     "applications",
                     filter=~Q(applications__status="closed"),
-                )
+                ),
+                total_applications_count=Count("applications"),
+                qualified_count=Count(
+                    "applications",
+                    filter=Q(applications__qualified=True),
+                ),
             )
             .order_by("-created_at")
         )

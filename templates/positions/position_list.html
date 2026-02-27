@@ -51,9 +51,14 @@
             <input type="checkbox" class="form-check-input row-check" name="position_ids" value="{{ pos.pk }}">
           </td>
           <td>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
               <div class="fw-medium">{{ pos.title }}</div>
-              <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="badge badge-neutral tabular-nums no-row-click" style="text-decoration:none;">{{ pos.open_applications_count }}</a>
+              <div class="d-flex align-items-center gap-1" title="Prompts: System / First Message / Qualification">
+                <span style="width:7px;height:7px;border-radius:50%;background:{% if pos.system_prompt %}var(--accent-positive){% else %}var(--border-default){% endif %};" title="System prompt {% if pos.system_prompt %}ready{% else %}missing{% endif %}"></span>
+                <span style="width:7px;height:7px;border-radius:50%;background:{% if pos.first_message %}var(--accent-positive){% else %}var(--border-default){% endif %};" title="First message {% if pos.first_message %}ready{% else %}missing{% endif %}"></span>
+                <span style="width:7px;height:7px;border-radius:50%;background:{% if pos.qualification_prompt %}var(--accent-positive){% else %}var(--border-default){% endif %};" title="Qualification prompt {% if pos.qualification_prompt %}ready{% else %}missing{% endif %}"></span>
+              </div>
+              <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="badge badge-neutral tabular-nums no-row-click" style="text-decoration:none;" title="{{ pos.qualified_count }} qualified / {{ pos.total_applications_count }} total">{{ pos.qualified_count }}&thinsp;/&thinsp;{{ pos.total_applications_count }}</a>
             </div>
           </td>
           <td>
