@@ -128,6 +128,9 @@ class ClaudeService:
         user_message = (
             meta_prompt
             .replace("{title}", position.title or "")
+            .replace("{company}", getattr(position, "company", "") or "")
+            .replace("{contact_type}", getattr(position, "contact_type", "") or "")
+            .replace("{salary_range}", getattr(position, "salary_range", "") or "")
             .replace("{description}", position.description or "")
             .replace("{campaign_questions}", position.campaign_questions or "")
         )

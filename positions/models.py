@@ -8,6 +8,14 @@ class Position(models.Model):
         CLOSED = "closed", "Closed"
 
     title = models.CharField(max_length=255)
+    company = models.CharField(max_length=255, blank=True, default="")
+    contact_type = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Comma-separated contact types: cim, b2b",
+    )
+    salary_range = models.CharField(max_length=100, blank=True, default="")
     description = models.TextField()
     status = models.CharField(
         max_length=10,

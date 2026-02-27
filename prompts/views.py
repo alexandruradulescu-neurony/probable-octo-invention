@@ -159,6 +159,9 @@ class TestGenerateView(_StaffRequiredMixin, View):
         proxy = _Proxy()
         proxy.pk = f"test-{pk}"
         proxy.title = title
+        proxy.company = (body.get("company") or "").strip()
+        proxy.contact_type = (body.get("contact_type") or "").strip()
+        proxy.salary_range = (body.get("salary_range") or "").strip()
         proxy.description = (body.get("description") or "").strip()
         proxy.campaign_questions = (body.get("campaign_questions") or "").strip()
 

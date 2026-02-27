@@ -8,12 +8,28 @@ from django import forms
 
 from positions.models import Position
 
+CONTACT_TYPE_CHOICES = [
+    ("cim", "CIM"),
+    ("b2b", "B2B"),
+]
+
 
 class PositionForm(forms.ModelForm):
+    # MultipleChoiceField for contact_type — stored as comma-separated string
+    contact_type = forms.MultipleChoiceField(
+        choices=CONTACT_TYPE_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple(),
+        label="Type of Contact",
+    )
+
     class Meta:
         model = Position
         fields = [
             "title",
+            "company",
+            "contact_type",
+            "salary_range",
             "description",
             "status",
             "campaign_questions",
@@ -29,6 +45,8 @@ class PositionForm(forms.ModelForm):
         ]
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
+            "company": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Acme Corp"}),
+            "salary_range": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 4 000 – 6 000 RON net"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "status": forms.Select(attrs={"class": "form-select"}),
             "campaign_questions": forms.Textarea(
@@ -45,6 +63,19 @@ class PositionForm(forms.ModelForm):
             "follow_up_interval_hours": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
             "rejected_cv_timeout_days": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Convert stored "cim,b2b" string → list for the checkbox widget
+        if self.instance and self.instance.pk and self.instance.contact_type:
+            self.initial["contact_type"] = [
+                v.strip() for v in self.instance.contact_type.split(",") if v.strip()
+            ]
+
+    def clean_contact_type(self):
+        """Convert selected list → comma-separated string for storage."""
+        values = self.cleaned_data.get("contact_type") or []
+        return ",".join(values)
 
     def clean(self):
         cleaned = super().clean()

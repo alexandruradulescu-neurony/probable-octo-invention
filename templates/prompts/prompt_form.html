@@ -52,7 +52,15 @@
             <label for="id_meta_prompt" class="form-label">Meta-Prompt</label>
             {{ form.meta_prompt }}
             <div class="help-text" style="line-height: 1.5;">
-              Available placeholders: <code class="code-inline">{title}</code>, <code class="code-inline">{description}</code>, <code class="code-inline">{campaign_questions}</code>.<br>
+              Available placeholders replaced with the position's values at generation time:
+              <div class="d-flex flex-wrap gap-1 mt-1 mb-1">
+                <code class="code-inline">{title}</code>
+                <code class="code-inline">{company}</code>
+                <code class="code-inline">{contact_type}</code>
+                <code class="code-inline">{salary_range}</code>
+                <code class="code-inline">{description}</code>
+                <code class="code-inline">{campaign_questions}</code>
+              </div>
               Claude will respond with <strong>plain text only</strong> for the selected section — no JSON, no markdown.
             </div>
             {% if form.meta_prompt.errors %}<div class="error-text">{{ form.meta_prompt.errors.0 }}</div>{% endif %}
@@ -95,6 +103,20 @@
         <div class="mb-3">
           <label class="form-label">Sample Title</label>
           <input type="text" id="test-title" class="form-control" placeholder="e.g. Truck Driver CDL-A" {% if not object.section %}disabled{% endif %}>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label">Sample Company</label>
+            <input type="text" id="test-company" class="form-control" placeholder="e.g. Acme Corp" {% if not object.section %}disabled{% endif %}>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Sample Salary Range</label>
+            <input type="text" id="test-salary-range" class="form-control" placeholder="e.g. 4 000–6 000 RON" {% if not object.section %}disabled{% endif %}>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sample Contact Type</label>
+          <input type="text" id="test-contact-type" class="form-control" placeholder="e.g. CIM, B2B" {% if not object.section %}disabled{% endif %}>
         </div>
         <div class="mb-3">
           <label class="form-label">Sample Description</label>
@@ -149,6 +171,9 @@ document.getElementById('btn-test-generate').addEventListener('click', function(
     },
     body: JSON.stringify({
       title: title,
+      company: document.getElementById('test-company').value.trim(),
+      contact_type: document.getElementById('test-contact-type').value.trim(),
+      salary_range: document.getElementById('test-salary-range').value.trim(),
       description: document.getElementById('test-description').value.trim(),
       campaign_questions: document.getElementById('test-questions').value.trim(),
     }),

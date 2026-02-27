@@ -62,6 +62,30 @@
             {{ form.title }}
             {% if form.title.errors %}<div class="error-text">{{ form.title.errors.0 }}</div>{% endif %}
           </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_company" class="form-label">Company</label>
+              {{ form.company }}
+              {% if form.company.errors %}<div class="error-text">{{ form.company.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="id_salary_range" class="form-label">Salary Range</label>
+              {{ form.salary_range }}
+              {% if form.salary_range.errors %}<div class="error-text">{{ form.salary_range.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Type of Contact</label>
+            <div class="d-flex gap-3 mt-1">
+              {% for widget in form.contact_type %}
+              <div class="form-check">
+                {{ widget.tag }}
+                <label class="form-check-label" for="{{ widget.id_for_label }}">{{ widget.choice_label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.contact_type.errors %}<div class="error-text">{{ form.contact_type.errors.0 }}</div>{% endif %}
+          </div>
           <div class="mb-3">
             <label for="id_description" class="form-label">Description</label>
             {{ form.description }}
@@ -105,6 +129,18 @@
             <svg width="13" height="13" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-top:1px;flex-shrink:0;opacity:0.7;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             <div class="text-sm" style="color:var(--text-secondary);line-height:1.5;">
               The ElevenLabs agent and voice are configured in the ElevenLabs dashboard. These fields only control <strong>what the agent says</strong> for this position.{% if object %} Generated prompts are saved automatically.{% endif %}
+              <div class="mt-2" style="padding-top:0.5rem;border-top:1px solid var(--border-light);">
+                <span style="color:var(--text-tertiary);font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Available placeholders in meta-prompts</span>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                  <code class="code-inline">{title}</code>
+                  <code class="code-inline">{company}</code>
+                  <code class="code-inline">{contact_type}</code>
+                  <code class="code-inline">{salary_range}</code>
+                  <code class="code-inline">{description}</code>
+                  <code class="code-inline">{campaign_questions}</code>
+                </div>
+                <div class="mt-1" style="color:var(--text-tertiary);font-size:0.75rem;">These are replaced with the position's values when Claude generates each prompt section.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -273,8 +309,14 @@
   };
 
   function getPositionData() {
+    const contactTypeChecked = Array.from(
+      document.querySelectorAll('input[name="contact_type"]:checked')
+    ).map(el => el.value).join(', ');
     return {
       title:              (document.getElementById('id_title')?.value || '').trim(),
+      company:            (document.getElementById('id_company')?.value || '').trim(),
+      contact_type:       contactTypeChecked,
+      salary_range:       (document.getElementById('id_salary_range')?.value || '').trim(),
       description:        (document.getElementById('id_description')?.value || '').trim(),
       campaign_questions: (document.getElementById('id_campaign_questions')?.value || '').trim(),
       position_pk:        POSITION_PK !== '0' ? parseInt(POSITION_PK, 10) : null,

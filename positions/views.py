@@ -157,6 +157,9 @@ class GenerateSectionView(LoginRequiredMixin, View):
         proxy = _PositionProxy()
         proxy.pk = body.get("position_pk", "new")
         proxy.title = title
+        proxy.company = (body.get("company") or "").strip()
+        proxy.contact_type = (body.get("contact_type") or "").strip()
+        proxy.salary_range = (body.get("salary_range") or "").strip()
         proxy.description = (body.get("description") or "").strip()
         proxy.campaign_questions = (body.get("campaign_questions") or "").strip()
 
