@@ -11,7 +11,8 @@
 {% endblock %}
 
 {% block content %}
-<!-- Candidate Hero Header -->
+
+<!-- ── Candidate Hero Header ─────────────────────────────────────────────── -->
 <div class="card candidate-header-card mb-4">
   <div class="card-body" style="padding:1.5rem;">
 
@@ -25,38 +26,40 @@
         </div>
         <!-- Name + meta -->
         <div style="flex:1;min-width:160px;">
-          <div style="font-size:1.25rem;font-weight:800;letter-spacing:-0.025em;color:var(--text-primary);line-height:1.2;margin-bottom:0.3rem;">
+          <div style="font-size:1.25rem;font-weight:800;letter-spacing:-0.025em;color:var(--text-primary);line-height:1.2;margin-bottom:0.2rem;">
             {{ candidate.full_name }}
           </div>
-          <div class="d-flex gap-2 align-items-center flex-wrap mb-3">
+          <div class="d-flex gap-2 align-items-center flex-wrap mb-0">
             <div class="badge badge-neutral">{{ candidate.get_source_display }}</div>
             {% if candidate.campaign_name %}
             <div class="badge badge-neutral">{{ candidate.campaign_name }}</div>
             {% endif %}
           </div>
-          <div class="d-flex gap-2 flex-wrap">
-            {% if candidate.phone %}
-            <a href="tel:{{ candidate.phone }}" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              {{ candidate.phone }}
-            </a>
-            {% endif %}
-            {% if candidate.email %}
-            <a href="mailto:{{ candidate.email }}" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-              Email
-            </a>
-            {% endif %}
-            {% if candidate.phone %}
-            <a href="https://wa.me/{{ candidate.whatsapp_number|default:candidate.phone }}" target="_blank"
-               class="btn btn-secondary btn-sm d-inline-flex align-items-center justify-content-center"
-               title="WhatsApp" style="width:34px;color:var(--accent-positive);">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-            </a>
-            {% endif %}
-            <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-2" id="btn-edit-contact">
-              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-              Edit
+        </div>
+        <!-- Contact info column -->
+        <div class="candidate-contact-col d-flex flex-column">
+          {% if candidate.phone %}
+          <div class="info-row">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <a href="tel:{{ candidate.phone }}" class="contact-link">{{ candidate.phone }}</a>
+          </div>
+          {% endif %}
+          {% if candidate.email %}
+          <div class="info-row">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="text-tertiary"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <a href="mailto:{{ candidate.email }}" class="contact-link">{{ candidate.email }}</a>
+          </div>
+          {% endif %}
+          {% if candidate.phone %}
+          <div class="info-row">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color:var(--accent-positive);"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            <a href="https://wa.me/{{ candidate.whatsapp_number|default:candidate.phone }}" target="_blank" class="contact-link">{{ candidate.whatsapp_number|default:candidate.phone }}</a>
+          </div>
+          {% endif %}
+          <div class="info-row mt-1">
+            <button type="button" class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1" id="btn-edit-contact">
+              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              Edit Contact
             </button>
           </div>
         </div>
@@ -105,8 +108,8 @@
 
 <div class="row g-4">
 
-  <!-- Left column -->
-  <div class="col-lg-7">
+  <!-- ── Left column ───────────────────────────────────────────────────── -->
+  <div class="col-lg-8">
 
     <!-- Applications -->
     <div class="card mb-4">
@@ -129,9 +132,7 @@
           <tbody>
             {% for app in applications %}
             <tr data-href="{% url 'applications:detail' app.pk %}">
-              <td>
-                <div class="fw-medium">{{ app.position.title }}</div>
-              </td>
+              <td><div class="fw-medium">{{ app.position.title }}</div></td>
               <td>{% include "applications/_status_badge.html" with status=app.status %}</td>
               <td class="text-center">
                 {% if app.score is not None %}
@@ -156,201 +157,162 @@
       {% endif %}
     </div>
 
-    <!-- CVs / Documents -->
+    <!-- Pre-screening Answers + Candidate Info (tabbed) -->
     <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">CVs / Documents</h2>
-        {% if cv_files %}<span class="badge badge-neutral tabular-nums">{{ cv_files|length }}</span>{% endif %}
+      <div class="card-header" style="padding-bottom:0;border-bottom:none;">
+        <div>
+          <ul class="nav rf-tabs" id="candidate-info-tabs" role="tablist">
+            {% if form_answers_list %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-prescreening" data-bs-toggle="tab" data-bs-target="#pane-prescreening" type="button" role="tab">
+                Pre-screening Answers
+              </button>
+            </li>
+            {% endif %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {% if not form_answers_list %}active{% endif %}" id="tab-candidate-info" data-bs-toggle="tab" data-bs-target="#pane-candidate-info" type="button" role="tab">
+                Candidate Info
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
-      {% if cv_files %}
-      <div class="table-responsive">
-        <table class="table mb-0">
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Received</th>
-              <th>Source</th>
-              <th>Applications</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for cv in cv_files %}
-            <tr>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"
-                       stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"
-                       style="flex-shrink:0;color:var(--accent-negative);">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  <span class="text-sm fw-medium text-truncate" style="max-width:160px;" title="{{ cv.file_name }}">
-                    {{ cv.file_name }}
-                  </span>
-                  {% if cv.needs_review %}
-                  <div class="badge status-screening">Review</div>
-                  {% endif %}
-                </div>
-                {% if cv.match_method %}
-                <div class="text-xs text-muted-custom mt-1">{{ cv.match_method }}</div>
+      <div style="border-top:1px solid var(--border-light);">
+        <div class="tab-content rf-tabs-content">
+
+          {% if form_answers_list %}
+          <div class="tab-pane fade show active" id="pane-prescreening" role="tabpanel">
+            {% for qa in form_answers_list %}
+            <div style="padding:0.75rem 1.25rem;{% if not forloop.last %}border-bottom:1px solid var(--border-light);{% endif %}">
+              <div class="text-xs fw-semibold text-tertiary mb-1" style="text-transform:uppercase;letter-spacing:.05em;">{{ qa.question }}</div>
+              <div class="text-sm fw-medium">{{ qa.answer }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="tab-pane fade {% if not form_answers_list %}show active{% endif %}" id="pane-candidate-info" role="tabpanel">
+            <table class="table meta-table mb-0">
+              <tbody>
+                <tr><td>ID</td><td class="tabular-nums">#{{ candidate.pk }}</td></tr>
+                {% if candidate.meta_lead_id %}
+                <tr><td>Meta Lead ID</td><td><span class="code-inline">{{ candidate.meta_lead_id }}</span></td></tr>
                 {% endif %}
-              </td>
-              <td class="text-xs text-muted-custom tabular-nums" style="white-space:nowrap;">
-                {{ cv.received_at|date:"d M Y" }}
-              </td>
-              <td class="text-xs text-muted-custom">{{ cv.source }}</td>
-              <td>
-                <div class="d-flex flex-column gap-1">
-                  {% for app in cv.applications %}
-                  <a href="{% url 'applications:detail' app.pk %}" class="contact-link text-xs">
-                    {{ app.position.title }} #{{ app.pk }}
-                  </a>
-                  {% empty %}
-                  <span class="text-xs text-muted-custom">—</span>
-                  {% endfor %}
+                <tr><td>Source</td><td>{{ candidate.get_source_display }}</td></tr>
+                {% if candidate.campaign_name %}
+                <tr><td>Campaign</td><td>{{ candidate.campaign_name }}</td></tr>
+                {% endif %}
+                {% if candidate.platform %}
+                <tr><td>Platform</td><td>{{ candidate.platform|upper }}</td></tr>
+                {% endif %}
+                {% if candidate.meta_created_time %}
+                <tr><td>Submitted</td><td class="tabular-nums">{{ candidate.meta_created_time|date:"d M Y H:i" }}</td></tr>
+                {% endif %}
+                <tr><td>Created</td><td class="tabular-nums">{{ candidate.created_at|date:"d M Y H:i" }}</td></tr>
+                <tr><td>Updated</td><td class="tabular-nums">{{ candidate.updated_at|date:"d M Y H:i" }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right column ──────────────────────────────────────────────────── -->
+  <div class="col-lg-4">
+
+    <!-- CVs / Documents + Notes (tabbed) -->
+    <div class="card mb-4">
+      <div class="card-header" style="padding-bottom:0;border-bottom:none;">
+        <div>
+          <ul class="nav rf-tabs" id="candidate-doc-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-cvs" data-bs-toggle="tab" data-bs-target="#pane-cvs" type="button" role="tab">
+                CVs / Documents
+                {% if cv_files %}<span class="badge badge-neutral tabular-nums ms-1">{{ cv_files|length }}</span>{% endif %}
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-notes" data-bs-toggle="tab" data-bs-target="#pane-notes" type="button" role="tab">
+                Notes
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border-light);">
+        <div class="tab-content rf-tabs-content">
+
+          <!-- CVs / Documents pane -->
+          <div class="tab-pane fade show active" id="pane-cvs" role="tabpanel">
+            {% if cv_files %}
+            <div class="d-flex flex-column">
+              {% for cv in cv_files %}
+              <div class="d-flex align-items-start justify-content-between gap-2"
+                   style="padding:0.85rem 1.25rem;{% if not forloop.last %}border-bottom:1px solid var(--border-light);{% endif %}">
+                <div class="d-flex align-items-start gap-2 overflow-hidden">
+                  <svg width="13" height="13" fill="none" stroke="var(--accent-negative)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0" style="margin-top:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  <div class="overflow-hidden">
+                    <div class="text-sm fw-medium text-truncate" title="{{ cv.file_name }}">{{ cv.file_name }}</div>
+                    <div class="text-xs text-tertiary">{{ cv.received_at|date:"d M Y" }} &middot; {{ cv.source }}</div>
+                    {% if cv.needs_review %}<div class="badge status-screening mt-1">Review</div>{% endif %}
+                    <div class="d-flex flex-column gap-1 mt-1">
+                      {% for app in cv.applications %}
+                      <a href="{% url 'applications:detail' app.pk %}" class="contact-link text-xs">{{ app.position.title }} #{{ app.pk }}</a>
+                      {% empty %}
+                      <span class="text-xs text-muted-custom">No linked applications</span>
+                      {% endfor %}
+                    </div>
+                  </div>
                 </div>
-              </td>
-              <td class="text-end no-row-click">
-                <div class="d-inline-flex align-items-center gap-1">
+                <div class="d-flex align-items-center gap-1 flex-shrink-0">
                   {% if cv.file_path %}
                   <a href="/{{ cv.file_path }}" download="{{ cv.file_name }}"
                      class="btn btn-secondary btn-sm d-inline-flex align-items-center gap-1">
-                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                      <polyline points="7 10 12 15 17 10"></polyline>
-                      <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     Download
                   </a>
-                  {% else %}
-                  <span class="text-xs text-muted-custom">No file</span>
                   {% endif %}
                   <form method="post" action="{% url 'cvs:cv_delete' cv.pk %}" class="m-0"
                         onsubmit="return confirm('Delete this CV? This cannot be undone.');">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <button type="submit" class="btn-icon-delete" title="Delete CV">
-                      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"
-                           stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                        <path d="M10 11v6"></path><path d="M14 11v6"></path>
-                        <path d="M9 6V4h6v2"></path>
-                      </svg>
+                      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
                     </button>
                   </form>
                 </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <div class="card-body text-center py-5">
-        <div class="empty-state-icon mx-auto mb-3">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5"
-               stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="card-body text-center py-5">
+              <div class="empty-state-icon mx-auto mb-3">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              </div>
+              <div class="empty-state-title">No CVs yet</div>
+              <div class="empty-state-desc">No CV documents received for this candidate.</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Notes pane -->
+          <div class="tab-pane fade" id="pane-notes" role="tabpanel">
+            <div style="padding:1rem 1.25rem;">
+              <form method="post" action="{% url 'candidates:update_notes' candidate.pk %}">
+                {% csrf_token %}
+                {{ note_form.notes }}
+                <button type="submit" class="btn btn-primary btn-sm w-100 mt-2 d-flex justify-content-center align-items-center gap-2">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Save Notes
+                </button>
+              </form>
+            </div>
+          </div>
+
         </div>
-        <div class="text-sm text-tertiary">No CVs received yet.</div>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Pre-screening Answers -->
-    {% if form_answers_list %}
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Pre-screening Answers</h2>
-      </div>
-      <div>
-        {% for qa in form_answers_list %}
-        <div style="padding:0.75rem 1.25rem;{% if not forloop.last %}border-bottom:1px solid var(--border-light);{% endif %}">
-          <div class="text-xs fw-semibold text-tertiary mb-1" style="text-transform:uppercase;letter-spacing:.05em;">{{ qa.question }}</div>
-          <div class="text-sm fw-medium">{{ qa.answer }}</div>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-  </div>
-
-  <!-- Right column -->
-  <div class="col-lg-5">
-
-    <!-- Candidate Info -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Candidate Info</h2>
-      </div>
-      <div class="card-body p-0">
-        <table class="table meta-table mb-0">
-          <tbody>
-            <tr>
-              <td>ID</td>
-              <td class="tabular-nums">#{{ candidate.pk }}</td>
-            </tr>
-            {% if candidate.meta_lead_id %}
-            <tr>
-              <td>Meta Lead ID</td>
-              <td><span class="code-inline">{{ candidate.meta_lead_id }}</span></td>
-            </tr>
-            {% endif %}
-            <tr>
-              <td>Source</td>
-              <td>{{ candidate.get_source_display }}</td>
-            </tr>
-            {% if candidate.campaign_name %}
-            <tr>
-              <td>Campaign</td>
-              <td>{{ candidate.campaign_name }}</td>
-            </tr>
-            {% endif %}
-            {% if candidate.platform %}
-            <tr>
-              <td>Platform</td>
-              <td>{{ candidate.platform|upper }}</td>
-            </tr>
-            {% endif %}
-            {% if candidate.meta_created_time %}
-            <tr>
-              <td>Submitted</td>
-              <td class="tabular-nums">{{ candidate.meta_created_time|date:"d M Y H:i" }}</td>
-            </tr>
-            {% endif %}
-            <tr>
-              <td>Created</td>
-              <td class="tabular-nums">{{ candidate.created_at|date:"d M Y H:i" }}</td>
-            </tr>
-            <tr>
-              <td>Updated</td>
-              <td class="tabular-nums">{{ candidate.updated_at|date:"d M Y H:i" }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Notes -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h2 class="card-header-title">Notes</h2>
-      </div>
-      <div class="card-body">
-        <form method="post" action="{% url 'candidates:update_notes' candidate.pk %}">
-          {% csrf_token %}
-          {{ note_form.notes }}
-          <button type="submit" class="btn btn-secondary w-100 mt-2 d-flex justify-content-center align-items-center gap-2">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-            Save Notes
-          </button>
-        </form>
       </div>
     </div>
 
