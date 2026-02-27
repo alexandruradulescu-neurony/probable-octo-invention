@@ -39,6 +39,8 @@
             <input type="checkbox" class="form-check-input" id="select-all">
           </th>
           <th>Title</th>
+          <th>Company</th>
+          <th>Type of Contract</th>
           <th>Status</th>
           <th style="width:5rem;" title="Prompts: System · First Message · Qualification">Prompts</th>
           <th>Created</th>
@@ -56,19 +58,18 @@
               <div class="fw-medium">{{ pos.title }}</div>
               <a href="{% url 'applications:list' %}?position={{ pos.pk }}" class="badge badge-neutral tabular-nums no-row-click" style="text-decoration:none;" title="{{ pos.qualified_count }} qualified / {{ pos.total_applications_count }} total">{{ pos.qualified_count }}&thinsp;/&thinsp;{{ pos.total_applications_count }}</a>
             </div>
-            {% if pos.company or pos.contact_type %}
-            <div class="d-flex align-items-center gap-2 mt-1">
-              {% if pos.company %}
-              <span class="text-xs text-muted-custom">{{ pos.company }}</span>
-              {% endif %}
-              {% if "cim" in pos.contact_type %}
-              <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">CIM</span>
-              {% endif %}
-              {% if "b2b" in pos.contact_type %}
-              <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">B2B</span>
-              {% endif %}
-            </div>
+          </td>
+          <td class="text-sm">
+            {% if pos.company %}{{ pos.company }}{% else %}<span class="text-muted-custom">&mdash;</span>{% endif %}
+          </td>
+          <td>
+            {% if "cim" in pos.contact_type %}
+            <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">CIM</span>
             {% endif %}
+            {% if "b2b" in pos.contact_type %}
+            <span class="badge badge-neutral" style="font-size:0.65rem;padding:0.15rem 0.4rem;text-transform:uppercase;letter-spacing:0.03em;">B2B</span>
+            {% endif %}
+            {% if not pos.contact_type %}<span class="text-muted-custom">&mdash;</span>{% endif %}
           </td>
           <td>
             {% if pos.status == "open" %}
@@ -91,7 +92,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="text-center py-5">
+          <td colspan="8" class="text-center py-5">
             <div class="empty-state-icon mx-auto mb-3">
               <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
             </div>
