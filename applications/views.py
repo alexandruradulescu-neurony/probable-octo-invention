@@ -81,7 +81,25 @@ class ApplicationListView(LoginRequiredMixin, ListView):
         return qs
 
     def get_context_data(self, **kwargs):
+        from recruitflow.views import DashboardView
+
         ctx = super().get_context_data(**kwargs)
+        now = timezone.now()
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        try:
+            period = int(self.request.GET.get("period", 7))
+        except (ValueError, TypeError):
+            period = 7
+        if period not in {7, 14, 30}:
+            period = 7
+
+        # Build period-tab URLs preserving all existing filter params
+        def _period_url(p):
+            params = self.request.GET.copy()
+            params["period"] = p
+            return "?" + params.urlencode()
+
         ctx["positions"] = Position.objects.order_by("title")
         ctx["status_choices"] = Application.Status.choices
         ctx["current_filters"] = {
@@ -91,6 +109,13 @@ class ApplicationListView(LoginRequiredMixin, ListView):
             "date_from": self.request.GET.get("date_from", ""),
             "date_to": self.request.GET.get("date_to", ""),
         }
+        ctx["period"] = period
+        ctx["period_urls"] = {7: _period_url(7), 14: _period_url(14), 30: _period_url(30)}
+        ctx["kpi_totals"] = DashboardView._kpi_totals(period, now, today_start)
+        ctx["chart_data"] = DashboardView._chart_data(period, now)
+        ctx["open_positions_count"] = Position.objects.filter(
+            status=Position.Status.OPEN
+        ).count()
         return ctx
 
 

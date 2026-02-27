@@ -3,7 +3,87 @@
 {% block breadcrumb %}Applications{% endblock %}
 {% block page_title %}Applications{% endblock %}
 
+{% block extra_css %}
+<style>
+  .period-tabs { display:flex; background:var(--bg-page); border:1px solid var(--border-default); border-radius:8px; padding:3px; gap:2px; }
+  .period-tab  { padding:4px 14px; border-radius:5px; font-size:0.78rem; font-weight:600; color:var(--text-tertiary); text-decoration:none; transition:all 0.15s; white-space:nowrap; }
+  .period-tab:hover { color:var(--text-primary); }
+  .period-tab.active { background:#fff; color:var(--text-primary); box-shadow:0 1px 3px rgba(15,23,42,0.10); }
+  .ov-metrics { display:flex; border-bottom:1px solid var(--border-light); margin-bottom:1.5rem; padding-bottom:1.25rem; }
+  .ov-metric  { flex:1; padding:0 1.5rem; border-right:1px solid var(--border-light); }
+  .ov-metric:first-child { padding-left:0; }
+  .ov-metric:last-child  { border-right:none; }
+  .ov-metric-label { display:flex; align-items:center; gap:6px; font-size:0.70rem; font-weight:700; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.5rem; }
+  .ov-metric-dot   { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .ov-metric-value { font-size:2rem; font-weight:800; color:var(--text-primary); line-height:1; letter-spacing:-0.04em; margin-bottom:0.4rem; font-variant-numeric:tabular-nums; }
+  .ov-metric-sub   { font-size:0.78rem; color:var(--text-muted); font-weight:500; }
+  .trend-badge { display:inline-flex; align-items:center; gap:2px; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:99px; }
+  .trend-up   { background:rgba(16,185,129,0.10); color:#059669; }
+  .trend-down { background:rgba(239,68,68,0.10);  color:#DC2626; }
+</style>
+{% endblock %}
+
 {% block content %}
+{# ── Activity Overview ───────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header">
+    <h2 class="card-header-title">Activity Overview</h2>
+    <div class="period-tabs">
+      <a href="{{ period_urls.7 }}"  class="period-tab {% if period == 7  %}active{% endif %}">7 days</a>
+      <a href="{{ period_urls.14 }}" class="period-tab {% if period == 14 %}active{% endif %}">14 days</a>
+      <a href="{{ period_urls.30 }}" class="period-tab {% if period == 30 %}active{% endif %}">30 days</a>
+    </div>
+  </div>
+  <div class="card-body" style="padding:1.5rem 1.5rem 1.25rem;">
+
+    <div class="ov-metrics">
+
+      <div class="ov-metric">
+        <div class="ov-metric-label"><div class="ov-metric-dot" style="background:#4F46E5;"></div>Calls</div>
+        <div class="ov-metric-value">{{ kpi_totals.calls }}</div>
+        {% if kpi_totals.calls_trend %}
+        <span class="trend-badge {% if kpi_totals.calls_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.calls_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.calls_trend.pct }}%
+        </span>
+        {% else %}<span class="ov-metric-sub">No prior data</span>{% endif %}
+      </div>
+
+      <div class="ov-metric">
+        <div class="ov-metric-label"><div class="ov-metric-dot" style="background:#10B981;"></div>CVs Received</div>
+        <div class="ov-metric-value">{{ kpi_totals.cvs }}</div>
+        {% if kpi_totals.cvs_trend %}
+        <span class="trend-badge {% if kpi_totals.cvs_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.cvs_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.cvs_trend.pct }}%
+        </span>
+        {% else %}<span class="ov-metric-sub">No prior data</span>{% endif %}
+      </div>
+
+      <div class="ov-metric">
+        <div class="ov-metric-label"><div class="ov-metric-dot" style="background:#8B5CF6;"></div>Follow-ups</div>
+        <div class="ov-metric-value">{{ kpi_totals.followups }}</div>
+        {% if kpi_totals.followups_trend %}
+        <span class="trend-badge {% if kpi_totals.followups_trend.up %}trend-up{% else %}trend-down{% endif %}">
+          {% if kpi_totals.followups_trend.up %}↑{% else %}↓{% endif %} {{ kpi_totals.followups_trend.pct }}%
+        </span>
+        {% else %}<span class="ov-metric-sub">No prior data</span>{% endif %}
+      </div>
+
+      <div class="ov-metric">
+        <div class="ov-metric-label">Open Positions</div>
+        <div class="ov-metric-value">{{ open_positions_count }}</div>
+        <span class="ov-metric-sub">Currently active</span>
+      </div>
+
+    </div>
+
+    {{ chart_data|json_script:"applist-chart-data" }}
+    <div style="position:relative;height:200px;">
+      <canvas id="applist-activity-chart"></canvas>
+    </div>
+
+  </div>
+</div>
+
 <!-- Filters -->
 <div class="card mb-4">
   <div class="card-body">
@@ -167,5 +247,81 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const raw = JSON.parse(document.getElementById('applist-chart-data').textContent);
+  const root = getComputedStyle(document.documentElement);
+  const textMuted = root.getPropertyValue('--text-muted').trim() || '#94a3b8';
+  const borderLight = root.getPropertyValue('--border-light').trim() || '#e2e8f0';
+
+  new Chart(document.getElementById('applist-activity-chart'), {
+    type: 'line',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          label: 'Calls',
+          data: raw.calls,
+          borderColor: '#4F46E5',
+          backgroundColor: 'rgba(79,70,229,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.35,
+          fill: true,
+        },
+        {
+          label: 'CVs',
+          data: raw.cvs,
+          borderColor: '#10B981',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.35,
+        },
+        {
+          label: 'Follow-ups',
+          data: raw.followups,
+          borderColor: '#8B5CF6',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.35,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: '#1e293b',
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          padding: 10,
+          cornerRadius: 6,
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: borderLight },
+          ticks: { color: textMuted, font: { size: 11 }, maxTicksLimit: 7 },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: borderLight },
+          ticks: { color: textMuted, font: { size: 11 }, precision: 0 },
+        },
+      },
+    },
+  });
+})();
+</script>
 <script>initBulkSelect('.row-check', 'select-all', 'bulk-bar', 'bulk-count');</script>
 {% endblock %}
