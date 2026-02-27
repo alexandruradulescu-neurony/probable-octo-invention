@@ -20,6 +20,7 @@ from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
 from recruitflow.constants import SIDEBAR_CACHE_KEY
+from recruitflow.mixins import PaginationMixin
 
 from evaluations.services import ClaudeService, ClaudeServiceError
 from positions.forms import PositionForm
@@ -29,7 +30,7 @@ from prompts.models import PromptTemplate
 logger = logging.getLogger(__name__)
 
 
-class PositionListView(LoginRequiredMixin, ListView):
+class PositionListView(PaginationMixin, LoginRequiredMixin, ListView):
     """
     Table of all positions.
     Columns: title, status badge, open applications count, created date.

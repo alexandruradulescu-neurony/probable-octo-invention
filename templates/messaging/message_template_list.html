@@ -28,9 +28,10 @@
 
 {% if templates %}
 
+<div class="card mb-0">
 {% for type_label, group in grouped.items %}
-<div class="card mb-4">
-  <div class="card-header">
+<div class="border-bottom" style="border-color:var(--border-default)!important;">
+  <div class="card-header" style="border-bottom:none;">
     <h2 class="card-header-title">{{ type_label }}</h2>
   </div>
   <div class="table-responsive">
@@ -99,6 +100,8 @@
   </div>
 </div>
 {% endfor %}
+{% include "partials/pagination.html" %}
+</div>
 
 {% else %}
 <div class="card">

@@ -276,7 +276,7 @@
     </div>{# /ov-metrics #}
 
     {# Chart #}
-    {{ positions_chart_data|json_script:"dashboard-chart-data" }}
+    {{ chart_data|json_script:"dashboard-chart-data" }}
     <div style="position:relative; height:220px;">
       <canvas id="activity-chart"></canvas>
     </div>
@@ -524,30 +524,54 @@
   var canvas  = document.getElementById('activity-chart');
   if (!dataEl || !canvas) return;
 
-  var raw = JSON.parse(dataEl.textContent);
-  var labels = raw.labels.map(function(l) { return l.length > 22 ? l.slice(0, 20) + '…' : l; });
-  var notQualified = raw.applications.map(function(t, i) { return t - raw.qualified[i]; });
+  var d = JSON.parse(dataEl.textContent);
 
   new Chart(canvas, {
-    type: 'bar',
+    type: 'line',
     data: {
-      labels: labels,
+      labels: d.labels,
       datasets: [
         {
-          label: 'Other',
-          data: notQualified,
-          backgroundColor: 'rgba(79,70,229,0.45)',
-          borderRadius: 0,
-          borderSkipped: false,
-          stack: 'pos',
+          label: 'Calls',
+          data: d.calls,
+          borderColor: '#4F46E5',
+          backgroundColor: 'rgba(79,70,229,0.08)',
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#4F46E5',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
         },
         {
-          label: 'Qualified',
-          data: raw.qualified,
-          backgroundColor: 'rgba(16,185,129,0.80)',
-          borderRadius: 4,
-          borderSkipped: false,
-          stack: 'pos',
+          label: 'CVs Received',
+          data: d.cvs,
+          borderColor: '#10B981',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#10B981',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Follow-ups',
+          data: d.followups,
+          borderColor: '#8B5CF6',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.4,
+          borderWidth: 2,
+          pointBackgroundColor: '#8B5CF6',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
         },
       ],
     },
@@ -555,20 +579,7 @@
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          labels: {
-            color: '#94A3B8',
-            font: { size: 11, weight: '600', family: "'DM Sans', sans-serif" },
-            boxWidth: 10,
-            boxHeight: 10,
-            borderRadius: 3,
-            useBorderRadius: true,
-            padding: 16,
-          },
-        },
+        legend: { display: false },
         tooltip: {
           mode: 'index',
           intersect: false,
@@ -582,25 +593,43 @@
           titleFont: { family: "'DM Sans', sans-serif", weight: '700', size: 12 },
           bodyFont: { family: "'DM Sans', sans-serif", size: 12 },
           callbacks: {
-            title: function(items) { return raw.labels[items[0].dataIndex]; },
-            afterBody: function(items) { return ['Total: ' + raw.applications[items[0].dataIndex]]; },
+            labelColor: function (ctx) {
+              return {
+                borderColor: ctx.dataset.borderColor,
+                backgroundColor: ctx.dataset.borderColor,
+                borderRadius: 3,
+              };
+            },
           },
         },
       },
       scales: {
         x: {
-          stacked: true,
           grid: { display: false },
           border: { display: false },
-          ticks: { font: { size: 11, family: "'DM Sans', sans-serif" }, color: '#94A3B8' },
+          ticks: {
+            font: { size: 11, family: "'DM Sans', sans-serif" },
+            color: '#94A3B8',
+          },
         },
         y: {
-          stacked: true,
           beginAtZero: true,
-          grid: { color: '#F1F5F9', drawBorder: false },
+          grid: {
+            color: '#F1F5F9',
+            drawBorder: false,
+          },
           border: { display: false },
-          ticks: { precision: 0, font: { size: 11, family: "'DM Sans', sans-serif" }, color: '#94A3B8', padding: 8 },
+          ticks: {
+            precision: 0,
+            font: { size: 11, family: "'DM Sans', sans-serif" },
+            color: '#94A3B8',
+            padding: 8,
+          },
         },
+      },
+      interaction: {
+        mode: 'index',
+        intersect: false,
       },
     },
   });

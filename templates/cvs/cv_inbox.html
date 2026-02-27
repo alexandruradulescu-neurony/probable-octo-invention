@@ -67,16 +67,16 @@
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="unmatched-tab" data-bs-toggle="tab" data-bs-target="#unmatched-pane" type="button" role="tab">
       Unmatched
-      {% if unmatched_items %}
-        <span class="badge" style="background: var(--status-rejected-bg); color: var(--status-rejected-text); margin-left: 0.25rem;">{{ unmatched_items|length }}</span>
+      {% if unmatched_total %}
+        <span class="badge" style="background: var(--status-rejected-bg); color: var(--status-rejected-text); margin-left: 0.25rem;">{{ unmatched_total }}</span>
       {% endif %}
     </button>
   </li>
   <li class="nav-item" role="presentation">
     <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review-pane" type="button" role="tab">
       Needs Review
-      {% if needs_review_items %}
-        <span class="badge" style="background: var(--status-screening-bg); color: var(--status-screening-text); margin-left: 0.25rem;">{{ needs_review_items|length }}</span>
+      {% if needs_review_total %}
+        <span class="badge" style="background: var(--status-screening-bg); color: var(--status-screening-text); margin-left: 0.25rem;">{{ needs_review_total }}</span>
       {% endif %}
     </button>
   </li>
@@ -146,6 +146,26 @@
         <div class="empty-state-desc">All caught up!</div>
       </div>
       {% endif %}
+      {% if u_is_paginated %}
+      {% load rf_tags %}
+      <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3" style="border-top:1px solid var(--border-default);">
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-sm" style="color:var(--text-muted);">{{ u_page_obj.start_index }}–{{ u_page_obj.end_index }} of {{ u_paginator.count }}</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-sm" style="color:var(--text-muted);">Per page:</span>
+            <select class="form-select form-select-sm" style="width:auto;min-width:68px;"
+                    onchange="(function(v){var u=new URL(window.location.href);u.searchParams.set('per_page',v);u.searchParams.set('u_page','1');window.location.href=u.toString();})(this.value)">
+              {% for opt in per_page_options %}<option value="{{ opt }}"{% if opt == per_page %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if u_page_obj.has_previous %}<a class="btn btn-secondary btn-sm" href="?{% querystring u_page=u_page_obj.previous_page_number per_page=per_page %}">&larr; Prev</a>{% else %}<button class="btn btn-secondary btn-sm" disabled>&larr; Prev</button>{% endif %}
+          <span class="text-sm px-1" style="color:var(--text-muted);">{{ u_page_obj.number }} / {{ u_paginator.num_pages }}</span>
+          {% if u_page_obj.has_next %}<a class="btn btn-secondary btn-sm" href="?{% querystring u_page=u_page_obj.next_page_number per_page=per_page %}">Next &rarr;</a>{% else %}<button class="btn btn-secondary btn-sm" disabled>Next &rarr;</button>{% endif %}
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -208,6 +228,26 @@
         <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="color: var(--accent-positive);" class="mb-3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
         <div class="empty-state-title">No CVs pending review</div>
         <div class="empty-state-desc">All caught up!</div>
+      </div>
+      {% endif %}
+      {% if r_is_paginated %}
+      {% load rf_tags %}
+      <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3" style="border-top:1px solid var(--border-default);">
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-sm" style="color:var(--text-muted);">{{ r_page_obj.start_index }}–{{ r_page_obj.end_index }} of {{ r_paginator.count }}</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-sm" style="color:var(--text-muted);">Per page:</span>
+            <select class="form-select form-select-sm" style="width:auto;min-width:68px;"
+                    onchange="(function(v){var u=new URL(window.location.href);u.searchParams.set('per_page',v);u.searchParams.set('r_page','1');window.location.href=u.toString();})(this.value)">
+              {% for opt in per_page_options %}<option value="{{ opt }}"{% if opt == per_page %} selected{% endif %}>{{ opt }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if r_page_obj.has_previous %}<a class="btn btn-secondary btn-sm" href="?{% querystring r_page=r_page_obj.previous_page_number per_page=per_page %}">&larr; Prev</a>{% else %}<button class="btn btn-secondary btn-sm" disabled>&larr; Prev</button>{% endif %}
+          <span class="text-sm px-1" style="color:var(--text-muted);">{{ r_page_obj.number }} / {{ r_paginator.num_pages }}</span>
+          {% if r_page_obj.has_next %}<a class="btn btn-secondary btn-sm" href="?{% querystring r_page=r_page_obj.next_page_number per_page=per_page %}">Next &rarr;</a>{% else %}<button class="btn btn-secondary btn-sm" disabled>Next &rarr;</button>{% endif %}
+        </div>
       </div>
       {% endif %}
     </div>

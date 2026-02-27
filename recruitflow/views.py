@@ -141,7 +141,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "period": period,
             "position_summaries": self._position_summaries(),
             "kpi_totals": self._kpi_totals(period, now, today_start),
-            "positions_chart_data": self._positions_chart_data(),
+            "chart_data": self._chart_data(period, now),
             "attention_required": self._attention_required(now, today_start),
             "pipeline_data": self._pipeline_data(),
             "recent_changes": self._recent_changes(),
@@ -249,32 +249,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "calls": calls_data,
             "cvs": cvs_data,
             "followups": followups_data,
-        }
-
-    # ── Per-position applications chart ───────────────────────────────────────
-
-    @classmethod
-    def _positions_chart_data(cls) -> dict:
-        """
-        Per open-position totals: total applications and qualified count.
-        Used by the stacked bar chart on the dashboard and application list.
-        """
-        open_positions = (
-            Position.objects
-            .filter(status=Position.Status.OPEN)
-            .annotate(
-                apps_count=Count("applications"),
-                qualified_count=Count(
-                    "applications",
-                    filter=Q(applications__qualified=True),
-                ),
-            )
-            .order_by("title")
-        )
-        return {
-            "labels":       [p.title for p in open_positions],
-            "applications": [p.apps_count for p in open_positions],
-            "qualified":    [p.qualified_count for p in open_positions],
         }
 
     # ── KPI period totals with trend ───────────────────────────────────────────

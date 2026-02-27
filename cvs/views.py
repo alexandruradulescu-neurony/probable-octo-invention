@@ -16,6 +16,7 @@ import logging
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.cache import cache
 from django.core.files.storage import default_storage
+from django.core.paginator import Paginator, InvalidPage
 from recruitflow.constants import SIDEBAR_CACHE_KEY
 from django.db import transaction
 from django.db.models import Q
@@ -124,6 +125,30 @@ class CVInboxView(LoginRequiredMixin, TemplateView):
     """
     template_name = "cvs/cv_inbox.html"
 
+    _PER_PAGE_OPTIONS = [10, 25, 50, 100]
+    _DEFAULT_PER_PAGE = 25
+
+    def _get_per_page(self) -> int:
+        try:
+            value = int(self.request.GET.get("per_page", self._DEFAULT_PER_PAGE))
+        except (ValueError, TypeError):
+            value = self._DEFAULT_PER_PAGE
+        return value if value in self._PER_PAGE_OPTIONS else self._DEFAULT_PER_PAGE
+
+    def _paginate(self, qs, page_param: str):
+        """Paginate a queryset; returns (page_obj, is_paginated)."""
+        per_page = self._get_per_page()
+        paginator = Paginator(qs, per_page)
+        try:
+            page_number = int(self.request.GET.get(page_param, 1))
+        except (ValueError, TypeError):
+            page_number = 1
+        try:
+            page_obj = paginator.page(page_number)
+        except InvalidPage:
+            page_obj = paginator.page(1)
+        return paginator, page_obj, paginator.count > per_page
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
@@ -132,10 +157,12 @@ class CVInboxView(LoginRequiredMixin, TemplateView):
             .filter(resolved=False)
             .order_by("-received_at")
         )
-        unmatched_total = unmatched_qs.count()
-        ctx["unmatched_items"] = unmatched_qs[:100]
-        ctx["unmatched_total"] = unmatched_total
-        ctx["unmatched_capped"] = unmatched_total > 100
+        u_paginator, u_page_obj, u_is_paginated = self._paginate(unmatched_qs, "u_page")
+        ctx["unmatched_items"]      = u_page_obj.object_list
+        ctx["unmatched_total"]      = u_paginator.count
+        ctx["u_page_obj"]           = u_page_obj
+        ctx["u_paginator"]          = u_paginator
+        ctx["u_is_paginated"]       = u_is_paginated
 
         review_qs = (
             CVUpload.objects
@@ -143,10 +170,15 @@ class CVInboxView(LoginRequiredMixin, TemplateView):
             .select_related("application__candidate", "application__position", "candidate")
             .order_by("-received_at")
         )
-        review_total = review_qs.count()
-        ctx["needs_review_items"] = review_qs[:100]
-        ctx["needs_review_total"] = review_total
-        ctx["needs_review_capped"] = review_total > 100
+        r_paginator, r_page_obj, r_is_paginated = self._paginate(review_qs, "r_page")
+        ctx["needs_review_items"]   = r_page_obj.object_list
+        ctx["needs_review_total"]   = r_paginator.count
+        ctx["r_page_obj"]           = r_page_obj
+        ctx["r_paginator"]          = r_paginator
+        ctx["r_is_paginated"]       = r_is_paginated
+
+        ctx["per_page"]         = self._get_per_page()
+        ctx["per_page_options"] = self._PER_PAGE_OPTIONS
 
         return ctx
 

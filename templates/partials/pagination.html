@@ -1,0 +1,51 @@
+{% load rf_tags %}
+{% if is_paginated %}
+<div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3"
+     style="border-top:1px solid var(--border-default);">
+
+  {# Left: result range + per-page selector #}
+  <div class="d-flex align-items-center gap-3">
+    <span class="text-sm" style="color:var(--text-muted);">
+      {{ page_obj.start_index }}–{{ page_obj.end_index }}
+      of {{ paginator.count }}
+    </span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-sm" style="color:var(--text-muted);">Per page:</span>
+      <select class="form-select form-select-sm"
+              style="width:auto;min-width:68px;"
+              onchange="(function(v){
+                var u=new URL(window.location.href);
+                u.searchParams.set('per_page',v);
+                u.searchParams.set('page','1');
+                window.location.href=u.toString();
+              })(this.value)">
+        {% for opt in per_page_options %}
+        <option value="{{ opt }}"{% if opt == per_page %} selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {# Right: prev / page indicator / next #}
+  <div class="d-flex align-items-center gap-2">
+    {% if page_obj.has_previous %}
+    <a class="btn btn-secondary btn-sm"
+       href="?{% querystring page=page_obj.previous_page_number per_page=per_page %}">&larr; Prev</a>
+    {% else %}
+    <button class="btn btn-secondary btn-sm" disabled>&larr; Prev</button>
+    {% endif %}
+
+    <span class="text-sm px-1" style="color:var(--text-muted);">
+      {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a class="btn btn-secondary btn-sm"
+       href="?{% querystring page=page_obj.next_page_number per_page=per_page %}">Next &rarr;</a>
+    {% else %}
+    <button class="btn btn-secondary btn-sm" disabled>Next &rarr;</button>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}

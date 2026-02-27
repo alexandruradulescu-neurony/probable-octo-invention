@@ -68,3 +68,20 @@ def score_stroke_color(outcome: str) -> str:
         "needs_human": "#F97316",
     }
     return mapping.get(outcome, "#6366F1")
+
+
+# ── Pagination URL helper ─────────────────────────────────────────────────────
+
+@register.simple_tag(takes_context=True)
+def querystring(context, **kwargs):
+    """
+    Return the current query string with the given key=value pairs updated.
+    Usage: {% querystring page=2 per_page=25 %}
+    """
+    params = context["request"].GET.copy()
+    for key, value in kwargs.items():
+        if value is None:
+            params.pop(key, None)
+        else:
+            params[key] = value
+    return params.urlencode()

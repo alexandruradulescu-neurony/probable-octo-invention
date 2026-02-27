@@ -9,6 +9,7 @@ import logging
 
 from django.contrib import messages as django_messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from recruitflow.mixins import PaginationMixin
 from django.core.cache import cache
 from django.db import IntegrityError, transaction as db_transaction
 from django.db.models import Prefetch
@@ -38,7 +39,7 @@ from recruitflow.text_utils import humanize_form_question
 logger = logging.getLogger(__name__)
 
 
-class ApplicationListView(LoginRequiredMixin, ListView):
+class ApplicationListView(PaginationMixin, LoginRequiredMixin, ListView):
     """
     Filterable application list.
     Query params: position, status, qualified, date_from, date_to.
@@ -47,7 +48,6 @@ class ApplicationListView(LoginRequiredMixin, ListView):
     model = Application
     template_name = "applications/application_list.html"
     context_object_name = "applications"
-    paginate_by = 50
 
     def get_queryset(self):
         qs = (

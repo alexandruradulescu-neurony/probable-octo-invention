@@ -8,6 +8,8 @@ Spec § 12.4 — Candidates.
 import io
 import logging
 
+from recruitflow.mixins import PaginationMixin
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count, Q
@@ -24,7 +26,7 @@ from recruitflow.text_utils import build_full_name, humanize_form_question
 
 logger = logging.getLogger(__name__)
 
-class CandidateListView(LoginRequiredMixin, ListView):
+class CandidateListView(PaginationMixin, LoginRequiredMixin, ListView):
     """
     Searchable, filterable candidate table.
     Filters: position, source, search (name/phone/email).
@@ -33,7 +35,6 @@ class CandidateListView(LoginRequiredMixin, ListView):
     model = Candidate
     template_name = "candidates/candidate_list.html"
     context_object_name = "candidates"
-    paginate_by = 50
 
     def get_queryset(self):
         qs = (
