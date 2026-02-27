@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load rf_tags %}
 {% block title %}{{ candidate.full_name }} — {{ position.title }} — RecruitFlow{% endblock %}
-{% block breadcrumb %}Applications / {{ candidate.full_name }}{% endblock %}
+{% block breadcrumb %}<span class="bc-section">Applications</span><span class="bc-sep">/</span><span class="bc-page">{{ candidate.full_name }}</span>{% endblock %}
 {% block topbar_title_block %}{% endblock %}
 
 {% block extra_css %}
@@ -241,7 +241,7 @@
             <!-- Score gauge -->
             {% with arc_filled=ev.score|score_arc stroke_color=ev.outcome|score_stroke_color %}
             <div class="eval-gauge-wrap">
-              <div style="position:relative;width:88px;height:88px;">
+              <div style="position:relative;width:132px;height:132px;">
                 <svg class="eval-gauge-svg" viewBox="0 0 80 80">
                   <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border-default)" stroke-width="5"/>
                   <circle cx="40" cy="40" r="34" fill="none"
@@ -251,9 +251,8 @@
                           stroke-linecap="round"
                           transform="rotate(-90 40 40)"/>
                 </svg>
-                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;">
-                  <span class="eval-gauge-score">{{ ev.score }}</span>
-                  <span class="eval-gauge-denom">/100</span>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                  <span class="eval-gauge-score">{{ ev.score }}%</span>
                 </div>
               </div>
               <span class="eval-gauge-label">Overall Score</span>
@@ -264,7 +263,7 @@
             <div class="eval-criteria-list">
               {% if ev.raw_response.criteria %}
                 {% for criterion in ev.raw_response.criteria %}
-                <div class="eval-criterion">
+                <div class="eval-criterion {% if criterion.passed %}eval-criterion-row-pass{% else %}eval-criterion-row-fail{% endif %}">
                   <div class="eval-criterion-icon {% if criterion.passed %}eval-criterion-pass{% else %}eval-criterion-fail{% endif %}">
                     {% if criterion.passed %}
                     <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -453,7 +452,7 @@
           <div class="d-flex flex-column gap-2">
             {{ status_override_form.new_status }}
             {{ status_override_form.reason }}
-            <button type="submit" class="btn btn-secondary btn-sm w-100">Update Status</button>
+            <button type="submit" class="btn btn-primary btn-sm w-100">Update Status</button>
           </div>
         </form>
       </div>
