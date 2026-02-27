@@ -3,10 +3,22 @@
 {% block breadcrumb %}<span class="bc-section">Positions</span><span class="bc-sep">/</span><span class="bc-page">{% if object %}Edit Position{% else %}New Position{% endif %}</span>{% endblock %}
 
 {% block topbar_actions %}
-<a href="{% url 'positions:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
-  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-  Back to Positions
-</a>
+<div class="d-flex align-items-center gap-2">
+  {% if object %}
+  <a href="{% url 'applications:list' %}?position={{ object.pk }}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    View Candidates
+  </a>
+  <a href="{% url 'candidates:csv_import' %}?position={{ object.pk }}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+    Upload Candidates
+  </a>
+  {% endif %}
+  <a href="{% url 'positions:list' %}" class="btn btn-secondary d-inline-flex align-items-center gap-2">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    Back to Positions
+  </a>
+</div>
 {% endblock %}
 
 {% block content %}
