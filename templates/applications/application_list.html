@@ -258,24 +258,29 @@
   // Truncate long position titles for the axis
   const labels = raw.labels.map(l => l.length > 22 ? l.slice(0, 20) + '…' : l);
 
+  // Stacked: base = non-qualified, top = qualified → full height = total
+  const notQualified = raw.applications.map((t, i) => t - raw.qualified[i]);
+
   new Chart(document.getElementById('applist-activity-chart'), {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Applications',
-          data: raw.applications,
-          backgroundColor: 'rgba(79,70,229,0.75)',
-          borderRadius: 4,
+          label: 'Other',
+          data: notQualified,
+          backgroundColor: 'rgba(79,70,229,0.45)',
+          borderRadius: 0,
           borderSkipped: false,
+          stack: 'pos',
         },
         {
           label: 'Qualified',
           data: raw.qualified,
-          backgroundColor: 'rgba(16,185,129,0.75)',
+          backgroundColor: 'rgba(16,185,129,0.80)',
           borderRadius: 4,
           borderSkipped: false,
+          stack: 'pos',
         },
       ],
     },
@@ -307,15 +312,21 @@
           cornerRadius: 6,
           callbacks: {
             title: (items) => raw.labels[items[0].dataIndex],
+            afterBody: (items) => {
+              const i = items[0].dataIndex;
+              return [`Total: ${raw.applications[i]}`];
+            },
           },
         },
       },
       scales: {
         x: {
+          stacked: true,
           grid: { display: false },
           ticks: { color: textMuted, font: { size: 11 } },
         },
         y: {
+          stacked: true,
           beginAtZero: true,
           grid: { color: borderLight },
           ticks: { color: textMuted, font: { size: 11 }, precision: 0 },
